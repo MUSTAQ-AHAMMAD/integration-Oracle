@@ -1,0 +1,10 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<sequence xmlns="http://xmlns.oracle.com/jdeveloper/1211/offlinedb">
+  <name>NOTIF_EMAIL_RECP_ID_SEQ_GEN</name>
+  <incrementBy>10</incrementBy>
+  <minValue>10</minValue>
+  <schema>
+    <name>ALQURASHI</name>
+  </schema>
+  <startWith>10</startWith>
+</sequence>

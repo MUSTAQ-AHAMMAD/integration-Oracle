@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="OpenCartSettingsPageDef"
+                Package="view.pageDefs">
+  <parameters/>
+  <executables>
+    <variableIterator id="variables"/>
+    <iterator Binds="OpencartGlobalSitesView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="OpencartGlobalSitesView1Iterator"/>
+  </executables>
+  <bindings>
+    <action id="Commit" RequiresUpdateModel="true" Action="commitTransaction" DataControl="AppModuleDataControl"/>
+    <action id="Rollback" RequiresUpdateModel="false" Action="rollbackTransaction" DataControl="AppModuleDataControl"/>
+    <attributeValues IterBinding="OpencartGlobalSitesView1Iterator" id="CountryCode">
+      <AttrNames>
+        <Item Value="CountryCode"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="OpencartGlobalSitesView1Iterator" id="DomainName">
+      <AttrNames>
+        <Item Value="DomainName"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="OpencartGlobalSitesView1Iterator" id="DomainToken">
+      <AttrNames>
+        <Item Value="DomainToken"/>
+      </AttrNames>
+    </attributeValues>
+    <tree IterBinding="OpencartGlobalSitesView1Iterator" id="OpencartGlobalSitesView1">
+      <nodeDefinition DefName="model.OpencartGlobalSitesView" Name="OpencartGlobalSitesView10">
+        <AttrNames>
+          <Item Value="CountryCode"/>
+          <Item Value="DomainName"/>
+          <Item Value="DomainToken"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="OpencartGlobalSitesView1Iterator" id="First" RequiresUpdateModel="true" Action="first"/>
+    <action IterBinding="OpencartGlobalSitesView1Iterator" id="Previous" RequiresUpdateModel="true" Action="previous"/>
+    <action IterBinding="OpencartGlobalSitesView1Iterator" id="Next" RequiresUpdateModel="true" Action="next"/>
+    <action IterBinding="OpencartGlobalSitesView1Iterator" id="Last" RequiresUpdateModel="true" Action="last"/>
+    <action IterBinding="OpencartGlobalSitesView1Iterator" id="Create" RequiresUpdateModel="true" Action="createRow"/>
+    <action IterBinding="OpencartGlobalSitesView1Iterator" id="Delete" RequiresUpdateModel="false"
+            Action="removeCurrentRow"/>
+  </bindings>
+</pageDefinition>

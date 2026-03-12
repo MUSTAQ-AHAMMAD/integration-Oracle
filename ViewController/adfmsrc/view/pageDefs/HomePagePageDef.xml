@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="HomePagePageDef"
+                Package="view.pageDefs">
+  <parameters/>
+  <executables>
+    <iterator Binds="VendhqItemMetaView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="VendhqItemMetaView1Iterator"/>
+    <searchRegion Binds="VendhqItemMetaView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="VendhqItemMetaView1Query"/>
+    <iterator Binds="FusionInvoiceHeaderView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionInvoiceHeaderView1Iterator"/>
+    <iterator Binds="FusionInvoiceLineView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionInvoiceLineView1Iterator"/>
+    <searchRegion Binds="FusionInvoiceLineView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionInvoiceLineView1Query"/>
+    <iterator Binds="FusionStandardReceiptView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionStandardReceiptView1Iterator"/>
+    <searchRegion Binds="FusionStandardReceiptView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionStandardReceiptView1Query"/>
+    <iterator Binds="FusionMiscReceiptView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionMiscReceiptView1Iterator"/>
+    <searchRegion Binds="FusionMiscReceiptView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionMiscReceiptView1Query"/>
+    <iterator Binds="FusionInvTxnView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionInvTxnView1Iterator"/>
+    <searchRegion Binds="FusionInvTxnView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionInvTxnView1Query"/>
+    <searchRegion Binds="FusionInvoiceHeaderView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionInvoiceHeaderView1Query"/>
+    <variableIterator id="variables">
+      <variableUsage DataControl="AppModuleDataControl" Binds="FusionInvoiceHeaderView1.variablesMap.SelectedRegion"
+                     Name="ExecuteWithParams_SelectedRegion" IsQueriable="false"/>
+    </variableIterator>
+    <iterator Binds="FusionCredentialsView1" RangeSize="10" DataControl="AppModuleDataControl"
+              id="FusionCredentialsView1Iterator"/>
+    <iterator Binds="VendhqCredentialsView2" RangeSize="-1" DataControl="AppModuleDataControl"
+              id="VendhqCredentialsView2Iterator"/>
+    <iterator Binds="FusionApplyReceiptView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionApplyReceiptView1Iterator"/>
+    <searchRegion Binds="FusionApplyReceiptView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionApplyReceiptView1Query"/>
+    <iterator Binds="VendhqOutletsView1" RangeSize="100" DataControl="AppModuleDataControl"
+              id="VendhqOutletsView1Iterator"/>
+    <iterator Binds="VendhqOutletsViewAll1" RangeSize="-1" DataControl="AppModuleDataControl"
+              id="VendhqOutletsViewAll1Iterator"/>
+  </executables>
+  <bindings>
+    <tree IterBinding="VendhqItemMetaView1Iterator" id="VendhqItemMetaView1">
+      <nodeDefinition DefName="model.VendhqItemMetaView" Name="VendhqItemMetaView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="RequestDate"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="Name"/>
+          <Item Value="Description"/>
+          <Item Value="UomCode"/>
+          <Item Value="RetailPrice"/>
+          <Item Value="LastUpdateDate"/>
+          <Item Value="ItemId"/>
+          <Item Value="SourceId"/>
+          <Item Value="Handle1"/>
+          <Item Value="Sku"/>
+          <Item Value="Type"/>
+          <Item Value="UomName"/>
+          <Item Value="Active"/>
+          <Item Value="BrandId"/>
+          <Item Value="TrackInventory"/>
+          <Item Value="TaxId"/>
+          <Item Value="Region"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <tree IterBinding="FusionInvoiceLineView1Iterator" id="FusionInvoiceLineView1">
+      <nodeDefinition DefName="model.FusionInvoiceLineView" Name="FusionInvoiceLineView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="InvoiceNumber"/>
+          <Item Value="LineNumber"/>
+          <Item Value="SalesOrder"/>
+          <Item Value="SalesOrderLine"/>
+          <Item Value="ItemNumber"/>
+          <Item Value="Description"/>
+          <Item Value="Uom"/>
+          <Item Value="Quantity"/>
+          <Item Value="UnitSellingPrice"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="TaxCode"/>
+          <Item Value="Version"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <tree IterBinding="FusionStandardReceiptView1Iterator" id="FusionStandardReceiptView1">
+      <nodeDefinition DefName="model.FusionStandardReceiptView" Name="FusionStandardReceiptView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="ReceiptNumber"/>
+          <Item Value="ReceiptDate"/>
+          <Item Value="Amount"/>
+          <Item Value="GlDate"/>
+          <Item Value="ReceiptMethodId"/>
+          <Item Value="RemittanceBackAccId"/>
+          <Item Value="DepositDate"/>
+          <Item Value="CustomerId"/>
+          <Item Value="OrgId"/>
+          <Item Value="ExchangeDate"/>
+          <Item Value="ExchangeRateType"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <tree IterBinding="FusionMiscReceiptView1Iterator" id="FusionMiscReceiptView1">
+      <nodeDefinition DefName="model.FusionMiscReceiptView" Name="FusionMiscReceiptView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="ReceiptNumber"/>
+          <Item Value="Amount"/>
+          <Item Value="ReceiptDate"/>
+          <Item Value="BankAccNumber"/>
+          <Item Value="RecActivityName"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="ReceiptMethodName"/>
+          <Item Value="GlDate"/>
+          <Item Value="ExchangeDate"/>
+          <Item Value="ExchangeRateType"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <tree IterBinding="FusionInvTxnView1Iterator" id="FusionInvTxnView1">
+      <nodeDefinition DefName="model.FusionInvTxnView" Name="FusionInvTxnView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="OrganizationName"/>
+          <Item Value="Sunbinventory"/>
+          <Item Value="ItemNumber"/>
+          <Item Value="TxnQty"/>
+          <Item Value="TxnUom"/>
+          <Item Value="TxnDate"/>
+          <Item Value="TxnSourceName"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionInvoiceHeaderView1Iterator" id="ExecuteWithParams" RequiresUpdateModel="true"
+            Action="executeWithParams">
+      <NamedData NDName="SelectedRegion" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <tree IterBinding="FusionInvoiceHeaderView1Iterator" id="FusionInvoiceHeaderView1">
+      <nodeDefinition DefName="model.FusionInvoiceHeaderView" Name="FusionInvoiceHeaderView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="TxnDate"/>
+          <Item Value="BusinessUnit"/>
+          <Item Value="BillToCustName"/>
+          <Item Value="TxnNumber"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="BillToLocation"/>
+          <Item Value="BillToAccNumber"/>
+          <Item Value="PaymentTermsName"/>
+          <Item Value="TxnSource"/>
+          <Item Value="TxnType"/>
+          <Item Value="GlDate"/>
+          <Item Value="CustomerTxnId"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <list IterBinding="variables" id="SelectedRegion" DTSupportsMRU="true" SelectItemValueMode="ListObject"
+          StaticList="false" ListIter="VendhqCredentialsView2Iterator">
+      <AttrNames>
+        <Item Value="ExecuteWithParams_SelectedRegion"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <tree IterBinding="FusionApplyReceiptView1Iterator" id="FusionApplyReceiptView1">
+      <nodeDefinition DefName="model.FusionApplyReceiptView" Name="FusionApplyReceiptView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="ReceiptNumber"/>
+          <Item Value="AmountApplied"/>
+          <Item Value="AccountingDate"/>
+          <Item Value="TxnNumber"/>
+          <Item Value="ApplicationDate"/>
+          <Item Value="CurrencyCode"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionInvoiceLineView1Iterator" id="ExecuteWithParams1"
+            InstanceName="AppModuleDataControl.FusionInvoiceLineView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="SelectedRegion" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <action IterBinding="FusionStandardReceiptView1Iterator" id="ExecuteWithParams2"
+            InstanceName="AppModuleDataControl.FusionStandardReceiptView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <action IterBinding="FusionMiscReceiptView1Iterator" id="ExecuteWithParams3"
+            InstanceName="AppModuleDataControl.FusionMiscReceiptView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <action IterBinding="FusionApplyReceiptView1Iterator" id="ExecuteWithParams4"
+            InstanceName="AppModuleDataControl.FusionApplyReceiptView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <action IterBinding="FusionInvTxnView1Iterator" id="ExecuteWithParams5"
+            InstanceName="AppModuleDataControl.FusionInvTxnView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <action IterBinding="VendhqItemMetaView1Iterator" id="ExecuteWithParams6"
+            InstanceName="AppModuleDataControl.VendhqItemMetaView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <list IterBinding="VendhqOutletsView1Iterator" ListOperMode="navigation" ListIter="VendhqOutletsView1Iterator"
+          id="VendhqOutletsView1" DTSupportsMRU="true" SelectItemValueMode="ListObject">
+      <AttrNames>
+        <Item Value="OutletName"/>
+      </AttrNames>
+    </list>
+    <action IterBinding="VendhqOutletsView1Iterator" id="ExecuteWithParams7"
+            InstanceName="AppModuleDataControl.VendhqOutletsView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDValue="${bindings.ExecuteWithParams_SelectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+  </bindings>
+</pageDefinition>

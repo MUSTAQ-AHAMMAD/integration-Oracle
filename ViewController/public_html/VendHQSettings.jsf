@@ -1,0 +1,554 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich">
+    <af:document title="VendHQSettings.jsf" id="d1">
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="header">
+                    <af:outputText value="&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Integration Middleware" id="ot9"/>
+                </f:facet>
+                <f:facet name="status"/>
+                <f:facet name="appNav">
+                    <af:link text="Home" id="l1" action="adfMenu_HomePage"/>
+                </f:facet>
+                <f:facet name="globalLinks"/>
+                <f:facet name="footer"/>
+                <f:facet name="center">
+                    <af:panelFormLayout id="pfl1" maxColumns="3">
+                        <af:panelTabbed position="above" id="pt2">
+                            <af:showDetailItem text="Credential" id="credential">
+                                <af:panelGroupLayout id="pgl3" layout="vertical" >
+                                    <af:panelFormLayout id="pfl3" rows="3" maxColumns="2" labelAlignment="start">
+                                        <af:inputText value="#{bindings.Region.inputValue}"
+                                                      label="#{bindings.Region.hints.label}"
+                                                      required="#{bindings.Region.hints.mandatory}"
+                                                      columns="#{bindings.Region.hints.displayWidth}"
+                                                      maximumLength="#{bindings.Region.hints.precision}"
+                                                      shortDesc="#{bindings.Region.hints.tooltip}" id="it8">
+                                            <f:validator binding="#{bindings.Region.validator}"/>
+                                        </af:inputText>
+                                        <af:inputText value="#{bindings.DomainName.inputValue}"
+                                                      label="#{bindings.DomainName.hints.label}"
+                                                      required="#{bindings.DomainName.hints.mandatory}"
+                                                      columns="#{bindings.DomainName.hints.displayWidth}"
+                                                      maximumLength="#{bindings.DomainName.hints.precision}"
+                                                      shortDesc="#{bindings.DomainName.hints.tooltip}" id="it5">
+                                            <f:validator binding="#{bindings.DomainName.validator}"/>
+                                        </af:inputText>
+                                        <af:inputText value="#{bindings.PersonalToken.inputValue}"
+                                                      label="#{bindings.PersonalToken.hints.label}"
+                                                      required="#{bindings.PersonalToken.hints.mandatory}"
+                                                      columns="#{bindings.PersonalToken.hints.displayWidth}"
+                                                      maximumLength="#{bindings.PersonalToken.hints.precision}"
+                                                      shortDesc="#{bindings.PersonalToken.hints.tooltip}" id="it6"
+                                                      secret="true">
+                                            <f:validator binding="#{bindings.PersonalToken.validator}"/>
+                                        </af:inputText>
+                                        <af:inputText value="#{bindings.FusionOrgCode.inputValue}"
+                                                      label="#{bindings.FusionOrgCode.hints.label}"
+                                                      required="#{bindings.FusionOrgCode.hints.mandatory}"
+                                                      columns="#{bindings.FusionOrgCode.hints.displayWidth}"
+                                                      maximumLength="#{bindings.FusionOrgCode.hints.precision}"
+                                                      shortDesc="#{bindings.FusionOrgCode.hints.tooltip}" id="it9">
+                                            <f:validator binding="#{bindings.FusionOrgCode.validator}"/>
+                                        </af:inputText>
+                                        <af:inputText value="#{bindings.FusionTaxCode.inputValue}"
+                                                      label="#{bindings.FusionTaxCode.hints.label}"
+                                                      required="#{bindings.FusionTaxCode.hints.mandatory}"
+                                                      columns="#{bindings.FusionTaxCode.hints.displayWidth}"
+                                                      maximumLength="#{bindings.FusionTaxCode.hints.precision}"
+                                                      shortDesc="#{bindings.FusionTaxCode.hints.tooltip}" id="it11">
+                                            <f:validator binding="#{bindings.FusionTaxCode.validator}"/>
+                                        </af:inputText>
+                                        <af:inputText value="#{bindings.TimezoneOffset.inputValue}"
+                                                      label="#{bindings.TimezoneOffset.hints.label}"
+                                                      required="#{bindings.TimezoneOffset.hints.mandatory}"
+                                                      columns="#{bindings.TimezoneOffset.hints.displayWidth}"
+                                                      maximumLength="#{bindings.TimezoneOffset.hints.precision}"
+                                                      shortDesc="#{bindings.TimezoneOffset.hints.tooltip}" id="it7">
+                                            <f:validator binding="#{bindings.TimezoneOffset.validator}"/>
+                                            <af:convertNumber groupingUsed="false"
+                                                              pattern="#{bindings.TimezoneOffset.format}"/>
+                                        </af:inputText>
+                                        <af:inputDate value="#{bindings.BusinessStartDate.inputValue}"
+                                                      label="#{bindings.BusinessStartDate.hints.label}"
+                                                      required="#{bindings.BusinessStartDate.hints.mandatory}"
+                                                      columns="#{bindings.BusinessStartDate.hints.displayWidth}"
+                                                      shortDesc="#{bindings.BusinessStartDate.hints.tooltip}" id="id4">
+                                            <f:validator binding="#{bindings.BusinessStartDate.validator}"/>
+                                            <af:convertDateTime pattern="#{bindings.BusinessStartDate.format}"/>
+                                        </af:inputDate>
+                                        <af:selectOneRadio label="#{bindings.Active.hints.label}"
+                                                           requiredMessageDetail="Please select a status" id="sor1"
+                                                           value="#{bindings.Active.inputValue}">
+                                            <af:selectItem label="Active" value="Y" id="si1"/>
+                                            <af:selectItem label="Inactive" value="N" id="si2"/>
+                                            <f:validator binding="#{bindings.Active.validator}"/>
+                                        </af:selectOneRadio>
+                                        <f:facet name="footer">
+                                            <af:toolbar id="pgl1">
+                                                <af:toolbar id="pgl2">
+                                                    <af:button actionListener="#{bindings.First.execute}" text="First"
+                                                               disabled="#{!bindings.First.enabled}"
+                                                               partialSubmit="true" id="b7"/>
+                                                    <af:button actionListener="#{bindings.Previous.execute}"
+                                                               text="Previous" disabled="#{!bindings.Previous.enabled}"
+                                                               partialSubmit="true" id="b8"/>
+                                                    <af:button actionListener="#{bindings.Next.execute}" text="Next"
+                                                               disabled="#{!bindings.Next.enabled}" partialSubmit="true"
+                                                               id="b9"/>
+                                                    <af:button actionListener="#{bindings.Last.execute}" text="Last"
+                                                               disabled="#{!bindings.Last.enabled}" partialSubmit="true"
+                                                               id="b10"/>
+                                                </af:toolbar>
+                                                <af:button actionListener="#{bindings.Create.execute}" text="Create"
+                                                           disabled="#{!bindings.Create.enabled}" id="b3"/>
+                                                <af:button actionListener="#{bindings.Delete.execute}" text="Delete"
+                                                           disabled="#{!bindings.Delete.enabled}" id="b12"/>
+                                                <af:button text="Submit" id="b11"/>
+                                            </af:toolbar>
+                                        </f:facet>
+                                    </af:panelFormLayout>
+                                    <af:table value="#{bindings.VendhqCredentialsView2.collectionModel}" var="row"
+                                              rows="#{bindings.VendhqCredentialsView2.rangeSize}"
+                                              emptyText="#{bindings.VendhqCredentialsView2.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                              rowBandingInterval="0"
+                                              selectedRowKeys="#{bindings.VendhqCredentialsView2.collectionModel.selectedRow}"
+                                              selectionListener="#{bindings.VendhqCredentialsView2.collectionModel.makeCurrent}"
+                                              rowSelection="single"
+                                              fetchSize="#{bindings.VendhqCredentialsView2.rangeSize}"
+                                              filterModel="#{bindings.VendhqCredentialsView2Query.queryDescriptor}"
+                                              filterVisible="true"
+                                              queryListener="#{bindings.VendhqCredentialsView2Query.processQuery}"
+                                              varStatus="vs" id="t2" partialTriggers="::b7 ::b8 ::b9 ::b10 ::b3 ::b12">
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.Region.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.Region.label}"
+                                                   id="c15">
+                                            <af:outputText value="#{row.Region}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.Region.tooltip}"
+                                                           id="ot11"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.DomainName.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.DomainName.label}"
+                                                   id="c1">
+                                            <af:outputText value="#{row.DomainName}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.DomainName.tooltip}"
+                                                           id="ot1"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.PersonalToken.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.PersonalToken.label}"
+                                                   id="c2">
+                                            <af:outputText value="#{row.PersonalToken}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.PersonalToken.tooltip}"
+                                                           id="ot2"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.FusionOrgCode.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.FusionOrgCode.label}"
+                                                   id="c3">
+                                            <af:outputText value="#{row.FusionOrgCode}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.FusionOrgCode.tooltip}"
+                                                           id="ot3"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.FusionTaxCode.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.FusionTaxCode.label}"
+                                                   id="c24">
+                                            <af:outputText value="#{row.FusionTaxCode}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.FusionTaxCode.tooltip}"
+                                                           id="ot13"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.TimezoneOffset.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.TimezoneOffset.label}"
+                                                   id="c4">
+                                            <af:outputText value="#{row.TimezoneOffset}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.TimezoneOffset.tooltip}"
+                                                           id="ot4">
+                                                <af:convertNumber groupingUsed="false"
+                                                                  pattern="#{bindings.VendhqCredentialsView2.hints.TimezoneOffset.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.BusinessStartDate.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.BusinessStartDate.label}"
+                                                   id="c18">
+                                            <f:facet name="filter">
+                                                <af:inputDate value="#{bindings.VendhqCredentialsView2Query.queryDescriptor.filterConjunctionCriterion.criterionMap.BusinessStartDate.value}"
+                                                              id="id3">
+                                                    <af:convertDateTime pattern="#{bindings.VendhqCredentialsView2.hints.BusinessStartDate.format}"/>
+                                                </af:inputDate>
+                                            </f:facet>
+                                            <af:outputText value="#{row.BusinessStartDate}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.BusinessStartDate.tooltip}"
+                                                           id="ot19">
+                                                <af:convertDateTime pattern="#{bindings.VendhqCredentialsView2.hints.BusinessStartDate.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqCredentialsView2.hints.Active.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqCredentialsView2.hints.Active.label}"
+                                                   id="c5">
+                                            <af:outputText value="#{row.Active}"
+                                                           shortDesc="#{bindings.VendhqCredentialsView2.hints.Active.tooltip}"
+                                                           id="ot5"/>
+                                        </af:column>
+                                    </af:table>
+                                </af:panelGroupLayout>
+                            </af:showDetailItem>
+                            <af:showDetailItem id="outlets" text="Outlets">
+                                <af:decorativeBox id="db1">
+                                    <f:facet name="top">
+                                        <af:toolbar id="t5">
+                                            <af:selectOneChoice value="#{bindings.Selected_Region.inputValue}"
+                                                                label="Select Region"
+                                                                required="#{bindings.Selected_Region.hints.mandatory}"
+                                                                shortDesc="#{bindings.Selected_Region.hints.tooltip}"
+                                                                id="soc1">
+                                                <f:selectItems value="#{bindings.Selected_Region.items}" id="si6"/>
+                                                <f:validator binding="#{bindings.Selected_Region.validator}"/>
+                                            </af:selectOneChoice>
+                                            <af:button actionListener="#{bindings.ExecuteWithParams.execute}"
+                                                       text="Change"
+                                                       disabled="#{!bindings.ExecuteWithParams.enabled}" id="b14"/>
+                                            <af:button text="Sync Outlets" id="b4"
+                                                       actionListener="#{pageFlowScope.VendHQSettingsBean.syncVendOutlets}"
+                                                       partialTriggers="t8" partialSubmit="true"
+                                                       inlineStyle="margin-left:20px;"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="center">
+                                        <af:panelGroupLayout layout="vertical" id="pgl4">
+                                            <af:table value="#{bindings.VendhqOutletsView1.collectionModel}" var="row"
+                                                      rows="#{bindings.VendhqOutletsView1.rangeSize}"
+                                                      emptyText="#{bindings.VendhqOutletsView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                      rowBandingInterval="0"
+                                                      fetchSize="#{bindings.VendhqOutletsView1.rangeSize}"
+                                                      filterModel="#{bindings.VendhqOutletsView1Query.queryDescriptor}"
+                                                      filterVisible="true"
+                                                      queryListener="#{bindings.VendhqOutletsView1Query.processQuery}"
+                                                      varStatus="vs" id="t8" partialTriggers="::b14">
+                                                <af:column sortProperty="#{bindings.VendhqOutletsView1.hints.OutletId.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.VendhqOutletsView1.hints.OutletId.label}"
+                                                           id="c19">
+                                                    <af:outputText value="#{row.OutletId}"
+                                                                   shortDesc="#{bindings.VendhqOutletsView1.hints.OutletId.tooltip}"
+                                                                   id="ot14"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.VendhqOutletsView1.hints.OutletName.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.VendhqOutletsView1.hints.OutletName.label}"
+                                                           id="c20">
+                                                    <af:outputText value="#{row.OutletName}"
+                                                                   shortDesc="#{bindings.VendhqOutletsView1.hints.OutletName.tooltip}"
+                                                                   id="ot15"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.VendhqOutletsView1.hints.Currency.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.VendhqOutletsView1.hints.Currency.label}"
+                                                           id="c21">
+                                                    <af:outputText value="#{row.Currency}"
+                                                                   shortDesc="#{bindings.VendhqOutletsView1.hints.Currency.tooltip}"
+                                                                   id="ot16"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.VendhqOutletsView1.hints.Version.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.VendhqOutletsView1.hints.Version.label}"
+                                                           id="c22">
+                                                    <af:outputText value="#{row.Version}"
+                                                                   shortDesc="#{bindings.VendhqOutletsView1.hints.Version.tooltip}"
+                                                                   id="ot17">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.VendhqOutletsView1.hints.Version.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.VendhqOutletsView1.hints.DeletedAt.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.VendhqOutletsView1.hints.DeletedAt.label}"
+                                                           id="c23">
+                                                    <f:facet name="filter">
+                                                        <af:inputDate value="#{bindings.VendhqOutletsView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.DeletedAt.value}"
+                                                                      id="id1">
+                                                            <af:convertDateTime pattern="#{bindings.VendhqOutletsView1.hints.DeletedAt.format}"/>
+                                                        </af:inputDate>
+                                                    </f:facet>
+                                                    <af:outputText value="#{row.DeletedAt}"
+                                                                   shortDesc="#{bindings.VendhqOutletsView1.hints.DeletedAt.tooltip}"
+                                                                   id="ot18">
+                                                        <af:convertDateTime pattern="#{bindings.VendhqOutletsView1.hints.DeletedAt.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                            </af:table>
+                                        </af:panelGroupLayout>
+                                    </f:facet>
+                                </af:decorativeBox>
+                            </af:showDetailItem>
+                            <af:showDetailItem id="registers" text="Registers">
+                                <af:decorativeBox id="db2">
+                                    <f:facet name="top">
+                                        <af:toolbar id="t4">
+                                            <af:selectOneChoice value="#{bindings.Selected_Region1.inputValue}"
+                                                                label="Select Region"
+                                                                required="#{bindings.Selected_Region1.hints.mandatory}"
+                                                                shortDesc="#{bindings.Selected_Region1.hints.tooltip}"
+                                                                id="soc2">
+                                                <f:selectItems value="#{bindings.Selected_Region1.items}" id="si7"/>
+                                                <f:validator binding="#{bindings.Selected_Region1.validator}"/>
+                                            </af:selectOneChoice>
+                                            <af:button actionListener="#{bindings.ExecuteWithParams1.execute}"
+                                                       text="Change"
+                                                       disabled="#{!bindings.ExecuteWithParams1.enabled}" id="b6"/>
+                                            <af:button text="Sync Registers" id="b5"
+                                                       actionListener="#{pageFlowScope.VendHQSettingsBean.syncVendRegisters}"
+                                                       partialTriggers="t3" partialSubmit="true"
+                                                       inlineStyle="margin-left:20px;"/>
+                                            <af:button text="Submit" id="b15"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="center">
+                                        <af:panelGroupLayout layout="vertical" id="pgl6">
+                                        <af:table value="#{bindings.VendhqRegistersView1.collectionModel}" var="row"
+                                                  rows="#{bindings.VendhqRegistersView1.rangeSize}"
+                                                  emptyText="#{bindings.VendhqRegistersView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                  rowBandingInterval="0"
+                                                  fetchSize="#{bindings.VendhqRegistersView1.rangeSize}"
+                                                  filterModel="#{bindings.VendhqRegistersView1Query.queryDescriptor}"
+                                                  filterVisible="true"
+                                                  queryListener="#{bindings.VendhqRegistersView1Query.processQuery}"
+                                                  varStatus="vs" id="t3" scrollPolicy="page"
+                                                  partialTriggers="::b5 ::b6">
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.RegisterId.name}"
+                                                       filterable="true" sortable="true" headerText="Register ID"
+                                                       id="c6">
+                                                <af:outputText value="#{row.RegisterId}"
+                                                               shortDesc="#{bindings.VendhqRegistersView1.hints.RegisterId.tooltip}"
+                                                               id="ot6"/>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.OutletId.name}"
+                                                       filterable="true" sortable="true" headerText="Outlet ID" id="c7">
+                                                <af:outputText value="#{row.OutletId}"
+                                                               shortDesc="#{bindings.VendhqRegistersView1.hints.OutletId.tooltip}"
+                                                               id="ot7"/>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.RegisterName.name}"
+                                                       filterable="true" sortable="true" headerText="Register Name"
+                                                       id="c8">
+                                                <af:outputText value="#{row.RegisterName}"
+                                                               shortDesc="#{bindings.VendhqRegistersView1.hints.RegisterName.tooltip}"
+                                                               id="ot8"/>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.CashAccount.name}"
+                                                       filterable="true" sortable="true" headerText="Fusion Cash Acc"
+                                                       id="c9">
+                                                <af:inputText value="#{row.bindings.CashAccount.inputValue}"
+                                                              label="#{bindings.VendhqRegistersView1.hints.CashAccount.label}"
+                                                              required="#{bindings.VendhqRegistersView1.hints.CashAccount.mandatory}"
+                                                              columns="#{bindings.VendhqRegistersView1.hints.CashAccount.displayWidth}"
+                                                              maximumLength="#{bindings.VendhqRegistersView1.hints.CashAccount.precision}"
+                                                              shortDesc="#{bindings.VendhqRegistersView1.hints.CashAccount.tooltip}"
+                                                              id="it1">
+                                                    <f:validator binding="#{row.bindings.CashAccount.validator}"/>
+                                                </af:inputText>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.CashAccountId.name}"
+                                                       filterable="true" sortable="true" headerText="Fusion Cash Acc ID"
+                                                       id="c10">
+                                                <af:inputText value="#{row.bindings.CashAccountId.inputValue}"
+                                                              label="#{bindings.VendhqRegistersView1.hints.CashAccountId.label}"
+                                                              required="#{bindings.VendhqRegistersView1.hints.CashAccountId.mandatory}"
+                                                              columns="#{bindings.VendhqRegistersView1.hints.CashAccountId.displayWidth}"
+                                                              maximumLength="#{bindings.VendhqRegistersView1.hints.CashAccountId.precision}"
+                                                              shortDesc="#{bindings.VendhqRegistersView1.hints.CashAccountId.tooltip}"
+                                                              id="it2">
+                                                    <f:validator binding="#{row.bindings.CashAccountId.validator}"/>
+                                                    <af:convertNumber groupingUsed="false"
+                                                                      pattern="#{bindings.VendhqRegistersView1.hints.CashAccountId.format}"/>
+                                                </af:inputText>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.BankAccount.name}"
+                                                       filterable="true" sortable="true" headerText="Fusion Bank Acc"
+                                                       id="c11">
+                                                <af:inputText value="#{row.bindings.BankAccount.inputValue}"
+                                                              label="#{bindings.VendhqRegistersView1.hints.BankAccount.label}"
+                                                              required="#{bindings.VendhqRegistersView1.hints.BankAccount.mandatory}"
+                                                              columns="#{bindings.VendhqRegistersView1.hints.BankAccount.displayWidth}"
+                                                              maximumLength="#{bindings.VendhqRegistersView1.hints.BankAccount.precision}"
+                                                              shortDesc="#{bindings.VendhqRegistersView1.hints.BankAccount.tooltip}"
+                                                              id="it3">
+                                                    <f:validator binding="#{row.bindings.BankAccount.validator}"/>
+                                                </af:inputText>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.BankAccountId.name}"
+                                                       filterable="true" sortable="true" headerText="Fusion Bank Acc ID"
+                                                       id="c12">
+                                                <af:inputText value="#{row.bindings.BankAccountId.inputValue}"
+                                                              label="#{bindings.VendhqRegistersView1.hints.BankAccountId.label}"
+                                                              required="#{bindings.VendhqRegistersView1.hints.BankAccountId.mandatory}"
+                                                              columns="#{bindings.VendhqRegistersView1.hints.BankAccountId.displayWidth}"
+                                                              maximumLength="#{bindings.VendhqRegistersView1.hints.BankAccountId.precision}"
+                                                              shortDesc="#{bindings.VendhqRegistersView1.hints.BankAccountId.tooltip}"
+                                                              id="it4">
+                                                    <f:validator binding="#{row.bindings.BankAccountId.validator}"/>
+                                                    <af:convertNumber groupingUsed="false"
+                                                                      pattern="#{bindings.VendhqRegistersView1.hints.BankAccountId.format}"/>
+                                                </af:inputText>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.Version.name}"
+                                                       filterable="true" sortable="true"
+                                                       headerText="#{bindings.VendhqRegistersView1.hints.Version.label}"
+                                                       id="c13">
+                                                <af:outputText value="#{row.Version}"
+                                                               shortDesc="#{bindings.VendhqRegistersView1.hints.Version.tooltip}"
+                                                               id="ot9">
+                                                    <af:convertNumber groupingUsed="false"
+                                                                      pattern="#{bindings.VendhqRegistersView1.hints.Version.format}"/>
+                                                </af:outputText>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.VendhqRegistersView1.hints.DeletedAt.name}"
+                                                       filterable="true" sortable="true" headerText="Deleted At"
+                                                       id="c14">
+                                                <f:facet name="filter">
+                                                    <af:inputDate value="#{bindings.VendhqRegistersView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.DeletedAt.value}"
+                                                                  id="id2">
+                                                        <af:convertDateTime pattern="#{bindings.VendhqRegistersView1.hints.DeletedAt.format}"/>
+                                                    </af:inputDate>
+                                                </f:facet>
+                                                <af:outputText value="#{row.DeletedAt}"
+                                                               shortDesc="#{bindings.VendhqRegistersView1.hints.DeletedAt.tooltip}"
+                                                               id="ot10">
+                                                    <af:convertDateTime pattern="#{bindings.VendhqRegistersView1.hints.DeletedAt.format}"/>
+                                                </af:outputText>
+                                            </af:column>
+                                        </af:table>
+                                        </af:panelGroupLayout>
+                                    </f:facet>
+                                </af:decorativeBox>
+                            </af:showDetailItem>
+                            <af:showDetailItem id="taxes" text="Outlets Automation">
+                                <af:decorativeBox id="db3">
+                                    <f:facet name="top">
+                                        <af:toolbar id="t6">
+                                            <af:selectOneChoice value="#{bindings.Selected_Region2.inputValue}"
+                                                                label="Select Region"
+                                                                required="#{bindings.Selected_Region2.hints.mandatory}"
+                                                                shortDesc="#{bindings.Selected_Region2.hints.tooltip}"
+                                                                id="soc3">
+                                                <f:selectItems value="#{bindings.Selected_Region2.items}" id="si8"/>
+                                                <f:validator binding="#{bindings.Selected_Region2.validator}"/>
+                                            </af:selectOneChoice>
+                                            <af:button actionListener="#{bindings.ExecuteWithParams2.execute}"
+                                                       text="Change"
+                                                       disabled="#{!bindings.ExecuteWithParams2.enabled}" id="b16"/>
+                                            <af:button text="Submit" id="b13" inlineStyle="margin-left:50px;"/>
+                                            <af:button text="Sync Outlets" id="b17"
+                                                       actionListener="#{pageFlowScope.VendHQSettingsBean.syncOutletsConfig}"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="center">
+                                        <af:table value="#{bindings.OutletsIntegrationConfigView1.collectionModel}"
+                                                  var="row" rows="#{bindings.OutletsIntegrationConfigView1.rangeSize}"
+                                                  emptyText="#{bindings.OutletsIntegrationConfigView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                  rowBandingInterval="0"
+                                                  selectedRowKeys="#{bindings.OutletsIntegrationConfigView1.collectionModel.selectedRow}"
+                                                  selectionListener="#{bindings.OutletsIntegrationConfigView1.collectionModel.makeCurrent}"
+                                                  rowSelection="single"
+                                                  fetchSize="#{bindings.OutletsIntegrationConfigView1.rangeSize}"
+                                                  filterModel="#{bindings.OutletsIntegrationConfigView1Query.queryDescriptor}"
+                                                  filterVisible="true"
+                                                  queryListener="#{bindings.OutletsIntegrationConfigView1Query.processQuery}"
+                                                  varStatus="vs" id="t7" partialTriggers="::b16">
+                                            <af:column sortProperty="#{bindings.OutletsIntegrationConfigView1.hints.OutletName.name}"
+                                                       filterable="true" sortable="true" headerText="Outlet Name"
+                                                       id="c16">
+                                                <af:outputText value="#{row.OutletName}"
+                                                               shortDesc="#{bindings.OutletsIntegrationConfigView1.hints.OutletName.tooltip}"
+                                                               id="ot12"/>
+                                            </af:column>
+                                            <af:column sortProperty="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.name}"
+                                                       filterable="true" sortable="true" headerText="Integration Mode"
+                                                       id="c17">
+                                                <!-- <af:inputText value="#{row.bindings.IntegMode.inputValue}"
+                                                              label="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.label}"
+                                                              required="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.mandatory}"
+                                                              columns="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.displayWidth}"
+                                                              maximumLength="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.precision}"
+                                                              shortDesc="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.tooltip}"
+                                                              id="it10">
+                                                </af:inputText> -->
+                                                <af:selectOneChoice value="#{row.bindings.IntegMode.inputValue}"
+                                                              label="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.label}"
+                                                              required="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.mandatory}"
+                                                              shortDesc="#{bindings.OutletsIntegrationConfigView1.hints.IntegMode.tooltip}"
+                                                              id="it10">
+                                                    <af:selectItem label="None" value="NONE" id="si3"/>
+                                                    <af:selectItem label="Automated" value="AUTOMATIC" id="si4"/>
+                                                    <af:selectItem label="Manual" value="MANUAL" id="si5"/>
+                                                    <f:validator binding="#{row.bindings.IntegMode.validator}"/>
+                                                </af:selectOneChoice>
+                                            </af:column>
+                                        </af:table>
+                                    </f:facet>
+                                </af:decorativeBox>
+                            </af:showDetailItem>
+                        </af:panelTabbed>
+                        <f:facet name="footer">
+                            <af:toolbar id="t1">
+                                <af:button actionListener="#{bindings.Commit.execute}" text="Commit"
+                                           disabled="#{!bindings.Commit.enabled}" id="b1"/>
+                                <af:button actionListener="#{bindings.Rollback.execute}" text="Rollback"
+                                           disabled="#{!bindings.Rollback.enabled}" immediate="true" id="b2">
+                                    <af:resetActionListener/>
+                                </af:button>
+                            </af:toolbar>
+                        </f:facet>
+                    </af:panelFormLayout>
+                </f:facet>
+                <f:facet name="start">
+                    <af:panelAccordion discloseMany="false" id="pa2">
+                        <af:showDetailItem text="General" id="general_pane">
+                            <af:navigationPane hint="list" id="np1">
+                                <af:commandNavigationItem id="email_notif" text="Email Notifcation Recipients"
+                                                          action="adfMenu_GeneralSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="fusion_pane" text="Fusion">
+                            <af:navigationPane hint="list" id="np2">
+                                <af:commandNavigationItem id="cni10" text="Fusion Credentials"
+                                                          action="adfMenu_FusionSettings"/>
+                                <af:commandNavigationItem id="cni2" text="Fusion Sales MetaData"
+                                                          action="adfMenu_FusionSettings"/>
+                                <af:commandNavigationItem id="cni3" text="Fusion Receipt Method MetaData"
+                                                          action="adfMenu_FusionSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="vendhq_pane" text="Vend HQ" disclosed="true">
+                            <af:navigationPane hint="list" id="np3">
+                                <af:commandNavigationItem id="cni9" text="VendHQ Credentials"/>
+                                <af:commandNavigationItem id="cni4" text="VendHQ Registers"/>
+                                <af:commandNavigationItem id="cni5" text="VendHQ Outlets"/>
+                                <af:commandNavigationItem id="cni6" text="VendHQ Taxes"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="opencart_pane" text="Opencart">
+                            <af:navigationPane hint="list" id="np4">
+                                <af:commandNavigationItem id="cni7" text="Opencart Credentials"
+                                                          action="adfMenu_OpenCartSettings"/>
+                                <af:commandNavigationItem id="cni8" text="Opencart Settings"
+                                                          action="adfMenu_OpenCartSettings"/>
+                                </af:navigationPane>
+                        </af:showDetailItem>
+                    </af:panelAccordion>
+                </f:facet>
+                <f:facet name="end"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="endWidth" value="150"/>
+                <f:attribute name="startWidth" value="300"/>
+            </af:pageTemplate>
+        </af:form>
+    </af:document>
+</f:view>

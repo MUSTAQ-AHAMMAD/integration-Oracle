@@ -1,0 +1,521 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich">
+    <af:document title="FusionAppSettings.jsf" id="d1">
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="header">
+                    <af:outputText value="&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Integration Middleware" id="ot9"/>
+                </f:facet>
+                <f:facet name="status"/>
+                <f:facet name="appNav">
+                    <af:link text="Home" id="l1" action="adfMenu_HomePage" icon="/images/baseline_done_black_18dp.png"/>
+                </f:facet>
+                <f:facet name="globalLinks"/>
+                <f:facet name="footer"></f:facet>
+                <f:facet name="center">
+                    <af:panelFormLayout id="pfl2">
+                        <af:panelTabbed position="above" id="pt2" styleClass="AFStretchWidth">
+                            <af:showDetailItem text="Fusion Credentials" id="fusionCredentials">
+                                <af:decorativeBox id="db4">
+                                    <f:facet name="top">
+                                        <af:toolbar id="t5">
+                                            <af:button text="Submit" id="b12"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="center">
+                                        <af:panelFormLayout id="pfl3" maxColumns="3" rows="2" labelAlignment="start">
+                                            <af:inputText value="#{bindings.HostName.inputValue}"
+                                                          label="#{bindings.HostName.hints.label}"
+                                                          required="#{bindings.HostName.hints.mandatory}"
+                                                          columns="#{bindings.HostName.hints.displayWidth}"
+                                                          maximumLength="#{bindings.HostName.hints.precision}"
+                                                          shortDesc="#{bindings.HostName.hints.tooltip}" id="it7">
+                                                <f:validator binding="#{bindings.HostName.validator}"/>
+                                            </af:inputText>
+                                            <af:inputText value="#{bindings.Server.inputValue}"
+                                                          label="#{bindings.Server.hints.label}"
+                                                          required="#{bindings.Server.hints.mandatory}"
+                                                          columns="#{bindings.Server.hints.displayWidth}"
+                                                          maximumLength="#{bindings.Server.hints.precision}"
+                                                          shortDesc="#{bindings.Server.hints.tooltip}" id="it9">
+                                                <f:validator binding="#{bindings.Server.validator}"/>
+                                            </af:inputText>
+                                            <af:inputText value="#{bindings.Username.inputValue}"
+                                                          label="#{bindings.Username.hints.label}"
+                                                          required="#{bindings.Username.hints.mandatory}"
+                                                          columns="#{bindings.Username.hints.displayWidth}"
+                                                          maximumLength="#{bindings.Username.hints.precision}"
+                                                          shortDesc="#{bindings.Username.hints.tooltip}" id="it10">
+                                                <f:validator binding="#{bindings.Username.validator}"/>
+                                            </af:inputText>
+                                            <af:inputText value="#{bindings.Password.inputValue}"
+                                                          label="#{bindings.Password.hints.label}"
+                                                          required="#{bindings.Password.hints.mandatory}"
+                                                          columns="#{bindings.Password.hints.displayWidth}"
+                                                          maximumLength="#{bindings.Password.hints.precision}"
+                                                          shortDesc="#{bindings.Password.hints.tooltip}" id="it11"
+                                                          secret="true">
+                                                <f:validator binding="#{bindings.Password.validator}"/>
+                                            </af:inputText>
+                                            <af:inputText value="#{bindings.Active.inputValue}"
+                                                          label="#{bindings.Active.hints.label}"
+                                                          required="#{bindings.Active.hints.mandatory}"
+                                                          columns="#{bindings.Active.hints.displayWidth}"
+                                                          maximumLength="#{bindings.Active.hints.precision}"
+                                                          shortDesc="#{bindings.Active.hints.tooltip}" id="it13"
+                                                          rendered="false">
+                                                <f:validator binding="#{bindings.Active.validator}"/>
+                                            </af:inputText>
+                                            <f:facet name="footer"/>
+                                        </af:panelFormLayout>
+                                    </f:facet>
+                                </af:decorativeBox>
+                            </af:showDetailItem>
+                            <af:showDetailItem id="salesMetaData" text="Fusion Sales MetaData"
+                                               styleClass="AFStretchWidth">
+                                <af:decorativeBox id="db2" styleClass="AFStretchWidth">
+                                    <f:facet name="top">
+                                        <af:toolbar id="t2">
+                                            <af:selectOneChoice value="#{bindings.Selected_Region.inputValue}"
+                                                                label="Select Region"
+                                                                required="#{bindings.Selected_Region.hints.mandatory}"
+                                                                shortDesc="#{bindings.Selected_Region.hints.tooltip}"
+                                                                id="soc3">
+                                                <f:selectItems value="#{bindings.Selected_Region.items}" id="si3"/>
+                                                <f:validator binding="#{bindings.Selected_Region.validator}"/>
+                                            </af:selectOneChoice>
+                                            <af:button actionListener="#{bindings.ExecuteWithParams.execute}"
+                                                       text="Change"
+                                                       disabled="#{!bindings.ExecuteWithParams.enabled}" id="b13"/>
+                                            <af:button text="Create Sales Metadata" id="b6"
+                                                       icon="/images/baseline_add_black_18dp.png"
+                                                       inlineStyle="margin-left:20px;">
+                                                <af:showPopupBehavior popupId="p1"/>
+                                            </af:button>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="center">
+                                        <af:panelGroupLayout id="pgl1" layout="vertical">
+                                            <af:table value="#{bindings.FusionSalesMetadataView14.collectionModel}"
+                                                      var="row" rows="#{bindings.FusionSalesMetadataView14.rangeSize}"
+                                                      emptyText="#{bindings.FusionSalesMetadataView14.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                      rowBandingInterval="0"
+                                                      selectedRowKeys="#{bindings.FusionSalesMetadataView14.collectionModel.selectedRow}"
+                                                      selectionListener="#{bindings.FusionSalesMetadataView14.collectionModel.makeCurrent}"
+                                                      rowSelection="single"
+                                                      fetchSize="#{bindings.FusionSalesMetadataView14.rangeSize}"
+                                                      filterModel="#{bindings.FusionSalesMetadataView12Query.queryDescriptor}"
+                                                      filterVisible="true"
+                                                      queryListener="#{bindings.FusionSalesMetadataView12Query.processQuery}"
+                                                      varStatus="vs" id="t1"
+                                                      partialTriggers="::b12 :::b1 :::b2 :::b3 :::b4 :::b5 :::b11 ::b13">
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.Subinventory.name}"
+                                                           filterable="true" sortable="true" headerText="Sub Inventory"
+                                                           id="c1" frozen="true">
+                                                    <af:outputText value="#{row.Subinventory}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.Subinventory.tooltip}"
+                                                                   id="ot2"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.BillToName.name}"
+                                                           filterable="true" sortable="true" headerText="Customer Name"
+                                                           id="c2">
+                                                    <af:outputText value="#{row.BillToName}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.BillToName.tooltip}"
+                                                                   id="ot3"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.BillToAccount.name}"
+                                                           filterable="true" sortable="true" headerText="Cusomer Acc#"
+                                                           id="c3">
+                                                    <af:outputText value="#{row.BillToAccount}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.BillToAccount.tooltip}"
+                                                                   id="ot4">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionSalesMetadataView14.hints.BillToAccount.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.SiteNumber.name}"
+                                                           filterable="true" sortable="true" headerText="Customer Site#"
+                                                           id="c4">
+                                                    <af:outputText value="#{row.SiteNumber}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.SiteNumber.tooltip}"
+                                                                   id="ot5"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.BusinessUnit.name}"
+                                                           filterable="true" sortable="true" headerText="Business Unit"
+                                                           id="c5">
+                                                    <af:outputText value="#{row.BusinessUnit}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.BusinessUnit.tooltip}"
+                                                                   id="ot6"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.TxnSource.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="Transaction Source" id="c6">
+                                                    <af:outputText value="#{row.TxnSource}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.TxnSource.tooltip}"
+                                                                   id="ot7"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.TxnType.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="Transaction Type" id="c7">
+                                                    <af:outputText value="#{row.TxnType}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.TxnType.tooltip}"
+                                                                   id="ot8"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.IntegrationSource.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="Integration Source" id="c8">
+                                                    <af:outputText value="#{row.IntegrationSource}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.IntegrationSource.tooltip}"
+                                                                   id="ot9"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.RateIsCorporate.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="Rate is Corporate?" id="c9">
+                                                    <af:outputText value="#{row.RateIsCorporate}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.RateIsCorporate.tooltip}"
+                                                                   id="ot10"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.RecActivityNameBank.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="Receivable Activity Name: Bank" id="c10">
+                                                    <af:outputText value="#{row.RecActivityNameBank}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.RecActivityNameBank.tooltip}"
+                                                                   id="ot11"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionSalesMetadataView14.hints.RecActivityNameCash.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="Receivable Activity Name: Cash" id="c11">
+                                                    <af:outputText value="#{row.RecActivityNameCash}"
+                                                                   shortDesc="#{bindings.FusionSalesMetadataView14.hints.RecActivityNameCash.tooltip}"
+                                                                   id="ot12"/>
+                                                </af:column>
+                                            </af:table>
+                                        </af:panelGroupLayout>
+                                    </f:facet>
+                                </af:decorativeBox>
+                            </af:showDetailItem>
+                            <af:showDetailItem id="receiptMethod" text="Fusion Receipt Method MetaData"
+                                               styleClass="AFStretchWidth">
+                                <af:decorativeBox id="db1" styleClass="AFStretchWidth">
+                                    <f:facet name="top">
+                                        <af:toolbar id="t3">
+                                            <af:selectOneChoice value="#{bindings.Selected_Region1.inputValue}"
+                                                                label="Select Region"
+                                                                required="#{bindings.Selected_Region1.hints.mandatory}"
+                                                                shortDesc="#{bindings.Selected_Region1.hints.tooltip}"
+                                                                id="soc5">
+                                                <f:selectItems value="#{bindings.Selected_Region1.items}" id="si6"/>
+                                                <f:validator binding="#{bindings.Selected_Region1.validator}"/>
+                                            </af:selectOneChoice>
+                                            <af:button actionListener="#{bindings.ExecuteWithParams1.execute}"
+                                                       text="Change"
+                                                       disabled="#{!bindings.ExecuteWithParams1.enabled}" id="b14"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="center">
+                                        <af:panelGroupLayout id="pgl4" layout="vertical">
+                                            <af:panelGroupLayout id="pgl2" inlineStyle="width:inherit;">
+                                                <af:panelFormLayout id="pfl4" labelAlignment="start" maxColumns="3"
+                                                                    rows="3">
+                                                    <af:inputText value="#{bindings.ReceiptMethodId.inputValue}"
+                                                                  label="#{bindings.ReceiptMethodId.hints.label}"
+                                                                  required="#{bindings.ReceiptMethodId.hints.mandatory}"
+                                                                  columns="#{bindings.ReceiptMethodId.hints.displayWidth}"
+                                                                  maximumLength="#{bindings.ReceiptMethodId.hints.precision}"
+                                                                  shortDesc="#{bindings.ReceiptMethodId.hints.tooltip}"
+                                                                  id="it14">
+                                                        <f:validator binding="#{bindings.ReceiptMethodId.validator}"/>
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.ReceiptMethodId.format}"/>
+                                                    </af:inputText>
+                                                    <af:selectOneChoice value="#{bindings.ReceiptMethodName.inputValue}"
+                                                                        label="#{bindings.ReceiptMethodName.label}"
+                                                                        required="#{bindings.ReceiptMethodName.hints.mandatory}"
+                                                                        shortDesc="#{bindings.ReceiptMethodName.hints.tooltip}"
+                                                                        id="soc6">
+                                                        <f:selectItems value="#{bindings.ReceiptMethodName.items}"
+                                                                       id="si7"/>
+                                                        <f:validator binding="#{bindings.ReceiptMethodName.validator}"/>
+                                                    </af:selectOneChoice>
+                                                    <af:inputText value="#{bindings.ReceiptBankCharge.inputValue}"
+                                                                  label="#{bindings.ReceiptBankCharge.hints.label}"
+                                                                  required="#{bindings.ReceiptBankCharge.hints.mandatory}"
+                                                                  columns="#{bindings.ReceiptBankCharge.hints.displayWidth}"
+                                                                  maximumLength="#{bindings.ReceiptBankCharge.hints.precision}"
+                                                                  shortDesc="#{bindings.ReceiptBankCharge.hints.tooltip}"
+                                                                  id="it15">
+                                                        <f:validator binding="#{bindings.ReceiptBankCharge.validator}"/>
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.ReceiptBankCharge.format}"/>
+                                                    </af:inputText>
+                                                    <af:selectBooleanCheckbox value="#{bindings.ReceiptIsCash.inputValue}"
+                                                                              label="#{bindings.ReceiptIsCash.label}"
+                                                                              shortDesc="#{bindings.ReceiptIsCash.hints.tooltip}"
+                                                                              id="sbc1"/>
+                                                    <af:inputText value="#{bindings.ReceiptMethodTax.inputValue}"
+                                                                  label="#{bindings.ReceiptMethodTax.hints.label}"
+                                                                  required="#{bindings.ReceiptMethodTax.hints.mandatory}"
+                                                                  columns="#{bindings.ReceiptMethodTax.hints.displayWidth}"
+                                                                  maximumLength="#{bindings.ReceiptMethodTax.hints.precision}"
+                                                                  shortDesc="#{bindings.ReceiptMethodTax.hints.tooltip}"
+                                                                  id="it16">
+                                                        <f:validator binding="#{bindings.ReceiptMethodTax.validator}"/>
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.ReceiptMethodTax.format}"/>
+                                                    </af:inputText>
+                                                    <af:selectOneChoice value="#{bindings.Region1.inputValue}"
+                                                                        label="#{bindings.Region1.label}"
+                                                                        required="#{bindings.Region1.hints.mandatory}"
+                                                                        shortDesc="#{bindings.Region1.hints.tooltip}"
+                                                                        id="soc7">
+                                                        <f:selectItems value="#{bindings.Region1.items}" id="si8"/>
+                                                        <f:validator binding="#{bindings.Region1.validator}"/>
+                                                    </af:selectOneChoice>
+                                                    <f:facet name="footer">
+                                                        <af:toolbar id="t8">
+                                                            <af:button actionListener="#{bindings.Create1.execute}"
+                                                                       text="Create"
+                                                                       disabled="#{!bindings.Create1.enabled}"
+                                                                       id="b15"/>
+                                                            <af:button actionListener="#{bindings.Delete1.execute}"
+                                                                       text="Delete"
+                                                                       disabled="#{!bindings.Delete1.enabled}"
+                                                                       id="b16"/>
+                                                            <af:button text="Submit" id="b9"
+                                                                       icon="/images/baseline_done_black_18dp.png"
+                                                                       inlineStyle="margin-right:20px;"/>
+                                                        </af:toolbar>
+                                                    </f:facet>
+                                                </af:panelFormLayout>
+                                            </af:panelGroupLayout>
+                                            <af:table value="#{bindings.FusionReceiptMethodView1.collectionModel}"
+                                                      var="row" rows="#{bindings.FusionReceiptMethodView1.rangeSize}"
+                                                      emptyText="#{bindings.FusionReceiptMethodView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                      rowBandingInterval="0"
+                                                      selectedRowKeys="#{bindings.FusionReceiptMethodView1.collectionModel.selectedRow}"
+                                                      selectionListener="#{bindings.FusionReceiptMethodView1.collectionModel.makeCurrent}"
+                                                      rowSelection="single"
+                                                      fetchSize="#{bindings.FusionReceiptMethodView1.rangeSize}"
+                                                      id="t4" partialTriggers="::b14 ::b15 ::b16" inlineStyle="margin-top:30px;">
+                                                <af:column headerText="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodId.label}"
+                                                           id="c12">
+                                                    <af:outputText value="#{row.ReceiptMethodId}"
+                                                                   shortDesc="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodId.tooltip}"
+                                                                   id="ot1">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodId.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column headerText="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodName.label}"
+                                                           id="c13">
+                                                    <af:outputText value="#{row.ReceiptMethodName}"
+                                                                   shortDesc="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodName.tooltip}"
+                                                                   id="ot13"/>
+                                                </af:column>
+                                                <af:column headerText="#{bindings.FusionReceiptMethodView1.hints.ReceiptIsCash.label}"
+                                                           id="c14">
+                                                    <af:outputText value="#{row.ReceiptIsCash}"
+                                                                   shortDesc="#{bindings.FusionReceiptMethodView1.hints.ReceiptIsCash.tooltip}"
+                                                                   id="ot14"/>
+                                                </af:column>
+                                                <af:column headerText="#{bindings.FusionReceiptMethodView1.hints.ReceiptBankCharge.label}"
+                                                           id="c15">
+                                                    <af:outputText value="#{row.ReceiptBankCharge}"
+                                                                   shortDesc="#{bindings.FusionReceiptMethodView1.hints.ReceiptBankCharge.tooltip}"
+                                                                   id="ot15">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionReceiptMethodView1.hints.ReceiptBankCharge.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column headerText="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodTax.label}"
+                                                           id="c16">
+                                                    <af:outputText value="#{row.ReceiptMethodTax}"
+                                                                   shortDesc="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodTax.tooltip}"
+                                                                   id="ot16">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionReceiptMethodView1.hints.ReceiptMethodTax.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column headerText="#{bindings.FusionReceiptMethodView1.hints.Region.label}"
+                                                           id="c17">
+                                                    <af:outputText value="#{row.Region}"
+                                                                   shortDesc="#{bindings.FusionReceiptMethodView1.hints.Region.tooltip}"
+                                                                   id="ot17"/>
+                                                </af:column>
+                                            </af:table>
+                                        </af:panelGroupLayout>
+                                    </f:facet>
+                                </af:decorativeBox>
+                            </af:showDetailItem>
+                        </af:panelTabbed>
+                        <f:facet name="footer">
+                            <af:button actionListener="#{bindings.Commit.execute}" text="Commit"
+                                       disabled="#{!bindings.Commit.enabled}" id="b7"
+                                       icon="/images/baseline_save_black_18dp.png"/>
+                            <af:button actionListener="#{bindings.Rollback.execute}" text="Rollback"
+                                       disabled="#{!bindings.Rollback.enabled}" immediate="true" id="b8"
+                                       icon="/images/baseline_undo_black_18dp.png">
+                                <af:resetActionListener/>
+                            </af:button>
+                        </f:facet>
+                    </af:panelFormLayout>
+                </f:facet>
+                <f:facet name="start">
+                    <af:panelAccordion discloseMany="false" id="pa2">
+                        <af:showDetailItem text="General" id="general_pane">
+                            <af:navigationPane hint="list" id="np1">
+                                <af:commandNavigationItem id="email_notif" text="Email Notifcation Recipients"
+                                                          action="adfMenu_GeneralSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="fusion_pane" text="Fusion" disclosed="true">
+                            <af:navigationPane hint="list" id="np2">
+                                <af:commandNavigationItem id="cni10" text="Fusion Credentials"/>
+                                <af:commandNavigationItem id="cni2" text="Fusion Sales MetaData"/>
+                                <af:commandNavigationItem id="cni3" text="Fusion Receipt Method MetaData"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="vendhq_pane" text="Vend HQ">
+                            <af:navigationPane hint="list" id="np3">
+                                <af:commandNavigationItem id="cni9" text="VendHQ Credentials"
+                                                          action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni4" text="VendHQ Registers"
+                                                          action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni5" text="VendHQ Outlets" action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni6" text="VendHQ Taxes" action="adfMenu_VendHQSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="opencart_pane" text="Opencart">
+                            <af:navigationPane hint="list" id="np4">
+                                <af:commandNavigationItem id="cni7" text="Opencart Credentials"
+                                                          action="adfMenu_OpenCartSettings"/>
+                                <af:commandNavigationItem id="cni8" text="Opencart Settings"
+                                                          action="adfMenu_OpenCartSettings"/>
+                                </af:navigationPane>
+                        </af:showDetailItem>
+                    </af:panelAccordion>
+                </f:facet>
+                <f:facet name="end"/>
+                <f:attribute name="endWidth" value="0"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="startWidth" value="300"/>
+            </af:pageTemplate>
+            <af:popup childCreation="deferred" autoCancel="disabled" id="p1">
+                <af:panelGroupLayout id="pgl3">
+                    <af:dialog title="Create Sales Metadata" id="d2">
+                        <af:panelFormLayout id="pfl1" maxColumns="3">
+                            <af:selectOneChoice value="#{bindings.Region.inputValue}" 
+                                                label="Region"
+                                                required="#{bindings.Region.hints.mandatory}"
+                                                shortDesc="#{bindings.Region.hints.tooltip}" id="soc4">
+                                <f:selectItems value="#{bindings.Region.items}" id="si5"/>
+                                <f:validator binding="#{bindings.Region.validator}"/>
+                            </af:selectOneChoice>
+                            <af:selectOneChoice value="#{bindings.Subinventory.inputValue}" label="SubInventory"
+                                                id="soc2" required="#{bindings.Subinventory.hints.mandatory}"
+                                                shortDesc="#{bindings.Subinventory.hints.tooltip}">
+                                <f:selectItems value="#{bindings.OutletName.items}" id="si4"/>
+                                <f:validator binding="#{bindings.OutletName.validator}"/>
+                            </af:selectOneChoice>
+                            <af:selectOneChoice label="Integration Source"
+                                                value="#{bindings.IntegrationSource.inputValue}"
+                                                required="#{bindings.IntegrationSource.hints.mandatory}"
+                                                requiredMessageDetail="Please select an Integration Source, eg: PoS or E-commerce platform name"
+                                                id="soc1">
+                                <af:selectItem label="Vend HQ" value="Vend HQ" id="si1"/>
+                                <af:selectItem label="Opencart" value="Opencart" id="si2"/>
+                                <f:validator binding="#{bindings.IntegrationSource.validator}"/>
+                            </af:selectOneChoice>
+                            <af:inputText value="#{bindings.BillToName.inputValue}" label="Customer Name"
+                                          required="#{bindings.BillToName.hints.mandatory}"
+                                          columns="#{bindings.BillToName.hints.displayWidth}"
+                                          maximumLength="#{bindings.BillToName.hints.precision}"
+                                          shortDesc="#{bindings.BillToName.hints.tooltip}" id="it1">
+                                <f:validator binding="#{bindings.BillToName.validator}"/>
+                            </af:inputText>
+                            <af:inputText value="#{bindings.BillToAccount.inputValue}" label="Customer Acc#"
+                                          required="#{bindings.BillToAccount.hints.mandatory}"
+                                          columns="#{bindings.BillToAccount.hints.displayWidth}"
+                                          maximumLength="#{bindings.BillToAccount.hints.precision}"
+                                          shortDesc="#{bindings.BillToAccount.hints.tooltip}" id="it2">
+                                <f:validator binding="#{bindings.BillToAccount.validator}"/>
+                                <af:convertNumber groupingUsed="false" pattern="#{bindings.BillToAccount.format}"/>
+                            </af:inputText>
+                            <af:inputText value="#{bindings.SiteNumber.inputValue}" label="Customer Site#"
+                                          required="#{bindings.SiteNumber.hints.mandatory}"
+                                          columns="#{bindings.SiteNumber.hints.displayWidth}"
+                                          maximumLength="#{bindings.SiteNumber.hints.precision}"
+                                          shortDesc="#{bindings.SiteNumber.hints.tooltip}" id="it3">
+                                <f:validator binding="#{bindings.SiteNumber.validator}"/>
+                            </af:inputText>
+                            <af:inputText value="#{bindings.BusinessUnit.inputValue}" label="Business Unit"
+                                          required="#{bindings.BusinessUnit.hints.mandatory}"
+                                          columns="#{bindings.BusinessUnit.hints.displayWidth}"
+                                          maximumLength="#{bindings.BusinessUnit.hints.precision}"
+                                          shortDesc="#{bindings.BusinessUnit.hints.tooltip}" id="it4">
+                                <f:validator binding="#{bindings.BusinessUnit.validator}"/>
+                            </af:inputText>
+                            <af:inputText value="#{bindings.TxnSource.inputValue}" label="Transaction Source"
+                                          required="#{bindings.TxnSource.hints.mandatory}"
+                                          columns="#{bindings.TxnSource.hints.displayWidth}"
+                                          maximumLength="#{bindings.TxnSource.hints.precision}"
+                                          shortDesc="#{bindings.TxnSource.hints.tooltip}" id="it5">
+                                <f:validator binding="#{bindings.TxnSource.validator}"/>
+                            </af:inputText>
+                            <af:inputText value="#{bindings.TxnType.inputValue}" label="Transaction Type"
+                                          required="#{bindings.TxnType.hints.mandatory}"
+                                          columns="#{bindings.TxnType.hints.displayWidth}"
+                                          maximumLength="#{bindings.TxnType.hints.precision}"
+                                          shortDesc="#{bindings.TxnType.hints.tooltip}" id="it6">
+                                <f:validator binding="#{bindings.TxnType.validator}"/>
+                            </af:inputText>
+                            <af:selectBooleanCheckbox value="#{bindings.RateIsCorporate1.inputValue}"
+                                                      label="Is Rate Corporate?"
+                                                      required="#{bindings.RateIsCorporate1.hints.mandatory}"
+                                                      shortDesc="#{bindings.RateIsCorporate1.hints.tooltip}" id="sbc2"/>
+                            <af:inputText value="#{bindings.RecActivityNameBank.inputValue}"
+                                          label="Receivable Activity Name: Bank"
+                                          required="#{bindings.RecActivityNameBank.hints.mandatory}"
+                                          columns="#{bindings.RecActivityNameBank.hints.displayWidth}"
+                                          maximumLength="#{bindings.RecActivityNameBank.hints.precision}"
+                                          shortDesc="#{bindings.RecActivityNameBank.hints.tooltip}" id="it8">
+                                <f:validator binding="#{bindings.RecActivityNameBank.validator}"/>
+                            </af:inputText>
+                            <af:inputText value="#{bindings.RecActivityNameCash.inputValue}"
+                                          label="Receivable Activity Name: Cash"
+                                          required="#{bindings.RecActivityNameCash.hints.mandatory}"
+                                          columns="#{bindings.RecActivityNameCash.hints.displayWidth}"
+                                          maximumLength="#{bindings.RecActivityNameCash.hints.precision}"
+                                          shortDesc="#{bindings.RecActivityNameCash.hints.tooltip}" id="it12">
+                                <f:validator binding="#{bindings.RecActivityNameCash.validator}"/>
+                            </af:inputText>
+                            <f:facet name="footer">
+                                <af:toolbar id="t6">
+                                    <af:button actionListener="#{bindings.First.execute}" text="First"
+                                               disabled="#{!bindings.First.enabled}" partialSubmit="true" id="b1"/>
+                                    <af:button actionListener="#{bindings.Previous.execute}" text="Previous"
+                                               disabled="#{!bindings.Previous.enabled}" partialSubmit="true" id="b2"/>
+                                    <af:button actionListener="#{bindings.Next.execute}" text="Next"
+                                               disabled="#{!bindings.Next.enabled}" partialSubmit="true" id="b3"/>
+                                    <af:button actionListener="#{bindings.Last.execute}" text="Last"
+                                               disabled="#{!bindings.Last.enabled}" partialSubmit="true" id="b4"/>
+                                </af:toolbar>
+                                <af:toolbar id="t7">
+                                    <af:button text="Submit" id="b10" icon="/images/baseline_done_black_18dp.png"/>
+                                    <af:button actionListener="#{bindings.Create.execute}" text="Create"
+                                               disabled="#{!bindings.Create.enabled}" id="b5"
+                                               icon="/images/baseline_add_black_18dp.png"/>
+                                    <af:button actionListener="#{bindings.Delete.execute}" text="Delete"
+                                               disabled="#{!bindings.Delete.enabled}" id="b11"
+                                               icon="/images/baseline_delete_black_18dp.png"/>
+                                </af:toolbar>
+                            </f:facet>
+                        </af:panelFormLayout>
+                    </af:dialog>
+                </af:panelGroupLayout>
+            </af:popup>
+        </af:form>
+    </af:document>
+</f:view>

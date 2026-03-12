@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema elementFormDefault="qualified" targetNamespace="http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/types/" xmlns:ns0="http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/" xmlns:ns1="http://xmlns.oracle.com/adf/svc/types/" xmlns:tns="http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/types/" xmlns="http://www.w3.org/2001/XMLSchema">
+  <import namespace="http://xmlns.oracle.com/adf/svc/types/" schemaLocation="BC4JService.xsd"/>
+  <import namespace="http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/" schemaLocation="GlInterfaceTransHeader.xsd"/>
+  <import namespace="http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/" schemaLocation="GlInterface.xsd"/>
+  <element name="importJournals">
+    <complexType>
+      <sequence>
+        <element name="interfaceRows" type="ns0:GlInterfaceTransHeader"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="importJournalsResponse">
+    <complexType>
+      <sequence>
+        <element name="result" type="long"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="importJournalsAsync">
+    <complexType>
+      <sequence>
+        <element name="interfaceRows" type="ns0:GlInterfaceTransHeader"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="importJournalsAsyncResponse">
+    <complexType>
+      <sequence>
+        <element name="result" type="long"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getDfltObjAttrHints">
+    <complexType>
+      <sequence>
+        <element name="viewName" type="string"/>
+        <element name="localeName" type="string"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getDfltObjAttrHintsResponse">
+    <complexType>
+      <sequence>
+        <element name="result" type="ns1:ObjAttrHints"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getServiceLastUpdateTime">
+    <complexType>
+      <sequence/>
+    </complexType>
+  </element>
+  <element name="getServiceLastUpdateTimeResponse">
+    <complexType>
+      <sequence>
+        <element name="result" type="ns1:dateTime-Timestamp"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getEntityList">
+    <complexType>
+      <sequence/>
+    </complexType>
+  </element>
+  <element name="getEntityListResponse">
+    <complexType>
+      <sequence>
+        <element maxOccurs="unbounded" minOccurs="0" name="result" type="ns1:ServiceViewInfo"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getEntityListAsync">
+    <complexType>
+      <sequence/>
+    </complexType>
+  </element>
+  <element name="getEntityListAsyncResponse">
+    <complexType>
+      <sequence>
+        <element maxOccurs="unbounded" minOccurs="0" name="result" type="ns1:ServiceViewInfo"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getDfltObjAttrHintsAsync">
+    <complexType>
+      <sequence>
+        <element name="viewName" type="string"/>
+        <element name="localeName" type="string"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getDfltObjAttrHintsAsyncResponse">
+    <complexType>
+      <sequence>
+        <element name="result" type="ns1:ObjAttrHints"/>
+      </sequence>
+    </complexType>
+  </element>
+  <element name="getServiceLastUpdateTimeAsync">
+    <complexType>
+      <sequence/>
+    </complexType>
+  </element>
+  <element name="getServiceLastUpdateTimeAsyncResponse">
+    <complexType>
+      <sequence>
+        <element name="result" type="ns1:dateTime-Timestamp"/>
+      </sequence>
+    </complexType>
+  </element>
+</schema>

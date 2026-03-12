@@ -1,0 +1,60 @@
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 24-01-2021
+		
+		
+		
+		
+		
+		
+		
+		
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 25-01-2021
+		
+		
+		
+		
+		
+		
+		
+		
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 26-01-2021
+		
+		
+		
+		
+		
+		
+		
+		
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 27-01-2021
+		
+		
+		
+		
+		
+		
+		
+		
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 28-01-2021
+		
+Invoice				Invoice#: 214350 created against orders: AND1, AND2, AND3
+Invoice				Invoice#: 214351 created against orders: AND5
+Invoice				Invoice#: 212355 created against orders: AND6
+Invoice				Invoice#: 212356 created against orders: AND4
+		
+Standard Receipt		Receipt#: Visa-214350 is created.
+Standard Receipt		Receipt#: Cash-214350 is created.
+Standard Receipt		Receipt#: Master-212356 is created.
+		
+Misc Receipt			Receipt#: Visa-214350-MISC is created.
+Misc Receipt			Receipt#: Master-212356-MISC is created.
+		
+Apply Receipt			Receipt#: Cash-214350 is applied on Invoice#: 214350
+Apply Receipt			Receipt#: Master-212356 is applied on Invoice#: 212356
+		
+Journal Entry			Journal Entry for Invoice#: 214351 is created for HUNGERSTATION of type CREDIT
+Journal Entry			Journal Entry for Invoice#: 212355 is created for MRSOOL of type CASH
+Journal Entry			Journal Entry for Invoice#: 212356 is created for HUNGERSTATION of type CASH
+Journal Entry			Journal Entry for Invoice#: 214351 is created for HUNGERSTATION of type CASH
+		
+		
+		

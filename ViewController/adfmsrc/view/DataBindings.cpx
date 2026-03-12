@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://xmlns.oracle.com/adfm/application" version="12.2.1.3.15" id="DataBindings"
+             SeparateXMLFiles="false" Package="view" ClientType="Generic">
+  <pageMap>
+    <page path="/FusionSettings.jsf" usageId="view_FusionAppSettingsPageDef"/>
+    <page path="/HomePage.jsf" usageId="view_HomePagePageDef"/>
+    <page path="/GeneralSettings.jsf" usageId="view_GeneralSettingsPageDef"/>
+    <page path="/VendHQSettings.jsf" usageId="view_VendHQSettingsPageDef"/>
+    <page path="/OnHandDetails.jsf" usageId="view_OnHandDetailsPageDef"/>
+    <page path="/OpenCartSettings.jsf" usageId="view_OpenCartSettingsPageDef"/>
+    <page path="/VendHQSales.jsf" usageId="view_VendHQSalesPageDef"/>
+    <page path="/FusionInvoiceDetails.jsf" usageId="view_FusionInvoiceDetailsPageDef"/>
+  </pageMap>
+  <pageDefinitionUsages>
+    <page id="view_FusionAppSettingsPageDef" path="view.pageDefs.FusionAppSettingsPageDef"/>
+    <page id="view_HomePagePageDef" path="view.pageDefs.HomePagePageDef"/>
+    <page id="view_GeneralSettingsPageDef" path="view.pageDefs.GeneralSettingsPageDef"/>
+    <page id="view_VendHQSettingsPageDef" path="view.pageDefs.VendHQSettingsPageDef"/>
+    <page id="view_OnHandDetailsPageDef" path="view.pageDefs.OnHandDetailsPageDef"/>
+    <page id="view_OpenCartSettingsPageDef" path="view.pageDefs.OpenCartSettingsPageDef"/>
+    <page id="view_VendHQSalesPageDef" path="view.pageDefs.VendHQSalesPageDef"/>
+    <page id="view_FusionInvoiceDetailsPageDef" path="view.pageDefs.FusionInvoiceDetailsPageDef"/>
+  </pageDefinitionUsages>
+  <dataControlUsages>
+    <dc id="FusionOnHandQtyBean" path="innovate.tamergroup.FusionOnHandQtyBean"/>
+    <BC4JDataControl id="AppModuleDataControl" Package="model"
+                     FactoryClass="oracle.adf.model.bc4j.DataControlFactoryImpl" SupportsTransactions="true"
+                     SupportsFindMode="true" SupportsRangesize="true" SupportsResetState="true"
+                     SupportsSortCollection="true" Configuration="AppModuleLocal" syncMode="Immediate"
+                     xmlns="http://xmlns.oracle.com/adfm/datacontrol"/>
+  </dataControlUsages>
+</Application>

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="FusionInvoiceDetailsPageDef"
+                Package="view.pageDefs">
+  <parameters/>
+  <executables>
+    <variableIterator id="variables">
+      <variableUsage DataControl="AppModuleDataControl"
+                     Binds="FusionInvoiceHeaderDetailView1.variablesMap.InvoiceNumber"
+                     Name="ExecuteWithParams_InvoiceNumber" IsQueriable="false"/>
+      <variableUsage DataControl="AppModuleDataControl"
+                     Binds="FusionInvoiceHeaderDetailView1.variablesMap.SelectedRegion"
+                     Name="ExecuteWithParams_SelectedRegion" IsQueriable="false"/>
+    </variableIterator>
+    <iterator Binds="FusionInvoiceLinesDetailView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionInvoiceLinesDetailView1Iterator"/>
+    <searchRegion Binds="FusionInvoiceLinesDetailView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer"
+                  id="FusionInvoiceLinesDetailView1Query"/>
+    <iterator Binds="FusionInvTxnDetailsView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionInvTxnDetailsView1Iterator"/>
+    <searchRegion Binds="FusionInvTxnDetailsView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionInvTxnDetailsView1Query"/>
+    <iterator Binds="FusionStandardReceiptApplyDetailView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionStandardReceiptApplyDetailView1Iterator"/>
+    <searchRegion Binds="FusionStandardReceiptApplyDetailView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer"
+                  id="FusionStandardReceiptApplyDetailView1Query"/>
+    <iterator Binds="FusionMiscReceiptDetailView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionMiscReceiptDetailView1Iterator"/>
+    <searchRegion Binds="FusionMiscReceiptDetailView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer"
+                  id="FusionMiscReceiptDetailView1Query"/>
+    <iterator Binds="FusionInvoiceHeaderDetailView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionInvoiceHeaderDetailView1Iterator"/>
+  </executables>
+  <bindings>
+    <tree IterBinding="FusionInvoiceLinesDetailView1Iterator" id="FusionInvoiceLinesDetailView1">
+      <nodeDefinition DefName="model.FusionInvoiceLinesDetailView" Name="FusionInvoiceLinesDetailView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="RequestDate"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="LineNumber"/>
+          <Item Value="SalesOrder"/>
+          <Item Value="SalesOrderLine"/>
+          <Item Value="UnitSellingPrice"/>
+          <Item Value="ItemNumber"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="Description"/>
+          <Item Value="Quantity"/>
+          <Item Value="Uom"/>
+          <Item Value="Region"/>
+          <Item Value="TaxCode"/>
+          <Item Value="Version"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionInvoiceLinesDetailView1Iterator" id="ExecuteWithParams1"
+            InstanceName="AppModuleDataControl.FusionInvoiceLinesDetailView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="Invoice_Number" NDValue="#{pageFlowScope.InvoiceDetailsBean.invoiceNumber}"
+                 NDType="java.lang.String"/>
+      <NamedData NDName="SelectedRegion" NDValue="#{pageFlowScope.InvoiceDetailsBean.selectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <tree IterBinding="FusionInvTxnDetailsView1Iterator" id="FusionInvTxnDetailsView1">
+      <nodeDefinition DefName="model.FusionInvTxnDetailsView" Name="FusionInvTxnDetailsView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="OrganizationName"/>
+          <Item Value="Sunbinventory"/>
+          <Item Value="TxnDate"/>
+          <Item Value="TxnSourceName"/>
+          <Item Value="ItemNumber"/>
+          <Item Value="TxnQty"/>
+          <Item Value="TxnUom"/>
+          <Item Value="Region"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionInvTxnDetailsView1Iterator" id="ExecuteWithParams2"
+            InstanceName="AppModuleDataControl.FusionInvTxnDetailsView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="InvoiceNumber" NDValue="#{pageFlowScope.InvoiceDetailsBean.invoiceNumber}"
+                 NDType="oracle.jbo.domain.Number"/>
+      <NamedData NDName="SelectedRegion" NDValue="#{pageFlowScope.InvoiceDetailsBean.selectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <tree IterBinding="FusionStandardReceiptApplyDetailView1Iterator" id="FusionStandardReceiptApplyDetailView1">
+      <nodeDefinition DefName="model.FusionStandardReceiptApplyDetailView"
+                      Name="FusionStandardReceiptApplyDetailView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="Status1"/>
+          <Item Value="Message1"/>
+          <Item Value="RequestDate"/>
+          <Item Value="ReceiptNumber"/>
+          <Item Value="Amount"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="ReceiptDate"/>
+          <Item Value="ApplicationDate"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionStandardReceiptApplyDetailView1Iterator" id="ExecuteWithParams3"
+            InstanceName="AppModuleDataControl.FusionStandardReceiptApplyDetailView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="InvoiceNumber" NDValue="#{pageFlowScope.InvoiceDetailsBean.invoiceNumber}"
+                 NDType="java.lang.String"/>
+      <NamedData NDName="SelectedRegion" NDValue="#{pageFlowScope.InvoiceDetailsBean.selectedRegion}"
+                 NDType="java.lang.String"/>                 
+    </action>
+    <tree IterBinding="FusionMiscReceiptDetailView1Iterator" id="FusionMiscReceiptDetailView1">
+      <nodeDefinition DefName="model.FusionMiscReceiptDetailView" Name="FusionMiscReceiptDetailView10">
+        <AttrNames>
+          <Item Value="RequestId"/>
+          <Item Value="Status"/>
+          <Item Value="Message"/>
+          <Item Value="RequestDate"/>
+          <Item Value="GlDate"/>
+          <Item Value="ReceiptNumber"/>
+          <Item Value="ReceiptDate"/>
+          <Item Value="Amount"/>
+          <Item Value="CurrencyCode"/>
+          <Item Value="ReceiptMethodName"/>
+          <Item Value="BankAccNumber"/>
+          <Item Value="RecActivityName"/>
+          <Item Value="Region"/>
+          <Item Value="IntegMode"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionMiscReceiptDetailView1Iterator" id="ExecuteWithParams4"
+            InstanceName="AppModuleDataControl.FusionMiscReceiptDetailView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="InvoiceNumber" NDValue="#{pageFlowScope.InvoiceDetailsBean.invoiceNumber}"
+                 NDType="java.lang.String"/>
+      <NamedData NDName="SelectedRegion" NDValue="#{pageFlowScope.InvoiceDetailsBean.selectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="BillToAccNumber">
+      <AttrNames>
+        <Item Value="BillToAccNumber"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="BillToCustName">
+      <AttrNames>
+        <Item Value="BillToCustName"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="BillToLocation">
+      <AttrNames>
+        <Item Value="BillToLocation"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="BusinessUnit">
+      <AttrNames>
+        <Item Value="BusinessUnit"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="CurrencyCode">
+      <AttrNames>
+        <Item Value="CurrencyCode"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="CustomerTxnId">
+      <AttrNames>
+        <Item Value="CustomerTxnId"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="GlDate">
+      <AttrNames>
+        <Item Value="GlDate"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="Message">
+      <AttrNames>
+        <Item Value="Message"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="PaymentTermsName">
+      <AttrNames>
+        <Item Value="PaymentTermsName"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="Region">
+      <AttrNames>
+        <Item Value="Region"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="RequestDate">
+      <AttrNames>
+        <Item Value="RequestDate"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="RequestId">
+      <AttrNames>
+        <Item Value="RequestId"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="Status">
+      <AttrNames>
+        <Item Value="Status"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="TxnDate">
+      <AttrNames>
+        <Item Value="TxnDate"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="TxnNumber">
+      <AttrNames>
+        <Item Value="TxnNumber"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="TxnSource">
+      <AttrNames>
+        <Item Value="TxnSource"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="TxnType">
+      <AttrNames>
+        <Item Value="TxnType"/>
+      </AttrNames>
+    </attributeValues>
+    <action IterBinding="FusionInvoiceHeaderDetailView1Iterator" id="ExecuteWithParams"
+            InstanceName="AppModuleDataControl.FusionInvoiceHeaderDetailView1" DataControl="AppModuleDataControl"
+            RequiresUpdateModel="true" Action="executeWithParams">
+      <NamedData NDName="InvoiceNumber" NDValue="#{pageFlowScope.InvoiceDetailsBean.invoiceNumber}"
+                 NDType="java.math.BigDecimal"/>
+      <NamedData NDName="SelectedRegion" NDValue="#{pageFlowScope.InvoiceDetailsBean.selectedRegion}"
+                 NDType="java.lang.String"/>
+    </action>
+  </bindings>
+</pageDefinition>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="GeneralSettingsPageDef"
+                Package="view.pageDefs" EnableTokenValidation="false">
+    <parameters/>
+    <executables>
+        <variableIterator id="variables"/>
+        <iterator Binds="NotificationEmailRecipientsView1" RangeSize="25" DataControl="AppModuleDataControl"
+                  id="NotificationEmailRecipientsView1Iterator"/>
+        <searchRegion Binds="NotificationEmailRecipientsView1Iterator" Criteria=""
+                      Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer"
+                      id="NotificationEmailRecipientsView1Query"/>
+    </executables>
+    <bindings>
+        <tree IterBinding="NotificationEmailRecipientsView1Iterator" id="NotificationEmailRecipientsView1">
+            <nodeDefinition DefName="model.NotificationEmailRecipientsView" Name="NotificationEmailRecipientsView10">
+                <AttrNames>
+                    <Item Value="FullName"/>
+                    <Item Value="EmailAddress"/>
+                    <Item Value="EmailMode"/>
+                    <Item Value="Status"/>
+                </AttrNames>
+            </nodeDefinition>
+        </tree>
+        <attributeValues IterBinding="NotificationEmailRecipientsView1Iterator" id="FullName">
+            <AttrNames>
+                <Item Value="FullName"/>
+            </AttrNames>
+        </attributeValues>
+        <attributeValues IterBinding="NotificationEmailRecipientsView1Iterator" id="EmailAddress">
+            <AttrNames>
+                <Item Value="EmailAddress"/>
+            </AttrNames>
+        </attributeValues>
+        <attributeValues IterBinding="NotificationEmailRecipientsView1Iterator" id="EmailMode">
+            <AttrNames>
+                <Item Value="EmailMode"/>
+            </AttrNames>
+        </attributeValues>
+        <attributeValues IterBinding="NotificationEmailRecipientsView1Iterator" id="Status">
+            <AttrNames>
+                <Item Value="Status"/>
+            </AttrNames>
+        </attributeValues>
+        <action IterBinding="NotificationEmailRecipientsView1Iterator" id="Delete" RequiresUpdateModel="false"
+                Action="removeCurrentRow"/>
+        <action IterBinding="NotificationEmailRecipientsView1Iterator" id="Create" RequiresUpdateModel="true"
+                Action="createRow"/>
+        <action id="Commit" RequiresUpdateModel="true" Action="commitTransaction" DataControl="AppModuleDataControl"/>
+        <action id="Rollback" RequiresUpdateModel="false" Action="rollbackTransaction"
+                DataControl="AppModuleDataControl"/>
+        <action IterBinding="NotificationEmailRecipientsView1Iterator" id="First" RequiresUpdateModel="true"
+                Action="first"/>
+        <action IterBinding="NotificationEmailRecipientsView1Iterator" id="Previous" RequiresUpdateModel="true"
+                Action="previous"/>
+        <action IterBinding="NotificationEmailRecipientsView1Iterator" id="Next" RequiresUpdateModel="true"
+                Action="next"/>
+        <action IterBinding="NotificationEmailRecipientsView1Iterator" id="Last" RequiresUpdateModel="true"
+                Action="last"/>
+    </bindings>
+</pageDefinition>

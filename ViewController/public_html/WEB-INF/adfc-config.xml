@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="windows-1252" ?>
+<adfc-config xmlns="http://xmlns.oracle.com/adf/controller" version="1.2">
+  <view id="FusionSettings">
+    <page>/FusionSettings.jsf</page>
+  </view>
+  <view id="GeneralSettings">
+    <page>/GeneralSettings.jsf</page>
+  </view>
+  <view id="HomePage">
+    <page>/HomePage.jsf</page>
+  </view>
+  <view id="OnHandDetails">
+    <page>/OnHandDetails.jsf</page>
+  </view>
+  <view id="OpenCartSettings">
+    <page>/OpenCartSettings.jsf</page>
+  </view>
+  <view id="VendHQSettings">
+    <page>/VendHQSettings.jsf</page>
+  </view>
+  <view id="VendHQSales">
+    <page>/VendHQSales.jsf</page>
+  </view>
+  <control-flow-rule id="__38">
+    <from-activity-id>*</from-activity-id>
+    <control-flow-case id="__39">
+      <from-outcome>adfMenu_FusionSettings</from-outcome>
+      <to-activity-id>FusionSettings</to-activity-id>
+    </control-flow-case>
+    <control-flow-case id="__40">
+      <from-outcome>adfMenu_GeneralSettings</from-outcome>
+      <to-activity-id>GeneralSettings</to-activity-id>
+    </control-flow-case>
+    <control-flow-case id="__41">
+      <from-outcome>adfMenu_HomePage</from-outcome>
+      <to-activity-id>HomePage</to-activity-id>
+    </control-flow-case>
+    <control-flow-case id="__42">
+      <from-outcome>adfMenu_OnHandDetails</from-outcome>
+      <to-activity-id>OnHandDetails</to-activity-id>
+    </control-flow-case>
+    <control-flow-case id="__43">
+      <from-outcome>adfMenu_OpenCartSettings</from-outcome>
+      <to-activity-id>OpenCartSettings</to-activity-id>
+    </control-flow-case>
+    <control-flow-case id="__44">
+      <from-outcome>adfMenu_VendHQSettings</from-outcome>
+      <to-activity-id>VendHQSettings</to-activity-id>
+    </control-flow-case>
+    <control-flow-case id="__6">
+      <from-outcome>adfMenu_VendHQSales</from-outcome>
+      <to-activity-id>VendHQSales</to-activity-id>
+    </control-flow-case>
+  </control-flow-rule>
+  <managed-bean id="__1">
+    <managed-bean-name>VendHQIntegrationScheduler</managed-bean-name>
+    <managed-bean-class>innovate.tamergroup.vendhq.jobs.VendHQIntegrationScheduler</managed-bean-class>
+    <managed-bean-scope>application</managed-bean-scope>
+  </managed-bean>
+  <managed-bean id="__2">
+    <managed-bean-name>IntegrationSchedulerBean</managed-bean-name>
+    <managed-bean-class>innovate.tamergroup.vendhq.jobs.IntegrationSchedulerBean</managed-bean-class>
+    <managed-bean-scope>pageFlow</managed-bean-scope>
+    <managed-property id="__3">
+      <property-name>VendHQIntegrationScheduler</property-name>
+      <property-class>innovate.tamergroup.vendhq.jobs.VendHQIntegrationScheduler</property-class>
+      <value>#{VendHQIntegrationScheduler}</value>
+    </managed-property>
+  </managed-bean>
+  <managed-bean id="__15">
+    <managed-bean-name>VendHQSettingsBean</managed-bean-name>
+    <managed-bean-class>innovate.tamergroup.vendhq.persistence.VendHQSettingsBean</managed-bean-class>
+    <managed-bean-scope>pageFlow</managed-bean-scope>
+  </managed-bean>
+  <managed-bean id="__45">
+    <description>Menu Model Managed Bean</description>
+    <managed-bean-name>root_menu</managed-bean-name>
+    <managed-bean-class>oracle.adf.view.rich.model.MDSMenuModel</managed-bean-class>
+    <managed-bean-scope>request</managed-bean-scope>
+    <managed-property id="__46">
+      <property-name>createHiddenNodes</property-name>
+      <value>false</value>
+    </managed-property>
+    <managed-property id="__47">
+      <property-name>source</property-name>
+      <property-class>java.lang.String</property-class>
+      <value>/WEB-INF/root_menu.xml</value>
+    </managed-property>
+  </managed-bean>
+  <managed-bean id="__4">
+    <managed-bean-name>InvoiceDetailsBean</managed-bean-name>
+    <managed-bean-class>innovate.tamergroup.fusion.InvoiceDetailsBean</managed-bean-class>
+    <managed-bean-scope>pageFlow</managed-bean-scope>
+  </managed-bean>
+</adfc-config>

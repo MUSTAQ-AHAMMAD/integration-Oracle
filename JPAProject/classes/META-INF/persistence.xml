@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="windows-1252" ?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+             version="2.0">
+  <persistence-unit name="JPAProject">
+    <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+    <jta-data-source>jdbc/AlQurashiIntegrationDBDS</jta-data-source>
+    <!-- <jta-data-source>java:/app/jdbc/jdbc/AlQurashi Test DBDS</jta-data-source> -->
+    <class>innovate.tamergroup.persistence.entities.VendhqOutletsDB</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqBrandMeta</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqTaxMeta</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqItemMeta</class>
+    <class>innovate.tamergroup.persistence.entities.FusionSalesMetadata</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqRegisters</class>
+    <class>innovate.tamergroup.persistence.entities.FusionApplyReceipt</class>
+    <class>innovate.tamergroup.persistence.entities.FusionMiscReceipt</class>
+    <class>innovate.tamergroup.persistence.entities.FusionStandardReceipt</class>
+    <class>innovate.tamergroup.persistence.entities.FusionTransactionLines</class>
+    <class>innovate.tamergroup.persistence.entities.FusionInvTxn</class>
+    <class>innovate.tamergroup.persistence.entities.FusionReceiptMethod</class>
+    <class>innovate.tamergroup.persistence.entities.OpeningBalanceDB</class>
+    <class>innovate.tamergroup.persistence.entities.FusionCredentials</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqCredentials</class>
+    <class>innovate.tamergroup.persistence.entities.NotificationEmailRecipients</class>
+    <class>innovate.tamergroup.persistence.entities.OpencartGlobalSites</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqSaleItemsOnhand</class>
+    <class>innovate.tamergroup.persistence.entities.BackupVendhqLineItems</class>
+    <class>innovate.tamergroup.persistence.entities.BackupVendhqPayments</class>
+    <class>innovate.tamergroup.persistence.entities.BackupVendhqPromotions</class>
+    <class>innovate.tamergroup.persistence.entities.BackupVendhqSales</class>
+    <class>innovate.tamergroup.persistence.entities.OutletsIntegrationConfig</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqDiscountItems</class>
+    <class>innovate.tamergroup.persistence.entities.SalesIntegrationStatus</class>
+    <class>innovate.tamergroup.persistence.entities.TxnQuantityDecimals</class>
+    <class>innovate.tamergroup.persistence.entities.FusionBusinessUnitIdMap</class>
+    <class>innovate.tamergroup.persistence.entities.FusionInvoiceHeader</class>
+    <class>innovate.tamergroup.persistence.entities.FusionInvoiceLine</class>
+    <class>innovate.tamergroup.persistence.entities.FusionJournalHeader</class>
+    <class>innovate.tamergroup.persistence.entities.FusionJournalLine</class>
+    <class>innovate.tamergroup.persistence.entities.VendhqServiceProviders</class>
+    <class>innovate.tamergroup.persistence.entities.ServiceProviderJournalMapping</class>
+    <properties>
+      <property name="eclipselink.target-server" value="WebLogic_10"/>
+      <property name="javax.persistence.jtaDataSource" value="jdbc/AlQurashiIntegrationDBDS"/>
+      <!-- <property name="javax.persistence.jtaDataSource" value="java:/app/jdbc/jdbc/AlQurashi Test DBDS"/> -->
+      <property name="eclipselink.cache.type.default" value="None"/>
+    </properties>
+  </persistence-unit>
+</persistence>

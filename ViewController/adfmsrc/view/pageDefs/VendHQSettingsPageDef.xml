@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="VendHQSettingsPageDef"
+                Package="view.pageDefs">
+  <parameters/>
+  <executables>
+    <variableIterator id="variables">
+      <variableUsage DataControl="AppModuleDataControl" Binds="VendhqOutletsView1.variablesMap.Selected_Region"
+                     Name="ExecuteWithParams_Selected_Region" IsQueriable="false"/>
+      <variableUsage DataControl="AppModuleDataControl" Binds="VendhqRegistersView1.variablesMap.Selected_Region"
+                     Name="ExecuteWithParams1_Selected_Region" IsQueriable="false"/>
+      <variableUsage DataControl="AppModuleDataControl"
+                     Binds="OutletsIntegrationConfigView1.variablesMap.Selected_Region"
+                     Name="ExecuteWithParams2_Selected_Region" IsQueriable="false"/>
+    </variableIterator>
+    <iterator Binds="VendhqOutletsView1" RangeSize="15" DataControl="AppModuleDataControl"
+              id="VendhqOutletsView1Iterator"/>
+    <iterator Binds="VendhqRegistersView1" RangeSize="15" DataControl="AppModuleDataControl"
+              id="VendhqRegistersView1Iterator"/>
+    <searchRegion Binds="VendhqRegistersView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="VendhqRegistersView1Query"/>
+    <iterator Binds="VendhqCredentialsView2" RangeSize="-1" DataControl="AppModuleDataControl"
+              id="VendhqCredentialsView2Iterator"/>
+    <searchRegion Binds="VendhqCredentialsView2Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="VendhqCredentialsView2Query"/>
+    <iterator Binds="OutletsIntegrationConfigView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="OutletsIntegrationConfigView1Iterator"/>
+    <searchRegion Binds="OutletsIntegrationConfigView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer"
+                  id="OutletsIntegrationConfigView1Query"/>
+    <searchRegion Binds="VendhqOutletsView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="VendhqOutletsView1Query"/>
+  </executables>
+  <bindings>
+    <action id="Commit" RequiresUpdateModel="true" Action="commitTransaction" DataControl="AppModuleDataControl"/>
+    <action id="Rollback" RequiresUpdateModel="false" Action="rollbackTransaction" DataControl="AppModuleDataControl"/>
+    <tree IterBinding="VendhqRegistersView1Iterator" id="VendhqRegistersView1">
+      <nodeDefinition DefName="model.VendhqRegistersView" Name="VendhqRegistersView10">
+        <AttrNames>
+          <Item Value="RegisterId"/>
+          <Item Value="OutletId"/>
+          <Item Value="RegisterName"/>
+          <Item Value="CashAccount"/>
+          <Item Value="CashAccountId"/>
+          <Item Value="BankAccount"/>
+          <Item Value="BankAccountId"/>
+          <Item Value="Version"/>
+          <Item Value="DeletedAt"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="DomainName">
+      <AttrNames>
+        <Item Value="DomainName"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="PersonalToken">
+      <AttrNames>
+        <Item Value="PersonalToken"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="Active">
+      <AttrNames>
+        <Item Value="Active"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="Region">
+      <AttrNames>
+        <Item Value="Region"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="FusionOrgCode">
+      <AttrNames>
+        <Item Value="FusionOrgCode"/>
+      </AttrNames>
+    </attributeValues>
+    <action IterBinding="VendhqCredentialsView2Iterator" id="First" RequiresUpdateModel="true" Action="first"/>
+    <action IterBinding="VendhqCredentialsView2Iterator" id="Previous" RequiresUpdateModel="true" Action="previous"/>
+    <action IterBinding="VendhqCredentialsView2Iterator" id="Next" RequiresUpdateModel="true" Action="next"/>
+    <action IterBinding="VendhqCredentialsView2Iterator" id="Last" RequiresUpdateModel="true" Action="last"/>
+    <action IterBinding="VendhqCredentialsView2Iterator" id="Create" RequiresUpdateModel="true" Action="createRow"/>
+    <action IterBinding="VendhqCredentialsView2Iterator" id="Delete" RequiresUpdateModel="false"
+            Action="removeCurrentRow"/>
+    <tree IterBinding="VendhqCredentialsView2Iterator" id="VendhqCredentialsView2">
+      <nodeDefinition DefName="model.VendhqCredentialsView" Name="VendhqCredentialsView20">
+        <AttrNames>
+          <Item Value="Region"/>
+          <Item Value="DomainName"/>
+          <Item Value="PersonalToken"/>
+          <Item Value="FusionOrgCode"/>
+          <Item Value="FusionTaxCode"/>
+          <Item Value="TimezoneOffset"/>
+          <Item Value="BusinessStartDate"/>
+          <Item Value="Active"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="TimezoneOffset">
+      <AttrNames>
+        <Item Value="TimezoneOffset"/>
+      </AttrNames>
+    </attributeValues>
+    <tree IterBinding="OutletsIntegrationConfigView1Iterator" id="OutletsIntegrationConfigView1">
+      <nodeDefinition DefName="model.OutletsIntegrationConfigView" Name="OutletsIntegrationConfigView10">
+        <AttrNames>
+          <Item Value="OutletName"/>
+          <Item Value="IntegMode"/>
+          <Item Value="Region"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="VendhqOutletsView1Iterator" id="ExecuteWithParams" RequiresUpdateModel="true"
+            Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDType="java.lang.String"
+                 NDValue="${bindings.ExecuteWithParams_Selected_Region}"/>
+    </action>
+    <list IterBinding="variables" id="Selected_Region" DTSupportsMRU="true" SelectItemValueMode="ListObject"
+          StaticList="false" ListIter="VendhqCredentialsView2Iterator">
+      <AttrNames>
+        <Item Value="ExecuteWithParams_Selected_Region"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <action IterBinding="VendhqRegistersView1Iterator" id="ExecuteWithParams1" RequiresUpdateModel="true"
+            Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDType="java.lang.String"
+                 NDValue="${bindings.ExecuteWithParams1_Selected_Region}"/>
+    </action>
+    <list IterBinding="variables" id="Selected_Region1" DTSupportsMRU="true" SelectItemValueMode="ListObject"
+          StaticList="false" ListIter="VendhqCredentialsView2Iterator">
+      <AttrNames>
+        <Item Value="ExecuteWithParams1_Selected_Region"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <tree IterBinding="VendhqOutletsView1Iterator" id="VendhqOutletsView1">
+      <nodeDefinition DefName="model.VendhqOutletsView" Name="VendhqOutletsView10">
+        <AttrNames>
+          <Item Value="OutletId"/>
+          <Item Value="OutletName"/>
+          <Item Value="Currency"/>
+          <Item Value="Version"/>
+          <Item Value="DeletedAt"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="OutletsIntegrationConfigView1Iterator" id="ExecuteWithParams2" RequiresUpdateModel="true"
+            Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDType="java.lang.String"
+                 NDValue="${bindings.ExecuteWithParams2_Selected_Region}"/>
+    </action>
+    <list IterBinding="variables" id="Selected_Region2" DTSupportsMRU="true" SelectItemValueMode="ListObject"
+          StaticList="false" ListIter="VendhqCredentialsView2Iterator">
+      <AttrNames>
+        <Item Value="ExecuteWithParams2_Selected_Region"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="FusionTaxCode">
+      <AttrNames>
+        <Item Value="FusionTaxCode"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="VendhqCredentialsView2Iterator" id="BusinessStartDate">
+      <AttrNames>
+        <Item Value="BusinessStartDate"/>
+      </AttrNames>
+    </attributeValues>
+  </bindings>
+</pageDefinition>

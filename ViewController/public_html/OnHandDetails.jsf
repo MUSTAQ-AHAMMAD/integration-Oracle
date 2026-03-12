@@ -1,0 +1,160 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich">
+    <af:document title="OnHandDetails.jsf" id="d1">
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="center">
+                    <af:decorativeBox id="db1">
+                        <f:facet name="top">
+                            <af:toolbar id="t1">
+                                <!-- <af:button text="Sync OnHand Quantity" id="b1"
+                                           actionListener="#{FusionOnHandQtyBean.showCurrentOnHandQty}"
+                                           partialSubmit="true" icon="/images/baseline_cloud_download_black_18dp.png"/> -->
+                            </af:toolbar>
+                        </f:facet>
+                        <f:facet name="center">
+                            <af:panelGroupLayout id="pgl1" layout="vertical">
+                                <!-- <af:panelGroupLayout id="pgl2" layout="vertical" halign="center">
+                                    <af:poll id="p1" interval="#{viewScope.progressIndicatorBean.pollInterval}"
+                                             partialTriggers="b1 b2" clientComponent="true" timeout="100000"
+                                             pollListener="#{viewScope.progressIndicatorBean.pollListnerEvt}"/>
+                                    <af:progressIndicator id="pi1" value="#{viewScope.progressIndicatorBean}"
+                                                          partialTriggers="p1"/>
+                                    <af:outputText value="Syncing... #{viewScope.progressIndicatorBean.procVal}% Done"
+                                                   id="ot4" partialTriggers="p1"
+                                                   inlineStyle="color:blue;font-weight:bold;"/>
+                                    <af:spacer width="10" height="10" id="s1"/>
+                                </af:panelGroupLayout> -->
+                                <af:table value="#{bindings.VendhqSaleItemsOnhandView2.collectionModel}" var="row"
+                                          rows="#{bindings.VendhqSaleItemsOnhandView2.rangeSize}"
+                                          emptyText="#{bindings.VendhqSaleItemsOnhandView2.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                          rowBandingInterval="0"
+                                          fetchSize="#{bindings.VendhqSaleItemsOnhandView2.rangeSize}"
+                                          filterModel="#{bindings.VendhqSaleItemsOnhandView2Query.queryDescriptor}"
+                                          filterVisible="true"
+                                          queryListener="#{bindings.VendhqSaleItemsOnhandView2Query.processQuery}"
+                                          varStatus="vs" id="t2">
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.OrgCode.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.OrgCode.label}"
+                                               id="c1">
+                                        <af:outputText value="#{row.OrgCode}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.OrgCode.tooltip}"
+                                                       id="ot1"/>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.Subinventory.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.Subinventory.label}"
+                                               id="c2">
+                                        <af:outputText value="#{row.Subinventory}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.Subinventory.tooltip}"
+                                                       id="ot2"/>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.ItemNumber.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.ItemNumber.label}"
+                                               id="c3">
+                                        <af:outputText value="#{row.ItemNumber}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.ItemNumber.tooltip}"
+                                                       id="ot3"/>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.UomCode.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.UomCode.label}"
+                                               id="c4">
+                                        <af:outputText value="#{row.UomCode}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.UomCode.tooltip}"
+                                                       id="ot4"/>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.OnhandQty.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.OnhandQty.label}"
+                                               id="c5">
+                                        <af:outputText value="#{row.OnhandQty}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.OnhandQty.tooltip}"
+                                                       id="ot5">
+                                            <af:convertNumber groupingUsed="false"
+                                                              pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.OnhandQty.format}"/>
+                                        </af:outputText>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.SaleQty.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.SaleQty.label}"
+                                               id="c6">
+                                        <af:outputText value="#{row.SaleQty}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.SaleQty.tooltip}"
+                                                       id="ot6">
+                                            <af:convertNumber groupingUsed="false"
+                                                              pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.SaleQty.format}"/>
+                                        </af:outputText>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.BalanceQty.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.BalanceQty.label}"
+                                               id="c7">
+                                        <af:outputText value="#{row.BalanceQty}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.BalanceQty.tooltip}"
+                                                       id="ot7">
+                                            <af:convertNumber groupingUsed="false"
+                                                              pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.BalanceQty.format}"/>
+                                        </af:outputText>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.ReservedQty.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.ReservedQty.label}"
+                                               id="c8">
+                                        <af:outputText value="#{row.ReservedQty}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.ReservedQty.tooltip}"
+                                                       id="ot8">
+                                            <af:convertNumber groupingUsed="false"
+                                                              pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.ReservedQty.format}"/>
+                                        </af:outputText>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.ReceivingQty.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.ReceivingQty.label}"
+                                               id="c9">
+                                        <af:outputText value="#{row.ReceivingQty}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.ReceivingQty.tooltip}"
+                                                       id="ot9">
+                                            <af:convertNumber groupingUsed="false"
+                                                              pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.ReceivingQty.format}"/>
+                                        </af:outputText>
+                                    </af:column>
+                                    <af:column sortProperty="#{bindings.VendhqSaleItemsOnhandView2.hints.LastUpdateDate.name}"
+                                               filterable="true" sortable="true"
+                                               headerText="#{bindings.VendhqSaleItemsOnhandView2.hints.LastUpdateDate.label}"
+                                               id="c10">
+                                        <f:facet name="filter">
+                                            <af:inputDate value="#{bindings.VendhqSaleItemsOnhandView2Query.queryDescriptor.filterConjunctionCriterion.criterionMap.LastUpdateDate.value}"
+                                                          id="id1">
+                                                <af:convertDateTime pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.LastUpdateDate.format}"/>
+                                            </af:inputDate>
+                                        </f:facet>
+                                        <af:outputText value="#{row.LastUpdateDate}"
+                                                       shortDesc="#{bindings.VendhqSaleItemsOnhandView2.hints.LastUpdateDate.tooltip}"
+                                                       id="ot10">
+                                            <af:convertDateTime pattern="#{bindings.VendhqSaleItemsOnhandView2.hints.LastUpdateDate.format}"/>
+                                        </af:outputText>
+                                    </af:column>
+                                </af:table>
+                            </af:panelGroupLayout>
+                        </f:facet>
+                    </af:decorativeBox>
+                </f:facet>
+                <f:facet name="header"/>
+                <f:facet name="end"/>
+                <f:facet name="start"/>
+                <f:facet name="status"/>
+                <f:attribute name="endColumnSize" value="0"/>
+                <f:attribute name="dimensionsFrom" value="1920px"/>
+                <f:attribute name="startColumnSize" value="0"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="endWidth" value="0"/>
+                <f:attribute name="startWidth" value="0"/>
+            </af:pageTemplate>
+        </af:form>
+    </af:document>
+</f:view>

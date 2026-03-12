@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.3.15" id="FusionAppSettingsPageDef"
+                Package="view.pageDefs" EnableTokenValidation="false">
+  <parameters/>
+  <executables>
+    <variableIterator id="variables">
+      <variableUsage DataControl="AppModuleDataControl" Binds="FusionSalesMetadataView1.variablesMap.Selected_Region"
+                     Name="ExecuteWithParams_Selected_Region" IsQueriable="false"/>
+      <variableUsage DataControl="AppModuleDataControl" Binds="FusionReceiptMethodView1.variablesMap.Selected_Region"
+                     Name="ExecuteWithParams1_Selected_Region" IsQueriable="false"/>
+    </variableIterator>
+    <iterator Binds="FusionSalesMetadataView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionSalesMetadataView1Iterator"/>
+    <searchRegion Binds="FusionSalesMetadataView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="FusionSalesMetadataView12Query"/>
+    <iterator Binds="FusionReceiptMethodView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionReceiptMethodView1Iterator"/>
+    <iterator Binds="VendhqOutletsView1" RangeSize="-1" DataControl="AppModuleDataControl"
+              id="VendhqOutletsView1Iterator"/>
+    <iterator Binds="FusionCredentialsView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="FusionCredentialsView1Iterator"/>
+    <iterator Binds="VendhqCredentialsView1" RangeSize="-1" DataControl="AppModuleDataControl"
+              id="VendhqCredentialsView1Iterator"/>
+  </executables>
+  <bindings>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="BillToName">
+      <AttrNames>
+        <Item Value="BillToName"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="BillToAccount">
+      <AttrNames>
+        <Item Value="BillToAccount"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="SiteNumber">
+      <AttrNames>
+        <Item Value="SiteNumber"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="BusinessUnit">
+      <AttrNames>
+        <Item Value="BusinessUnit"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="TxnSource">
+      <AttrNames>
+        <Item Value="TxnSource"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="TxnType">
+      <AttrNames>
+        <Item Value="TxnType"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="RecActivityNameBank">
+      <AttrNames>
+        <Item Value="RecActivityNameBank"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="Subinventory">
+      <AttrNames>
+        <Item Value="Subinventory"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="IntegrationSource">
+      <AttrNames>
+        <Item Value="IntegrationSource"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionSalesMetadataView1Iterator" id="RecActivityNameCash">
+      <AttrNames>
+        <Item Value="RecActivityNameCash"/>
+      </AttrNames>
+    </attributeValues>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="First" RequiresUpdateModel="true" Action="first"/>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="Previous" RequiresUpdateModel="true" Action="previous"/>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="Next" RequiresUpdateModel="true" Action="next"/>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="Last" RequiresUpdateModel="true" Action="last"/>
+    <action id="Commit" RequiresUpdateModel="true" Action="commitTransaction" DataControl="AppModuleDataControl"/>
+    <action id="Rollback" RequiresUpdateModel="false" Action="rollbackTransaction" DataControl="AppModuleDataControl"/>
+    <tree IterBinding="FusionSalesMetadataView1Iterator" id="FusionSalesMetadataView14">
+      <nodeDefinition DefName="model.FusionSalesMetadataView" Name="FusionSalesMetadataView140">
+        <AttrNames>
+          <Item Value="Subinventory"/>
+          <Item Value="BillToName"/>
+          <Item Value="BillToAccount"/>
+          <Item Value="SiteNumber"/>
+          <Item Value="BusinessUnit"/>
+          <Item Value="TxnSource"/>
+          <Item Value="TxnType"/>
+          <Item Value="IntegrationSource"/>
+          <Item Value="RateIsCorporate"/>
+          <Item Value="RecActivityNameBank"/>
+          <Item Value="RecActivityNameCash"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <list IterBinding="VendhqOutletsView1Iterator" StaticList="false" Uses="LOV_OutletName" id="OutletName"
+          DTSupportsMRU="true" SelectItemValueMode="ListObject"/>
+    <button IterBinding="FusionSalesMetadataView1Iterator" id="RateIsCorporate1" DTSupportsMRU="false"
+            StaticList="true">
+      <AttrNames>
+        <Item Value="RateIsCorporate"/>
+      </AttrNames>
+      <ValueList>
+        <Item Value="1"/>
+        <Item Value="0"/>
+      </ValueList>
+    </button>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="Create" RequiresUpdateModel="true" Action="createRow"/>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="Delete" RequiresUpdateModel="false"
+            Action="removeCurrentRow"/>
+    <attributeValues IterBinding="FusionCredentialsView1Iterator" id="HostName">
+      <AttrNames>
+        <Item Value="HostName"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionCredentialsView1Iterator" id="Server">
+      <AttrNames>
+        <Item Value="Server"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionCredentialsView1Iterator" id="Username">
+      <AttrNames>
+        <Item Value="Username"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionCredentialsView1Iterator" id="Password">
+      <AttrNames>
+        <Item Value="Password"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionCredentialsView1Iterator" id="Active">
+      <AttrNames>
+        <Item Value="Active"/>
+      </AttrNames>
+    </attributeValues>
+    <action IterBinding="FusionSalesMetadataView1Iterator" id="ExecuteWithParams" RequiresUpdateModel="true"
+            Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDType="java.lang.String"
+                 NDValue="${bindings.ExecuteWithParams_Selected_Region}"/>
+    </action>
+    <list IterBinding="variables" id="Selected_Region" DTSupportsMRU="true" SelectItemValueMode="ListObject"
+          StaticList="false" ListIter="VendhqCredentialsView1Iterator">
+      <AttrNames>
+        <Item Value="ExecuteWithParams_Selected_Region"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <list IterBinding="FusionSalesMetadataView1Iterator" id="Region" DTSupportsMRU="true"
+          SelectItemValueMode="ListObject" StaticList="false" ListIter="VendhqCredentialsView1Iterator">
+      <AttrNames>
+        <Item Value="Region"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <action IterBinding="FusionReceiptMethodView1Iterator" id="ExecuteWithParams1" RequiresUpdateModel="true"
+            Action="executeWithParams">
+      <NamedData NDName="Selected_Region" NDType="java.lang.String"
+                 NDValue="${bindings.ExecuteWithParams1_Selected_Region}"/>
+    </action>
+    <list IterBinding="variables" id="Selected_Region1" DTSupportsMRU="true" SelectItemValueMode="ListObject"
+          StaticList="false" ListIter="VendhqCredentialsView1Iterator">
+      <AttrNames>
+        <Item Value="ExecuteWithParams1_Selected_Region"/>
+      </AttrNames>
+      <ListAttrNames>
+        <Item Value="Region"/>
+      </ListAttrNames>
+      <ListDisplayAttrNames>
+        <Item Value="Region"/>
+      </ListDisplayAttrNames>
+    </list>
+    <attributeValues IterBinding="FusionReceiptMethodView1Iterator" id="ReceiptMethodId">
+      <AttrNames>
+        <Item Value="ReceiptMethodId"/>
+      </AttrNames>
+    </attributeValues>
+    <list IterBinding="FusionReceiptMethodView1Iterator" StaticList="false" Uses="LOV_ReceiptMethodName"
+          id="ReceiptMethodName" DTSupportsMRU="false" SelectItemValueMode="ListObject"/>
+    <attributeValues IterBinding="FusionReceiptMethodView1Iterator" id="ReceiptBankCharge">
+      <AttrNames>
+        <Item Value="ReceiptBankCharge"/>
+      </AttrNames>
+    </attributeValues>
+    <attributeValues IterBinding="FusionReceiptMethodView1Iterator" id="ReceiptMethodTax">
+      <AttrNames>
+        <Item Value="ReceiptMethodTax"/>
+      </AttrNames>
+    </attributeValues>
+    <list IterBinding="FusionReceiptMethodView1Iterator" StaticList="false" Uses="LOV_Region" id="Region1"
+          DTSupportsMRU="false" SelectItemValueMode="ListObject"/>
+    <tree IterBinding="FusionReceiptMethodView1Iterator" id="FusionReceiptMethodView1">
+      <nodeDefinition DefName="model.FusionReceiptMethodView" Name="FusionReceiptMethodView10">
+        <AttrNames>
+          <Item Value="ReceiptMethodId"/>
+          <Item Value="ReceiptMethodName"/>
+          <Item Value="ReceiptIsCash"/>
+          <Item Value="ReceiptBankCharge"/>
+          <Item Value="ReceiptMethodTax"/>
+          <Item Value="Region"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+    <action IterBinding="FusionReceiptMethodView1Iterator" id="Create1" RequiresUpdateModel="true" Action="createRow"/>
+    <action IterBinding="FusionReceiptMethodView1Iterator" id="Delete1" RequiresUpdateModel="false"
+            Action="removeCurrentRow"/>
+    <button IterBinding="FusionReceiptMethodView1Iterator" id="ReceiptIsCash" DTSupportsMRU="false" StaticList="true">
+      <AttrNames>
+        <Item Value="ReceiptIsCash"/>
+      </AttrNames>
+      <ValueList>
+        <Item Value="1"/>
+        <Item Value="0"/>
+      </ValueList>
+    </button>
+  </bindings>
+</pageDefinition>

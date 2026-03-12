@@ -1,0 +1,168 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<table xmlns="http://xmlns.oracle.com/jdeveloper/1211/offlinedb">
+  <name>NOTIFICATION_EMAIL_RECIPIENTS</name>
+  <columns>
+    <column>
+      <name>ROW_ID</name>
+      <dataTypeUsage>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>NUMBER</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+    </column>
+    <column>
+      <name>FULL_NAME</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">40</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+    </column>
+    <column>
+      <name>EMAIL_ADDRESS</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">40</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+    </column>
+    <column>
+      <name>EMAIL_MODE</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">4</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+    </column>
+    <column>
+      <name>STATUS</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">1</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>CHAR</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+    </column>
+  </columns>
+  <constraints>
+    <constraint class="oracle.javatools.db.PKConstraint">
+      <name>NOTIFICATION_EMAIL_RECIPIE_PK</name>
+      <columnIDs>
+        <columnID class="oracle.javatools.db.NameBasedID">
+          <name>ROW_ID</name>
+          <parent class="oracle.javatools.db.NameBasedID">
+            <name>NOTIFICATION_EMAIL_RECIPIENTS</name>
+            <schemaName>ALQURASHI</schemaName>
+            <type>TABLE</type>
+          </parent>
+          <schemaName>ALQURASHI</schemaName>
+          <type>COLUMN</type>
+        </columnID>
+      </columnIDs>
+      <enabled>true</enabled>
+      <indexID class="oracle.javatools.db.NameBasedID">
+        <name>NOTIFICATION_EMAIL_RECIPIE_PK</name>
+        <parent class="oracle.javatools.db.NameBasedID">
+          <name>NOTIFICATION_EMAIL_RECIPIENTS</name>
+          <schemaName>ALQURASHI</schemaName>
+          <type>TABLE</type>
+        </parent>
+        <schemaName>ALQURASHI</schemaName>
+        <type>INDEX</type>
+      </indexID>
+    </constraint>
+    <constraint class="oracle.javatools.db.UniqueConstraint">
+      <name>NOTIFICATION_EMAIL_RECIPI_UK1</name>
+      <columnIDs>
+        <columnID class="oracle.javatools.db.NameBasedID">
+          <name>EMAIL_ADDRESS</name>
+          <parent class="oracle.javatools.db.NameBasedID">
+            <name>NOTIFICATION_EMAIL_RECIPIENTS</name>
+            <schemaName>ALQURASHI</schemaName>
+            <type>TABLE</type>
+          </parent>
+          <schemaName>ALQURASHI</schemaName>
+          <type>COLUMN</type>
+        </columnID>
+      </columnIDs>
+      <enabled>true</enabled>
+      <indexID class="oracle.javatools.db.NameBasedID">
+        <name>NOTIFICATION_EMAIL_RECIPI_UK1</name>
+        <parent class="oracle.javatools.db.NameBasedID">
+          <name>NOTIFICATION_EMAIL_RECIPIENTS</name>
+          <schemaName>ALQURASHI</schemaName>
+          <type>TABLE</type>
+        </parent>
+        <schemaName>ALQURASHI</schemaName>
+        <type>INDEX</type>
+      </indexID>
+    </constraint>
+  </constraints>
+  <indexes>
+    <index>
+      <name>NOTIFICATION_EMAIL_RECIPIE_PK</name>
+      <columnExpressions>
+        <columnExpression>
+          <expressionSource>ROW_ID</expressionSource>
+          <orderType>ASC</orderType>
+        </columnExpression>
+      </columnExpressions>
+      <indexType>UNIQUE</indexType>
+      <schema>
+        <name>ALQURASHI</name>
+      </schema>
+      <systemGenerated>true</systemGenerated>
+    </index>
+    <index>
+      <name>NOTIFICATION_EMAIL_RECIPI_UK1</name>
+      <columnExpressions>
+        <columnExpression>
+          <expressionSource>EMAIL_ADDRESS</expressionSource>
+          <orderType>ASC</orderType>
+        </columnExpression>
+      </columnExpressions>
+      <indexType>UNIQUE</indexType>
+      <schema>
+        <name>ALQURASHI</name>
+      </schema>
+      <systemGenerated>true</systemGenerated>
+    </index>
+  </indexes>
+  <properties>
+    <entry>
+      <key>TableType</key>
+      <value class="oracle.javatools.db.Table$TableType">NORMAL</value>
+    </entry>
+  </properties>
+  <schema>
+    <name>ALQURASHI</name>
+  </schema>
+</table>

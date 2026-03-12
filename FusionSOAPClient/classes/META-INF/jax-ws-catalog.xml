@@ -1,0 +1,6 @@
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+  <system systemId="https://ecli-test.fin.us2.oraclecloud.com/finArRcptsSharedCommonService/CreateAndApplyReceiptService?WSDL#%7Bhttp%3A%2F%2Fxmlns.oracle.com%2Fapps%2Ffinancials%2Freceivables%2Freceipts%2Fshared%2FcreateAndApplyReceiptService%2FcommonService%2F%7DCreateAndApplyReceiptService"
+          uri="https://ecli-test.fin.us2.oraclecloud.com/finArRcptsSharedCommonService/CreateAndApplyReceiptService?WSDL"/>
+  <system systemId="https://ehxk-test.fa.em2.oraclecloud.com/fscmService/RecInvoiceService?WSDL#%7Bhttp%3A%2F%2Fxmlns.oracle.com%2Fapps%2Ffinancials%2Freceivables%2Ftransactions%2Finvoices%2FinvoiceService%2F%7DInvoiceService"
+          uri="../com/oracle/xmlns/apps/financials/receivables/transactions/invoices/invoiceservice/InvoiceService.wsdl"/>
+</catalog>

@@ -1,0 +1,6 @@
+.data/
+*.class
+*.ear
+*.war
+Model/classes/
+ViewController/classes/

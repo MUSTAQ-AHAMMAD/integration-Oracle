@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="OnHandDetailsPageDef"
+                Package="view.pageDefs">
+  <parameters/>
+  <executables>
+    <variableIterator id="variables"/>
+    <iterator Binds="root" RangeSize="25" DataControl="FusionOnHandQtyBean" id="FusionOnHandQtyBeanIterator"/>
+    <iterator Binds="VendhqSaleItemsOnhandView2" RangeSize="25" DataControl="AppModuleDataControl"
+              id="VendhqSaleItemsOnhandView2Iterator"/>
+    <searchRegion Binds="VendhqSaleItemsOnhandView2Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="VendhqSaleItemsOnhandView2Query"/>
+  </executables>
+  <bindings>
+    <tree IterBinding="VendhqSaleItemsOnhandView2Iterator" id="VendhqSaleItemsOnhandView2">
+      <nodeDefinition DefName="model.VendhqSaleItemsOnhandView" Name="VendhqSaleItemsOnhandView20">
+        <AttrNames>
+          <Item Value="OrgCode"/>
+          <Item Value="Subinventory"/>
+          <Item Value="ItemNumber"/>
+          <Item Value="UomCode"/>
+          <Item Value="OnhandQty"/>
+          <Item Value="SaleQty"/>
+          <Item Value="BalanceQty"/>
+          <Item Value="ReservedQty"/>
+          <Item Value="ReceivingQty"/>
+          <Item Value="LastUpdateDate"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+  </bindings>
+</pageDefinition>

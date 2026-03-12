@@ -1,0 +1,238 @@
+<?xml version = '1.0' encoding = 'UTF-8' standalone = 'yes'?>
+<jazn-data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="http://xmlns.oracle.com/oracleas/schema/jazn-data.xsd">
+    <jazn-realm default="jazn.com">
+        <realm>
+            <name>jazn.com</name>
+            <users>
+                <user>
+                    <name>Mohammed Mukhtar</name>
+                    <credentials>{903}nl71a0ixOYkOsUz1EOJ/W+16ELIZQjQq</credentials>
+                    <display-name>Mohammed Mukthar</display-name>
+                </user>
+                <user>
+                    <name>Kamal Mohammed</name>
+                    <credentials>{903}p4fcZUhNt9MkGkBG6YPkaBjcASJF/jxV</credentials>
+                    <display-name>Kamal Mohammed</display-name>
+                </user>
+                <user>
+                    <name>Ziyad Bediry</name>
+                    <credentials>{903}OiG1/lrxttadB92mxFIDF9P9UqKAGawsrUPew+8dsZ4=</credentials>
+                    <display-name>Ziyad Bediry</display-name>
+                </user>
+                <user>
+                    <name>Sayed Abdulrazzaq</name>
+                    <credentials>{903}Hw5c38Gw3MgcHY+x+GJPgcP2ziSh/W2Y2T2/E+8LWP8=</credentials>
+                    <display-name>Sayed Abdulrazzaq</display-name>
+                </user>
+                <user>
+                    <name>Ezat Al deeb</name>
+                    <credentials>{903}svPf/es7ai4lKt47MslnvKyf0P810CFEc1j1Wx/2FjM=</credentials>
+                    <display-name>Ezat Al deeb</display-name>
+                </user>
+                <user>
+                    <name>Ahmed Mansour</name>
+                    <credentials>{903}Lud1BbAszGnHpi2L6Q9QCvAllVjaHP+QJTXNvPLfwpk=</credentials>
+                    <display-name>Ahmed Mansour</display-name>
+                </user>
+            </users>
+        </realm>
+    </jazn-realm>
+    <policy-store>
+        <applications>
+            <application>
+                <name>Fusion VendHQ Opencart Integration</name>
+                <app-roles>
+                    <app-role>
+                        <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                        <name>test-all</name>
+                        <display-name>test-all</display-name>
+                        <members>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsAnonymousRoleImpl</class>
+                                <name>anonymous-role</name>
+                            </member>
+                        </members>
+                    </app-role>
+                    <app-role>
+                        <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                        <name>public_user</name>
+                        <display-name>Public User</display-name>
+                        <description>General Application Role</description>
+                        <members>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Kamal Mohammed</name>
+                            </member>
+                        </members>
+                    </app-role>
+                    <app-role>
+                        <name>admin_role</name>
+                        <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                        <display-name>Administrator Role</display-name>
+                        <description>The highest level of all Roles</description>
+                        <members>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Mohammed Mukhtar</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Sayed Abdulrazzaq</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Ezat Al deeb</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Ahmed Mansour</name>
+                            </member>
+                        </members>
+                    </app-role>
+                    <app-role>
+                        <name>operator_role</name>
+                        <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                        <display-name>Operator Role</display-name>
+                        <description>This role is for those who controls the integration</description>
+                        <members>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Nagy Diaa</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Mohammed Mukhtar</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Ziyad Bediry</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Sayed Abdulrazzaq</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Ezat Al deeb</name>
+                            </member>
+                            <member>
+                                <class>oracle.security.jps.internal.core.principals.JpsXmlUserImpl</class>
+                                <name>Ahmed Mansour</name>
+                            </member>
+                        </members>
+                    </app-role>
+                </app-roles>
+                <jazn-policy>
+                    <grant>
+                        <grantee>
+                            <principals>
+                                <principal>
+                                    <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                                    <name>public_user</name>
+                                </principal>
+                            </principals>
+                        </grantee>
+                        <permissions>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.HomePagePageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.FusionInvoiceDetailsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                        </permissions>
+                    </grant>
+                    <grant>
+                        <grantee>
+                            <principals>
+                                <principal>
+                                    <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                                    <name>admin_role</name>
+                                </principal>
+                            </principals>
+                        </grantee>
+                        <permissions>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.FusionAppSettingsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.GeneralSettingsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.OnHandDetailsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.OpenCartSettingsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.HomePagePageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.VendHQSalesPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.VendHQSettingsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.FusionInvoiceDetailsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                        </permissions>
+                    </grant>
+                    <grant>
+                        <grantee>
+                            <principals>
+                                <principal>
+                                    <class>oracle.security.jps.service.policystore.ApplicationRole</class>
+                                    <name>operator_role</name>
+                                </principal>
+                            </principals>
+                        </grantee>
+                        <permissions>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.HomePagePageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.OnHandDetailsPageDef</name>
+                                <actions>view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.VendHQSalesPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                            <permission>
+                                <class>oracle.adf.share.security.authorization.RegionPermission</class>
+                                <name>view.pageDefs.FusionInvoiceDetailsPageDef</name>
+                                <actions>customize,grant,personalize,view</actions>
+                            </permission>
+                        </permissions>
+                    </grant>
+                </jazn-policy>
+            </application>
+        </applications>
+    </policy-store>
+    <system-policy/>
+</jazn-data>

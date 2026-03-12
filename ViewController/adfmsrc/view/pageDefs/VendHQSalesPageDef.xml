@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<pageDefinition xmlns="http://xmlns.oracle.com/adfm/uimodel" version="12.2.1.9.14" id="VendHQSalesPageDef"
+                Package="view.pageDefs">
+  <parameters/>
+  <executables>
+    <variableIterator id="variables"/>
+    <iterator Binds="BackupVendhqSalesView1" RangeSize="25" DataControl="AppModuleDataControl"
+              id="BackupVendhqSalesView1Iterator"/>
+    <searchRegion Binds="BackupVendhqSalesView1Iterator" Criteria=""
+                  Customizer="oracle.jbo.uicli.binding.JUSearchBindingCustomizer" id="BackupVendhqSalesView1Query"/>
+  </executables>
+  <bindings>
+    <tree IterBinding="BackupVendhqSalesView1Iterator" id="BackupVendhqSalesView1">
+      <nodeDefinition DefName="model.BackupVendhqSalesView" Name="BackupVendhqSalesView10">
+        <AttrNames>
+          <Item Value="InvoiceNumber"/>
+          <Item Value="OutletName"/>
+          <Item Value="RegisterName"/>
+          <Item Value="SaleDate"/>
+          <Item Value="TotalPrice"/>
+          <Item Value="TotalTax"/>
+          <Item Value="TotalLoyalty"/>
+          <Item Value="TotalPriceInclTax"/>
+          <Item Value="Region"/>
+        </AttrNames>
+      </nodeDefinition>
+    </tree>
+  </bindings>
+</pageDefinition>

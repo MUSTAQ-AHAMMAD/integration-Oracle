@@ -1,0 +1,171 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich">
+    <af:document title="FusionSettings.jsf" id="d1">
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="header">
+                    <af:outputText value="&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Integration Middleware" id="ot9"/>
+                </f:facet>
+                <f:facet name="status"/>
+                <f:facet name="appNav">
+                    <af:link text="Home" id="l1" action="adfMenu_HomePage"/>
+                </f:facet>
+                <f:facet name="globalLinks"/>
+                <f:facet name="footer"/>
+                <f:facet name="center">
+                    <af:decorativeBox id="db2">
+                        <f:facet name="top"/>
+                        <f:facet name="center">
+                            <af:panelFormLayout id="pfl1">
+                                <af:inputText value="#{bindings.FullName.inputValue}" label="Full Name"
+                                              required="#{bindings.FullName.hints.mandatory}"
+                                              columns="#{bindings.FullName.hints.displayWidth}"
+                                              maximumLength="#{bindings.FullName.hints.precision}"
+                                              shortDesc="#{bindings.FullName.hints.tooltip}" id="it1">
+                                    <f:validator binding="#{bindings.FullName.validator}"/>
+                                </af:inputText>
+                                <af:inputText value="#{bindings.EmailAddress.inputValue}" label="Email Address"
+                                              required="#{bindings.EmailAddress.hints.mandatory}"
+                                              columns="#{bindings.EmailAddress.hints.displayWidth}"
+                                              maximumLength="#{bindings.EmailAddress.hints.precision}"
+                                              shortDesc="#{bindings.EmailAddress.hints.tooltip}" id="it2"
+                                              immediate="true">
+                                    <f:validator binding="#{bindings.EmailAddress.validator}"/>
+                                    <!-- <af:validateRegExp pattern="^[_A-Za-z0-9-]+(\\\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\\\\.[A-Za-z0-9]+)*(\\\\.[A-Za-z]{2,})$"
+                                                       messageDetailNoMatch="You have entered an invalid email address. Please try again."
+                                                       hint="example: abc@xyz.com"/> -->
+                                </af:inputText>
+                                <af:selectOneChoice label="Email Mode" id="soc1"
+                                            value="#{bindings.EmailMode.inputValue}"
+                                            required="#{bindings.EmailMode.hints.mandatory}">
+                                    <af:selectItem label="FROM" value="FROM" id="si3"/>
+                                    <af:selectItem label="TO" value="TO" id="si4"/>
+                                    <af:selectItem label="CC" value="CC" id="si5"/>
+                                    <af:selectItem label="BCC" value="BCC" id="si6"/>
+                                </af:selectOneChoice>
+                                <af:selectOneRadio label="Status" requiredMessageDetail="Please select a status"
+                                                   id="sor1" value="#{bindings.Status.inputValue}">
+                                    <af:selectItem label="Active" value="Y" id="si1"/>
+                                    <af:selectItem label="Inactive" value="N" id="si2"/>
+                                    <f:validator binding="#{bindings.Status.validator}"/>
+                                </af:selectOneRadio>
+                                <f:facet name="footer">
+                                    <af:toolbar id="t2">
+                                        <af:button actionListener="#{bindings.First.execute}" text="First"
+                                                   disabled="#{!bindings.First.enabled}" partialSubmit="true" id="b6"/>
+                                        <af:button actionListener="#{bindings.Previous.execute}" text="Previous"
+                                                   disabled="#{!bindings.Previous.enabled}" partialSubmit="true"
+                                                   id="b7"/>
+                                        <af:button actionListener="#{bindings.Next.execute}" text="Next"
+                                                   disabled="#{!bindings.Next.enabled}" partialSubmit="true" id="b8"/>
+                                        <af:button actionListener="#{bindings.Last.execute}" text="Last"
+                                                   disabled="#{!bindings.Last.enabled}" partialSubmit="true" id="b9"/>
+                                    </af:toolbar>
+                                    <af:toolbar id="t3">
+                                        <af:button text="Submit" id="b1"/>
+                                        <af:button actionListener="#{bindings.Delete.execute}" text="Delete"
+                                                   disabled="#{!bindings.Delete.enabled}" id="b2"/>
+                                        <af:button actionListener="#{bindings.Create.execute}" text="Create"
+                                                   disabled="#{!bindings.Create.enabled}" id="b3"/>
+                                        <af:button actionListener="#{bindings.Commit.execute}" text="Commit"
+                                                   disabled="#{!bindings.Commit.enabled}" id="b4"/>
+                                        <af:button actionListener="#{bindings.Rollback.execute}" text="Rollback"
+                                                   disabled="#{!bindings.Rollback.enabled}" immediate="true" id="b5">
+                                            <af:resetActionListener/>
+                                        </af:button>
+                                    </af:toolbar>
+                                </f:facet>
+                            </af:panelFormLayout>
+                        </f:facet>
+                    </af:decorativeBox>
+                    <af:decorativeBox id="db1" styleClass="AFStretchWidth">
+                        <f:facet name="top"/>
+                        <f:facet name="center">
+                            <af:table value="#{bindings.NotificationEmailRecipientsView1.collectionModel}" var="row"
+                                      rows="#{bindings.NotificationEmailRecipientsView1.rangeSize}"
+                                      emptyText="#{bindings.NotificationEmailRecipientsView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                      rowBandingInterval="0"
+                                      selectedRowKeys="#{bindings.NotificationEmailRecipientsView1.collectionModel.selectedRow}"
+                                      selectionListener="#{bindings.NotificationEmailRecipientsView1.collectionModel.makeCurrent}"
+                                      rowSelection="single"
+                                      fetchSize="#{bindings.NotificationEmailRecipientsView1.rangeSize}"
+                                      filterModel="#{bindings.NotificationEmailRecipientsView1Query.queryDescriptor}"
+                                      filterVisible="true"
+                                      queryListener="#{bindings.NotificationEmailRecipientsView1Query.processQuery}"
+                                      varStatus="vs" id="t1" partialTriggers="::b2 ::b3 ::b4 ::b6 ::b7 ::b8 ::b9">
+                                <af:column sortProperty="#{bindings.NotificationEmailRecipientsView1.hints.FullName.name}"
+                                           filterable="true" sortable="true" headerText="Full Name" id="c1">
+                                    <af:outputText value="#{row.FullName}"
+                                                   shortDesc="#{bindings.NotificationEmailRecipientsView1.hints.FullName.tooltip}"
+                                                   id="ot1"/>
+                                </af:column>
+                                <af:column sortProperty="#{bindings.NotificationEmailRecipientsView1.hints.EmailAddress.name}"
+                                           filterable="true" sortable="true" headerText="Email Address" id="c2">
+                                    <af:outputText value="#{row.EmailAddress}"
+                                                   shortDesc="#{bindings.NotificationEmailRecipientsView1.hints.EmailAddress.tooltip}"
+                                                   id="ot2"/>
+                                </af:column>
+                                <af:column sortProperty="#{bindings.NotificationEmailRecipientsView1.hints.EmailMode.name}"
+                                           filterable="true" sortable="true" headerText="Email Mode" id="c3">
+                                    <af:outputText value="#{row.EmailMode}"
+                                                   shortDesc="#{bindings.NotificationEmailRecipientsView1.hints.EmailMode.tooltip}"
+                                                   id="ot3"/>
+                                </af:column>
+                                <af:column sortProperty="#{bindings.NotificationEmailRecipientsView1.hints.Status.name}"
+                                           filterable="true" sortable="true" headerText="Active" id="c4">
+                                    <af:outputText value="#{row.Status}"
+                                                   shortDesc="#{bindings.NotificationEmailRecipientsView1.hints.Status.tooltip}"
+                                                   id="ot4"/>
+                                </af:column>
+                            </af:table>
+                        </f:facet>
+                    </af:decorativeBox>
+                    
+                </f:facet>
+                <f:facet name="start">
+                 <af:panelAccordion discloseMany="false" id="pa2">
+                        <af:showDetailItem text="General" id="general_pane">
+                            <af:navigationPane hint="list" id="np1">
+                                <af:commandNavigationItem id="email_notif" text="Email Notifcation Recipients"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="fusion_pane" text="Fusion">
+                            <af:navigationPane hint="list" id="np2">
+                                <af:commandNavigationItem id="cni10" text="Fusion Credentials"
+                                                          action="adfMenu_FusionSettings"/>
+                                <af:commandNavigationItem id="cni2" text="Fusion Sales MetaData"
+                                                          action="adfMenu_FusionSettings"/>
+                                <af:commandNavigationItem id="cni3" text="Fusion Receipt Method MetaData"
+                                                          action="adfMenu_FusionSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="vendhq_pane" text="Vend HQ">
+                            <af:navigationPane hint="list" id="np3">
+                                <af:commandNavigationItem id="cni9" text="VendHQ Credentials"
+                                                          action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni4" text="VendHQ Registers"
+                                                          action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni5" text="VendHQ Outlets" action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni6" text="VendHQ Taxes" action="adfMenu_VendHQSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="opencart_pane" text="Opencart">
+                            <af:navigationPane hint="list" id="np4">
+                                <af:commandNavigationItem id="cni7" text="Opencart Credentials"
+                                                          action="adfMenu_OpenCartSettings"/>
+                                <af:commandNavigationItem id="cni8" text="Opencart Settings"
+                                                          action="adfMenu_OpenCartSettings"/>
+                                </af:navigationPane>
+                        </af:showDetailItem>
+                    </af:panelAccordion>
+                </f:facet>
+                <f:facet name="end"/>
+                <f:attribute name="endWidth" value="0"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="startWidth" value="300"/>
+            </af:pageTemplate>
+        </af:form>
+    </af:document>
+</f:view>

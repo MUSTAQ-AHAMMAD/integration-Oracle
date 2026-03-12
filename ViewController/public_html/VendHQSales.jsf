@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich">
+    <af:document title="VendHQSales.jsf" id="d1">
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="header"/>
+                <f:facet name="status"/>
+                <f:facet name="appNav"/>
+                <f:facet name="globalLinks"/>
+                <f:facet name="footer"/>
+                <f:facet name="center">
+                    <af:panelBox text="Sales" id="pb3">
+                        <f:facet name="toolbar"/>
+                        <af:table value="#{bindings.BackupVendhqSalesView1.collectionModel}" var="row"
+                                  rows="#{bindings.BackupVendhqSalesView1.rangeSize}"
+                                  emptyText="#{bindings.BackupVendhqSalesView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                  rowBandingInterval="0"
+                                  selectedRowKeys="#{bindings.BackupVendhqSalesView1.collectionModel.selectedRow}"
+                                  selectionListener="#{bindings.BackupVendhqSalesView1.collectionModel.makeCurrent}"
+                                  rowSelection="single" fetchSize="#{bindings.BackupVendhqSalesView1.rangeSize}"
+                                  filterModel="#{bindings.BackupVendhqSalesView1Query.queryDescriptor}"
+                                  filterVisible="true"
+                                  queryListener="#{bindings.BackupVendhqSalesView1Query.processQuery}" varStatus="vs"
+                                  id="t1">
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.InvoiceNumber.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.InvoiceNumber.label}"
+                                       id="c1">
+                                <af:outputText value="#{row.InvoiceNumber}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.InvoiceNumber.tooltip}"
+                                               id="ot1"/>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.OutletName.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.OutletName.label}" id="c2">
+                                <af:outputText value="#{row.OutletName}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.OutletName.tooltip}"
+                                               id="ot2"/>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.RegisterName.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.RegisterName.label}" id="c3">
+                                <af:outputText value="#{row.RegisterName}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.RegisterName.tooltip}"
+                                               id="ot3"/>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.SaleDate.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.SaleDate.label}" id="c4">
+                                <f:facet name="filter">
+                                    <af:inputDate value="#{bindings.BackupVendhqSalesView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.SaleDate.value}"
+                                                  id="id1">
+                                        <af:convertDateTime pattern="#{bindings.BackupVendhqSalesView1.hints.SaleDate.format}"/>
+                                    </af:inputDate>
+                                </f:facet>
+                                <af:outputText value="#{row.SaleDate}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.SaleDate.tooltip}"
+                                               id="ot4">
+                                    <af:convertDateTime pattern="#{bindings.BackupVendhqSalesView1.hints.SaleDate.format}"/>
+                                </af:outputText>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.TotalPrice.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.TotalPrice.label}" id="c5">
+                                <af:outputText value="#{row.TotalPrice}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.TotalPrice.tooltip}"
+                                               id="ot5">
+                                    <af:convertNumber groupingUsed="false"
+                                                      pattern="#{bindings.BackupVendhqSalesView1.hints.TotalPrice.format}"/>
+                                </af:outputText>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.TotalTax.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.TotalTax.label}" id="c6">
+                                <af:outputText value="#{row.TotalTax}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.TotalTax.tooltip}"
+                                               id="ot6">
+                                    <af:convertNumber groupingUsed="false"
+                                                      pattern="#{bindings.BackupVendhqSalesView1.hints.TotalTax.format}"/>
+                                </af:outputText>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.TotalLoyalty.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.TotalLoyalty.label}" id="c7">
+                                <af:outputText value="#{row.TotalLoyalty}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.TotalLoyalty.tooltip}"
+                                               id="ot7">
+                                    <af:convertNumber groupingUsed="false"
+                                                      pattern="#{bindings.BackupVendhqSalesView1.hints.TotalLoyalty.format}"/>
+                                </af:outputText>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.TotalPriceInclTax.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.TotalPriceInclTax.label}"
+                                       id="c8">
+                                <af:outputText value="#{row.TotalPriceInclTax}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.TotalPriceInclTax.tooltip}"
+                                               id="ot8">
+                                    <af:convertNumber groupingUsed="false"
+                                                      pattern="#{bindings.BackupVendhqSalesView1.hints.TotalPriceInclTax.format}"/>
+                                </af:outputText>
+                            </af:column>
+                            <af:column sortProperty="#{bindings.BackupVendhqSalesView1.hints.Region.name}"
+                                       filterable="true" sortable="true"
+                                       headerText="#{bindings.BackupVendhqSalesView1.hints.Region.label}" id="c9">
+                                <af:outputText value="#{row.Region}"
+                                               shortDesc="#{bindings.BackupVendhqSalesView1.hints.Region.tooltip}"
+                                               id="ot9"/>
+                            </af:column>
+                        </af:table>
+                    </af:panelBox>
+                </f:facet>
+                <f:facet name="start"/>
+                <f:facet name="end"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="endWidth" value="0"/>
+                <f:attribute name="startWidth" value="0"/>
+            </af:pageTemplate>
+        </af:form>
+    </af:document>
+</f:view>

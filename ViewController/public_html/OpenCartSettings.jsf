@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich">
+    <af:document title="OpenCartSettings.jsf" id="d1">
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="header">
+                    <af:outputText value="&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Integration Middleware" id="ot9"/>
+                </f:facet>
+                <f:facet name="status"/>
+                <f:facet name="appNav">
+                    <af:link text="Home" id="l1" action="adfMenu_HomePage"/>
+                </f:facet>
+                <f:facet name="globalLinks"/>
+                <f:facet name="footer"/>
+                <f:facet name="center">
+                    <af:panelTabbed position="above" id="pt2">
+                        <af:showDetailItem id="opencartCred" text="Opencart Credentials">
+                            <af:panelGroupLayout id="pgl1" layout="vertical">
+                                <af:decorativeBox id="db1">
+                                    <f:facet name="top"/>
+                                    <f:facet name="center">
+                                        <af:panelFormLayout id="pfl1">
+                                            <af:inputText value="#{bindings.CountryCode.inputValue}"
+                                                          label="Country Code"
+                                                          required="#{bindings.CountryCode.hints.mandatory}"
+                                                          columns="#{bindings.CountryCode.hints.displayWidth}"
+                                                          maximumLength="#{bindings.CountryCode.hints.precision}"
+                                                          shortDesc="#{bindings.CountryCode.hints.tooltip}" id="it1">
+                                                <f:validator binding="#{bindings.CountryCode.validator}"/>
+                                            </af:inputText>
+                                            <af:inputText value="#{bindings.DomainName.inputValue}" label="Domain Name"
+                                                          required="#{bindings.DomainName.hints.mandatory}"
+                                                          columns="#{bindings.DomainName.hints.displayWidth}"
+                                                          maximumLength="#{bindings.DomainName.hints.precision}"
+                                                          shortDesc="#{bindings.DomainName.hints.tooltip}" id="it2">
+                                                <f:validator binding="#{bindings.DomainName.validator}"/>
+                                            </af:inputText>
+                                            <af:inputText value="#{bindings.DomainToken.inputValue}"
+                                                          label="Domain Token"
+                                                          required="#{bindings.DomainToken.hints.mandatory}"
+                                                          columns="#{bindings.DomainToken.hints.displayWidth}"
+                                                          maximumLength="#{bindings.DomainToken.hints.precision}"
+                                                          shortDesc="#{bindings.DomainToken.hints.tooltip}" id="it3" secret="true">
+                                                <f:validator binding="#{bindings.DomainToken.validator}"/>
+                                            </af:inputText>
+                                            <f:facet name="footer">
+                                                <af:toolbar id="t1">
+                                                    <af:button actionListener="#{bindings.First.execute}" text="First"
+                                                               disabled="#{!bindings.First.enabled}"
+                                                               partialSubmit="true" id="b4"/>
+                                                    <af:button actionListener="#{bindings.Previous.execute}"
+                                                               text="Previous" disabled="#{!bindings.Previous.enabled}"
+                                                               partialSubmit="true" id="b5"/>
+                                                    <af:button actionListener="#{bindings.Next.execute}" text="Next"
+                                                               disabled="#{!bindings.Next.enabled}" partialSubmit="true"
+                                                               id="b6"/>
+                                                    <af:button actionListener="#{bindings.Last.execute}" text="Last"
+                                                               disabled="#{!bindings.Last.enabled}" partialSubmit="true"
+                                                               id="b7"/>
+                                                </af:toolbar>
+                                                <af:toolbar id="t3">
+                                                    <af:button text="Submit" id="b3"/>
+                                                    <af:button actionListener="#{bindings.Create.execute}" text="Create"
+                                                               disabled="#{!bindings.Create.enabled}" id="b8"/>
+                                                    <af:button actionListener="#{bindings.Delete.execute}" text="Delete"
+                                                               disabled="#{!bindings.Delete.enabled}" id="b9"/>
+                                                </af:toolbar>
+                                            </f:facet>
+                                        </af:panelFormLayout>
+                                    </f:facet>
+                                </af:decorativeBox>
+                                <af:table value="#{bindings.OpencartGlobalSitesView1.collectionModel}" var="row"
+                                          rows="#{bindings.OpencartGlobalSitesView1.rangeSize}"
+                                          emptyText="#{bindings.OpencartGlobalSitesView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                          rowBandingInterval="0"
+                                          selectedRowKeys="#{bindings.OpencartGlobalSitesView1.collectionModel.selectedRow}"
+                                          selectionListener="#{bindings.OpencartGlobalSitesView1.collectionModel.makeCurrent}"
+                                          rowSelection="single"
+                                          fetchSize="#{bindings.OpencartGlobalSitesView1.rangeSize}" id="t2"
+                                          partialTriggers="::b4 ::b5 ::b6 ::b7 ::b8 ::b9">
+                                    <af:column headerText="Country Code" id="c1">
+                                        <af:outputText value="#{row.CountryCode}"
+                                                       shortDesc="#{bindings.OpencartGlobalSitesView1.hints.CountryCode.tooltip}"
+                                                       id="ot1"/>
+                                    </af:column>
+                                    <af:column headerText="Domain Name" id="c2">
+                                        <af:outputText value="#{row.DomainName}"
+                                                       shortDesc="#{bindings.OpencartGlobalSitesView1.hints.DomainName.tooltip}"
+                                                       id="ot2"/>
+                                    </af:column>
+                                </af:table>
+                            </af:panelGroupLayout>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="opencartSettings" text="Opencart Settings"/>
+                    </af:panelTabbed>
+                    <af:button actionListener="#{bindings.Commit.execute}" text="Save"
+                                       disabled="#{!bindings.Commit.enabled}" id="b1"
+                               inlineStyle="padding:0px; margin:5px;"/>
+                    <af:button actionListener="#{bindings.Rollback.execute}" text="Undo"
+                               disabled="#{!bindings.Rollback.enabled}" immediate="true" id="b2"
+                               inlineStyle="margin:5px;">
+                        <af:resetActionListener/>
+                    </af:button>
+                </f:facet>
+                <f:facet name="start">
+                    <af:panelAccordion discloseMany="false" id="pa2">
+                        <af:showDetailItem text="General" id="general_pane">
+                            <af:navigationPane hint="list" id="np1">
+                                <af:commandNavigationItem id="email_notif" text="Email Notifcation Recipients"
+                                                          action="adfMenu_GeneralSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="fusion_pane" text="Fusion" disclosed="false">
+                            <af:navigationPane hint="list" id="np2">
+                                <af:commandNavigationItem id="cni10" text="Fusion Credentials"
+                                                          action="adfMenu_FusionSettings"/>
+                                <af:commandNavigationItem id="cni2" text="Fusion Sales MetaData"
+                                                          action="adfMenu_FusionSettings"/>
+                                <af:commandNavigationItem id="cni3" text="Fusion Receipt Method MetaData"
+                                                          action="adfMenu_FusionSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="vendhq_pane" text="Vend HQ">
+                            <af:navigationPane hint="list" id="np3">
+                                <af:commandNavigationItem id="cni9" text="VendHQ Credentials"
+                                                          action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni4" text="VendHQ Registers"
+                                                          action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni5" text="VendHQ Outlets" action="adfMenu_VendHQSettings"/>
+                                <af:commandNavigationItem id="cni6" text="VendHQ Taxes" action="adfMenu_VendHQSettings"/>
+                            </af:navigationPane>
+                        </af:showDetailItem>
+                        <af:showDetailItem id="opencart_pane" text="Opencart" disclosed="true">
+                            <af:navigationPane hint="list" id="np4">
+                                <af:commandNavigationItem id="cni7" text="Opencart Credentials"/>
+                                <af:commandNavigationItem id="cni8" text="Opencart Settings"/>
+                                </af:navigationPane>
+                        </af:showDetailItem>
+                    </af:panelAccordion>
+                </f:facet>
+                <f:facet name="end"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="endWidth" value="0"/>
+                <f:attribute name="startWidth" value="300"/>
+            </af:pageTemplate>
+        </af:form>
+    </af:document>
+</f:view>

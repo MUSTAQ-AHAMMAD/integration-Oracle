@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="windows-1252" ?>
+<!DOCTYPE Entity SYSTEM "jbo_03_01.dtd">
+<!---->
+<Entity
+  xmlns="http://xmlns.oracle.com/bc4j"
+  Name="OpencartGlobalSites"
+  Version="12.2.1.3.15"
+  InheritPersonalization="merge"
+  DBObjectType="table"
+  DBObjectName="OPENCART_GLOBAL_SITES"
+  AliasName="OpencartGlobalSites"
+  BindingStyle="OracleName">
+  <Attribute
+    Name="RowId1"
+    IsNotNull="true"
+    ColumnName="ROW_ID"
+    SQLType="NUMERIC"
+    Type="java.math.BigDecimal"
+    ColumnType="NUMBER"
+    TableName="OPENCART_GLOBAL_SITES"
+    PrimaryKey="true"/>
+  <Attribute
+    Name="CountryCode"
+    IsUnique="true"
+    IsNotNull="true"
+    Precision="10"
+    ColumnName="COUNTRY_CODE"
+    SQLType="VARCHAR"
+    Type="java.lang.String"
+    ColumnType="VARCHAR2"
+    TableName="OPENCART_GLOBAL_SITES">
+    <DesignTime>
+      <Attr Name="_DisplaySize" Value="10"/>
+    </DesignTime>
+  </Attribute>
+  <Attribute
+    Name="DomainName"
+    IsNotNull="true"
+    Precision="50"
+    ColumnName="DOMAIN_NAME"
+    SQLType="VARCHAR"
+    Type="java.lang.String"
+    ColumnType="VARCHAR2"
+    TableName="OPENCART_GLOBAL_SITES">
+    <DesignTime>
+      <Attr Name="_DisplaySize" Value="50"/>
+    </DesignTime>
+  </Attribute>
+  <Attribute
+    Name="DomainToken"
+    IsNotNull="true"
+    Precision="100"
+    ColumnName="DOMAIN_TOKEN"
+    SQLType="VARCHAR"
+    Type="java.lang.String"
+    ColumnType="VARCHAR2"
+    TableName="OPENCART_GLOBAL_SITES">
+    <DesignTime>
+      <Attr Name="_DisplaySize" Value="100"/>
+    </DesignTime>
+  </Attribute>
+  <Key
+    Name="OpencartGlobalSitesPk"
+    PrimaryKey="true">
+    <DesignTime>
+      <Attr Name="_DBObjectName" Value="OPENCART_GLOBAL_SITES_PK"/>
+    </DesignTime>
+    <AttrArray Name="Attributes">
+      <Item Value="model.OpencartGlobalSites.RowId1"/>
+    </AttrArray>
+  </Key>
+  <Key
+    Name="OpencartGlobalSitesUk1">
+    <DesignTime>
+      <Attr Name="_isUnique" Value="true"/>
+      <Attr Name="_DBObjectName" Value="OPENCART_GLOBAL_SITES_UK1"/>
+    </DesignTime>
+    <AttrArray Name="Attributes">
+      <Item Value="model.OpencartGlobalSites.CountryCode"/>
+    </AttrArray>
+  </Key>
+</Entity>

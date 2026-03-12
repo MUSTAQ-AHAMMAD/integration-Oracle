@@ -1,0 +1,7 @@
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 24-01-2021
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 25-01-2021
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 26-01-2021
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 27-01-2021
+SALES INTEGRATION LOG		OUTLET: ANDLUS, DATE: 28-01-2021
+Apply Receipt			Receipt#: Visa-214350JBO-FND:::FND_GENERIC_MULTI_MESSAGE: <MESSAGE><NUMBER></NUMBER><TEXT>Multiple errors occurred while processing this request. See Details.</TEXT><CAUSE></CAUSE><ACTION></ACTION><DETAILS></DETAILS><INCIDENT></INCIDENT></MESSAGE>JBO-AR:::AR_RAPI_RCPT_NUM_IGN: <MESSAGE><NUMBER>AR-855741</NUMBER><TEXT>The cash receipt ID takes precedence over the receipt number.</TEXT><CAUSE></CAUSE><ACTION></ACTION><DETAILS></DETAILS><INCIDENT></INCIDENT></MESSAGE>JBO-AR:::AR_RAPI_TRX_NUM_IGN: <MESSAGE><NUMBER>AR-855799</NUMBER><TEXT>The customer transaction ID takes precedence over the transaction number.</TEXT><CAUSE></CAUSE><ACTION></ACTION><DETAILS></DETAILS><INCIDENT></INCIDENT></MESSAGE>JBO-AR:::AR_CKAP_OVERAPP: <MESSAGE><NUMBER>AR-855287</NUMBER><TEXT>You can't overapply this transaction.</TEXT><CAUSE></CAUSE><ACTION></ACTION><DETAILS>The transaction type assigned to the transaction doesn't allow overapplication. You can only apply a credit or receipt amount up to, but not over, the outstanding balance on the transaction.</DETAILS><INCIDENT></INCIDENT></MESSAGE>
+		

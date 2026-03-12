@@ -1,0 +1,1523 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html>
+<f:view xmlns:f="http://java.sun.com/jsf/core" xmlns:af="http://xmlns.oracle.com/adf/faces/rich" 
+afterPhase="#{pageFlowScope.IntegrationSchedulerBean.afterPhase}">
+    <af:document title="HomePage.jsf" id="d1" >
+        <af:messages id="m1"/>
+        <af:form id="f1">
+            <af:pageTemplate viewId="/oracle/templates/responsiveTemplate.jspx" id="pt1">
+                <f:facet name="header">
+                    <af:outputText value="&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Integration Middleware"
+                                   id="ot9"/>
+                </f:facet>
+                <f:facet name="status"/>
+                <f:facet name="appNav">
+                    <af:button text="Settings" id="b4" inlineStyle="font-size:large;" action="adfMenu_GeneralSettings"
+                               icon="/images/baseline_settings_black_24dp.png" visible="#{securityContext.userInRole['admin_role']}"/>
+                    <af:button text="On-Hand Qty" id="b5" inlineStyle="font-size:large;" action="adfMenu_OnHandDetails"
+                               icon="/images/baseline_equalizer_black_24dp.png"/>
+                    <af:button text="Store Sales" id="b3"  inlineStyle="font-size:large;" action="adfMenu_VendHQSales"
+                               icon="/images/baseline_shopping_basket_black_24dp.png"/>
+                </f:facet>
+                <f:facet name="globalLinks">
+                    <af:outputText value="Hi #{securityContext.userName}, Welcome!&nbsp;&nbsp;" id="ot101"/>
+                    <af:button text="Logout" id="b18"
+                               actionListener="#{pageFlowScope.IntegrationSchedulerBean.logoutAction}"/>
+                    <af:panelGroupLayout id="pgl8" inlineStyle="margin-right:250px;"/>
+                    
+                    <af:toolbar id="t10">
+                        <af:selectOneChoice value="#{bindings.SelectedRegion.inputValue}"
+                                            label="Select Region: "
+                                            required="#{bindings.SelectedRegion.hints.mandatory}"
+                                            shortDesc="#{bindings.SelectedRegion.hints.tooltip}" id="soc1" autoSubmit="true">
+                            <f:selectItems value="#{bindings.SelectedRegion.items}" id="si1"/>
+                            <f:validator binding="#{bindings.SelectedRegion.validator}"/> 
+                        </af:selectOneChoice>
+                        <af:button text="Change" id="b8"
+                                   actionListener="#{pageFlowScope.IntegrationSchedulerBean.changeSelectedRegion}"/>
+                    </af:toolbar>
+                </f:facet>
+                <f:facet name="footer">
+                    <af:outputText value="Copyright (C) Tamer Innovate. All Rights Reserved." id="ot14"
+                                   inlineStyle="width:inherit; flex-align:center;"/>
+                </f:facet>
+                <f:facet name="center">
+                    <af:panelStretchLayout id="psl1"
+                                           visible="#{securityContext.userInRole['operator_role']}">
+                        <f:facet name="start"/>
+                        <f:facet name="end"/>
+                        <f:facet name="top">
+                            <af:panelGridLayout id="pgl1">
+                                <af:gridRow marginTop="5px" height="auto" marginBottom="5px" id="gr1">
+                                    <af:gridCell marginStart="5px" width="50%" id="gc1" styleClass="AFStretchWidth">
+                                        <af:decorativeBox id="db1" styleClass="AFStretchWidth">
+                                            <f:facet name="top"/>
+                                            <f:facet name="center">
+                                                <af:outputText value="VendHQ Integration Control" id="ot100"
+                                                               inlineStyle="font-size:large;"/>
+                                            </f:facet>
+                                        </af:decorativeBox>
+                                    </af:gridCell>
+                                </af:gridRow>
+                            </af:panelGridLayout>
+                        </f:facet>
+                        <f:facet name="bottom"/>
+                        <f:facet name="center">
+                            <af:panelDashboard id="pd1" columns="4" rowHeight="280px">
+                                <af:panelBox text="Item Status" id="pb3" showDisclosure="false"
+                                                inlineStyle="background-color:#DCEDC8;"
+                                             icon="/images/baseline_dashboard_black_24dp.png">
+                                    <f:facet name="toolbar">
+                                        <af:toolbar id="t2">
+                                            <af:button text="Refresh" id="b2"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.refreshItemStatusLayout}"
+                                                       icon="/images/baseline_refresh_black_18dp.png"/>
+                                            <af:button text="Start" id="b1" visible="false"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.toggleItemsSchedulerStatus}"
+                                                       binding="#{pageFlowScope.IntegrationSchedulerBean.changeItemStatusButton}"
+                                                       partialTriggers="b1 ot16 pi1"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <af:panelGroupLayout id="pgl3" layout="vertical" visible="false"
+                                                                        styleClass="AFStretchWidth"
+                                                                        binding="#{pageFlowScope.IntegrationSchedulerBean.itemStatusLayout}">
+                                        <af:progressIndicator id="pi1" clientComponent="true"
+                                                              binding="#{pageFlowScope.IntegrationSchedulerBean.itemStatusIndicator}"
+                                                              inlineStyle="margin:0px; margin-bottom:10px; margin-left:10px; margin-right:10px; margin-top:10px;"/>
+                                        <af:panelGridLayout id="pgl6">
+                                            <af:gridRow marginTop="15px" height="auto" id="gr6">
+                                                <af:gridCell marginStart="5px" width="100%" marginEnd="5px" id="gc8">
+                                                    <af:outputText value="Scheduler is Running..." id="ot16"
+                                                                   clientComponent="true"
+                                                                   binding="#{pageFlowScope.IntegrationSchedulerBean.itemStatusText}"
+                                                                   inlineStyle="padding:10px; font-style:italic; font-weight:bold;"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow marginTop="5px" height="auto" id="gr7">
+                                                <af:gridCell marginStart="5px" width="100%" marginEnd="5px" id="gc9">
+                                                    <af:outputText value="" id="ot102"
+                                                                   inlineStyle="color:#840000; padding:10px;"
+                                                                   binding="#{pageFlowScope.IntegrationSchedulerBean.itemStatusPrevDate}"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow marginTop="5px" height="auto" marginBottom="5px" id="gr8">
+                                                <af:gridCell marginStart="5px" width="100%" marginEnd="5px" id="gc10">
+                                                    <af:outputText value="" id="ot103"
+                                                                   inlineStyle="color:Blue; padding:10px;"
+                                                                   binding="#{pageFlowScope.IntegrationSchedulerBean.itemStatusNextDate}"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                        </af:panelGridLayout>
+                                    </af:panelGroupLayout>
+                                </af:panelBox>
+                                <af:panelBox text="Sales Status" id="pb4" showDisclosure="false"
+                                                inlineStyle="background-color:#DCEDC8;"
+                                             icon="/images/baseline_shopping_cart_black_18dp.png">
+                                    <f:facet name="toolbar">
+                                        <af:toolbar id="t11">
+                                            <af:button text="Refresh" id="b7"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.refreshSalesStatusLayout}"
+                                                       icon="/images/baseline_refresh_black_18dp.png"/>
+                                            <af:button text="Start" id="b51" visible="false"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.toggleSalesSchedulerStatus}"
+                                                       binding="#{pageFlowScope.IntegrationSchedulerBean.changeSalesStatusButton}"
+                                                       partialTriggers="b5 ot183 pi2"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <af:panelGroupLayout id="pgl45" layout="vertical"  visible="false"
+                                                                        styleClass="AFStretchWidth"
+                                                                        binding="#{pageFlowScope.IntegrationSchedulerBean.salesStatusLayout}">
+                                        <af:progressIndicator id="pi2" clientComponent="true" inlineStyle="margin:0px; margin-bottom:10px; margin-left:10px; margin-right:10px; margin-top:10px;"
+                                                              binding="#{pageFlowScope.IntegrationSchedulerBean.salesStatusIndicator}"/>
+                                        <af:panelGridLayout id="pgl5">
+                                            <af:gridRow marginTop="15px" height="auto" id="gr3">
+                                                <af:gridCell marginStart="5px" width="100%" marginEnd="5px" id="gc5">
+                                                    <af:outputText value="Scheduler is Running..." id="ot183"
+                                                                   clientComponent="true"
+                                                                   binding="#{pageFlowScope.IntegrationSchedulerBean.salesStatusText}"
+                                                                   inlineStyle="padding:10px; font-style:italic; font-weight:bold;"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow marginTop="5px" height="auto" id="gr4">
+                                                <af:gridCell marginStart="5px" width="100%" marginEnd="5px" id="gc6">
+                                                    <af:outputText value="" id="ot104"
+                                                                   binding="#{pageFlowScope.IntegrationSchedulerBean.salesStatusPrevDate}"
+                                                                   inlineStyle="color:#840000; padding:10px;"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow marginTop="5px" height="auto" marginBottom="5px" id="gr5">
+                                                <af:gridCell marginStart="5px" width="100%" marginEnd="5px" id="gc7">
+                                                    <af:outputText value="" id="ot105"
+                                                                   binding="#{pageFlowScope.IntegrationSchedulerBean.salesStatusNextDate}"
+                                                                   inlineStyle="color:Blue; padding:10px;"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                        </af:panelGridLayout>
+                                    </af:panelGroupLayout>
+                                </af:panelBox>
+                                <af:panelBox text="Manual Sync" id="pb5" showDisclosure="false"
+                                             icon="/images/baseline_assignment_returned_black_18dp.png">
+                                    <af:panelGroupLayout id="pgl7" layout="vertical"
+                                                         binding="#{pageFlowScope.IntegrationSchedulerBean.salesManualLayout}">
+                                        <af:panelGridLayout id="pgl10">
+                                            <af:gridRow marginTop="15px" height="auto" id="gr9">
+                                                <af:gridCell marginStart="5px" width="100%" id="gc11">
+                                                    <af:panelGroupLayout id="pgl9"
+                                                                         inlineStyle="margin:5px; padding:5px;">
+                                                        <af:outputText value="Outlets to Integrate: " id="ot113"/>
+                                                        <af:outputText value="" id="ot114"
+                                                                       inlineStyle="color:Orange; padding:10px;"
+                                                                       binding="#{pageFlowScope.IntegrationSchedulerBean.manualOutletList}"/>
+                                                    </af:panelGroupLayout>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow marginTop="15px" height="auto" marginBottom="5px" id="gr10">
+                                                <af:gridCell marginStart="5px" width="100%" id="gc12" inlineStyle="margin:5px;">
+                                                    <af:inputNumberSpinbox label="Days: " id="ins1" visible="#{securityContext.userInRole['admin_role']}"
+                                                                           binding="#{pageFlowScope.IntegrationSchedulerBean.daysToIntegrate}"
+                                                                           inlineStyle="margin:5px;"/>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow id="gr11">
+                                                <af:gridCell id="gc2">
+                                                    <af:panelBorderLayout id="pbl1">
+                                                        <f:facet name="top"/>
+                                                        <f:facet name="bottom"/>
+                                                        <f:facet name="start"/>
+                                                        <f:facet name="end"/>
+                                                        <af:toolbar id="t20">
+                                                            <af:button text="Sync Automated Outlets" id="b19"
+                                                                       icon="/images/baseline_sync_black_18dp.png"
+                                                                       visible="#{securityContext.userInRole['operator_role']}"
+                                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.runSalesAutomatedOnce}"/>
+                                                        </af:toolbar>
+                                                    </af:panelBorderLayout>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                            <af:gridRow id="gr12">
+                                                <af:gridCell id="gc3">
+                                                    <af:panelBorderLayout id="pbl2">
+                                                        <f:facet name="top"/>
+                                                        <f:facet name="bottom"/>
+                                                        <f:facet name="start"/>
+                                                        <f:facet name="end"/>
+                                                        <af:toolbar id="t29">
+                                                            <af:button text="Sync Items" id="b29"
+                                                                       icon="/images/baseline_dashboard_black_24dp.png"
+                                                                       visible="#{securityContext.userInRole['operator_role']}"
+                                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.runItemsSyncAutomatedOnce}"/>
+                                                        </af:toolbar>
+                                                    </af:panelBorderLayout>
+                                                </af:gridCell>
+                                            </af:gridRow>
+                                        </af:panelGridLayout>
+                                    </af:panelGroupLayout>
+                                    <f:facet name="toolbar">
+                                        <af:toolbar id="t12">
+                                            <af:button text="Refresh" id="b9"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.refreshSalesManualLayout}"
+                                                       icon="/images/baseline_refresh_black_18dp.png"
+                                                       visible="#{securityContext.userInRole['admin_role']}"/>
+                                            <af:button text="Run Once" id="b6" partialTriggers="salesLog" visible="false"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.runSalesJobOnce}"
+                                                       icon="/images/baseline_warning_black_18dp.png"
+                                                       binding="#{pageFlowScope.IntegrationSchedulerBean.runSalesJobOnceButton}"/>
+                                        </af:toolbar>
+                                    </f:facet>
+                                </af:panelBox>
+                                <af:panelBox text="Physical Inventory" id="pb6" showDisclosure="false"
+                                             icon="/images/baseline_account_box_black_18dp.png">
+                                    <af:panelGroupLayout id="pgl11" inlineStyle="margin:10px; padding:5px;">
+                                        <af:toolbar id="t21">
+                                            <af:selectOneChoice value="#{bindings.VendhqOutletsView1.inputValue}"
+                                                                label="#{bindings.VendhqOutletsView1.label}"
+                                                                required="#{bindings.VendhqOutletsView1.hints.mandatory}"
+                                                                shortDesc="#{bindings.VendhqOutletsView1.hints.tooltip}"
+                                                                id="soc2"
+                                                                binding="#{pageFlowScope.IntegrationSchedulerBean.inventoryOutletName}">
+                                                <f:selectItems value="#{bindings.VendhqOutletsView1.items}" id="si2"/>
+                                                <f:validator binding="#{bindings.VendhqOutletsView1.validator}"/>
+                                            </af:selectOneChoice>
+                                        </af:toolbar>
+                                    </af:panelGroupLayout>
+                    
+                                    <f:facet name="toolbar">
+                                        <af:toolbar id="t3">
+                                            <af:button text="Sync Inventory" id="b10"
+                                                       icon="/images/baseline_sync_black_18dp.png"
+                                                       actionListener="#{pageFlowScope.IntegrationSchedulerBean.runInventorySync}"/>
+                                        </af:toolbar>
+                                    
+                                    </f:facet>
+                                </af:panelBox>
+                            </af:panelDashboard>
+                        </f:facet>
+                    </af:panelStretchLayout>
+                    <af:panelGroupLayout id="pgl2" styleClass="AFStretchWidth" layout="vertical">
+                        <af:panelAccordion discloseMany="false" id="pa1">
+                            <af:showDetailItem id="salesLog" text="Sales Integration Log"
+                                               icon="/images/baseline_shopping_cart_black_18dp.png">
+                                <af:panelTabbed position="above" id="pt2">
+                                    <af:showDetailItem id="tab1" text="Invoice Header">
+                                        <af:panelCollection id="pc1" inlineStyle="width:inherit;">
+                                            <f:facet name="menus"/>
+                                            <f:facet name="toolbar">
+                                                <af:toolbar id="t13">
+                                                    <af:button text="Export Filtered Rows to Excel" id="b11">
+                                                        <af:exportCollectionActionListener type="excelHTML"
+                                                                                           exportedId="t4"
+                                                                                           filename="Sales Integration Invoice Header Data.xls"/>
+                                                    </af:button>
+                                                </af:toolbar>
+                                            </f:facet>
+                                            <f:facet name="statusbar"/>
+                                            <af:table value="#{bindings.FusionInvoiceHeaderView1.collectionModel}"
+                                                      var="row" rows="#{bindings.FusionInvoiceHeaderView1.rangeSize}"
+                                                      emptyText="#{bindings.FusionInvoiceHeaderView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                      rowBandingInterval="0"
+                                                      selectedRowKeys="#{bindings.FusionInvoiceHeaderView1.collectionModel.selectedRow}"
+                                                      selectionListener="#{bindings.FusionInvoiceHeaderView1.collectionModel.makeCurrent}"
+                                                      rowSelection="single"
+                                                      fetchSize="#{bindings.FusionInvoiceHeaderView1.rangeSize}"
+                                                      filterModel="#{bindings.FusionInvoiceHeaderView1Query.queryDescriptor}"
+                                                      filterVisible="true"
+                                                      queryListener="#{bindings.FusionInvoiceHeaderView1Query.processQuery}"
+                                                      varStatus="vs" id="t4" partialTriggers="::b8 :::b8">
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.RequestId.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.RequestId.label}"
+                                                           id="c9">
+                                                    <af:outputText value="#{row.RequestId}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.RequestId.tooltip}"
+                                                                   id="ot17">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionInvoiceHeaderView1.hints.RequestId.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.Status.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.Status.label}"
+                                                           id="c16">
+                                                    <af:outputText value="#{row.Status}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.Status.tooltip}"
+                                                                   id="ot18"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.Message.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.Message.label}"
+                                                           id="c17">
+                                                    <af:outputText value="#{row.Message}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.Message.tooltip}"
+                                                                   id="ot19"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.RequestDate.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.RequestDate.label}"
+                                                           id="c18">
+                                                    <f:facet name="filter">
+                                                        <af:inputDate value="#{bindings.FusionInvoiceHeaderView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                                      id="id3">
+                                                            <af:convertDateTime pattern="#{bindings.FusionInvoiceHeaderView1.hints.RequestDate.format}"/>
+                                                        </af:inputDate>
+                                                    </f:facet>
+                                                    <af:outputText value="#{row.RequestDate}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.RequestDate.tooltip}"
+                                                                   id="ot20">
+                                                        <af:convertDateTime pattern="#{bindings.FusionInvoiceHeaderView1.hints.RequestDate.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.TxnDate.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.TxnDate.label}"
+                                                           id="c19">
+                                                    <f:facet name="filter">
+                                                        <af:inputDate value="#{bindings.FusionInvoiceHeaderView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.TxnDate.value}"
+                                                                      id="id4">
+                                                            <af:convertDateTime pattern="#{bindings.FusionInvoiceHeaderView1.hints.TxnDate.format}"/>
+                                                        </af:inputDate>
+                                                    </f:facet>
+                                                    <af:outputText value="#{row.TxnDate}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.TxnDate.tooltip}"
+                                                                   id="ot21">
+                                                        <af:convertDateTime pattern="#{bindings.FusionInvoiceHeaderView1.hints.TxnDate.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.BusinessUnit.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.BusinessUnit.label}"
+                                                           id="c20">
+                                                    <af:outputText value="#{row.BusinessUnit}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.BusinessUnit.tooltip}"
+                                                                   id="ot22"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.BillToCustName.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.BillToCustName.label}"
+                                                           id="c21">
+                                                    <af:outputText value="#{row.BillToCustName}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.BillToCustName.tooltip}"
+                                                                   id="ot23"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.TxnNumber.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.TxnNumber.label}"
+                                                           id="c22">
+                                                    <!-- <af:outputText value="#{row.TxnNumber}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.TxnNumber.tooltip}"
+                                                                   id="ot24">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionInvoiceHeaderView1.hints.TxnNumber.format}"/>
+                                                    </af:outputText> -->
+                                                    <af:link text="#{row.TxnNumber}" id="l1"
+                                                             useWindow="true" windowModalityType="applicationModal"
+                                                             windowEmbedStyle="window" windowHeight="800"
+                                                             windowWidth="1600" targetFrame="_blank"
+                                                            destination="/faces/FusionInvoiceDetails.jsf?txnNumber=#{row.TxnNumber}---#{bindings.SelectedRegion.inputValue}"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.CurrencyCode.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.CurrencyCode.label}"
+                                                           id="c23">
+                                                    <af:outputText value="#{row.CurrencyCode}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.CurrencyCode.tooltip}"
+                                                                   id="ot25"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.BillToLocation.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.BillToLocation.label}"
+                                                           id="c24">
+                                                    <af:outputText value="#{row.BillToLocation}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.BillToLocation.tooltip}"
+                                                                   id="ot26"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.BillToAccNumber.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.BillToAccNumber.label}"
+                                                           id="c25">
+                                                    <af:outputText value="#{row.BillToAccNumber}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.BillToAccNumber.tooltip}"
+                                                                   id="ot27">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionInvoiceHeaderView1.hints.BillToAccNumber.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.PaymentTermsName.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.PaymentTermsName.label}"
+                                                           id="c26">
+                                                    <af:outputText value="#{row.PaymentTermsName}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.PaymentTermsName.tooltip}"
+                                                                   id="ot28"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.TxnSource.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.TxnSource.label}"
+                                                           id="c27">
+                                                    <af:outputText value="#{row.TxnSource}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.TxnSource.tooltip}"
+                                                                   id="ot29"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.TxnType.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.TxnType.label}"
+                                                           id="c28">
+                                                    <af:outputText value="#{row.TxnType}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.TxnType.tooltip}"
+                                                                   id="ot30"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.GlDate.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.GlDate.label}"
+                                                           id="c29">
+                                                    <f:facet name="filter">
+                                                        <af:inputDate value="#{bindings.FusionInvoiceHeaderView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.GlDate.value}"
+                                                                      id="id5">
+                                                            <af:convertDateTime pattern="#{bindings.FusionInvoiceHeaderView1.hints.GlDate.format}"/>
+                                                        </af:inputDate>
+                                                    </f:facet>
+                                                    <af:outputText value="#{row.GlDate}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.GlDate.tooltip}"
+                                                                   id="ot31">
+                                                        <af:convertDateTime pattern="#{bindings.FusionInvoiceHeaderView1.hints.GlDate.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvoiceHeaderView1.hints.CustomerTxnId.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvoiceHeaderView1.hints.CustomerTxnId.label}"
+                                                           id="c30">
+                                                    <af:outputText value="#{row.CustomerTxnId}"
+                                                                   shortDesc="#{bindings.FusionInvoiceHeaderView1.hints.CustomerTxnId.tooltip}"
+                                                                   id="ot32">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionInvoiceHeaderView1.hints.CustomerTxnId.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                            </af:table>
+                                        </af:panelCollection>
+                                        <af:panelTabbed position="above" id="pt3">
+                                            <af:showDetailItem id="tab2" text="Invoice Line">
+                                                <af:panelCollection id="pc4" inlineStyle="width:inherit;">
+                                                    <f:facet name="menus"/>
+                                                    <f:facet name="toolbar">
+                                                        <af:toolbar id="t16">
+                                                            <af:button text="Export Filtered Invoice Lines to Excel" id="b14">
+                                                                <af:exportCollectionActionListener type="excelHTML"
+                                                                                                   exportedId="t5"
+                                                                                                   filename="Sales Integration Invoice Line Data.xls"/>
+                                                            </af:button>
+                                                        </af:toolbar>
+                                                    </f:facet>
+                                                    <f:facet name="statusbar"/>
+                                                    <af:table value="#{bindings.FusionInvoiceLineView1.collectionModel}"
+                                                              var="row"
+                                                              rows="#{bindings.FusionInvoiceLineView1.rangeSize}"
+                                                              emptyText="#{bindings.FusionInvoiceLineView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                              rowBandingInterval="0"
+                                                              fetchSize="#{bindings.FusionInvoiceLineView1.rangeSize}"
+                                                              filterModel="#{bindings.FusionInvoiceLineView1Query.queryDescriptor}"
+                                                              filterVisible="true"
+                                                              queryListener="#{bindings.FusionInvoiceLineView1Query.processQuery}"
+                                                              varStatus="vs" id="t5">
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.RequestId.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.RequestId.label}"
+                                                                   id="c31">
+                                                            <af:outputText value="#{row.RequestId}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.RequestId.tooltip}"
+                                                                           id="ot33">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionInvoiceLineView1.hints.RequestId.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.Status.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.Status.label}"
+                                                                   id="c32">
+                                                            <af:outputText value="#{row.Status}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.Status.tooltip}"
+                                                                           id="ot34"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.Message.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.Message.label}"
+                                                                   id="c33">
+                                                            <af:outputText value="#{row.Message}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.Message.tooltip}"
+                                                                           id="ot35"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.RequestDate.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.RequestDate.label}"
+                                                                   id="c34">
+                                                            <f:facet name="filter">
+                                                                <af:inputDate value="#{bindings.FusionInvoiceLineView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                                              id="id6">
+                                                                    <af:convertDateTime pattern="#{bindings.FusionInvoiceLineView1.hints.RequestDate.format}"/>
+                                                                </af:inputDate>
+                                                            </f:facet>
+                                                            <af:outputText value="#{row.RequestDate}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.RequestDate.tooltip}"
+                                                                           id="ot36">
+                                                                <af:convertDateTime pattern="#{bindings.FusionInvoiceLineView1.hints.RequestDate.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.InvoiceNumber.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.InvoiceNumber.label}"
+                                                                   id="c35">
+                                                            <af:outputText value="#{row.InvoiceNumber}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.InvoiceNumber.tooltip}"
+                                                                           id="ot37"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.LineNumber.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.LineNumber.label}"
+                                                                   id="c36">
+                                                            <af:outputText value="#{row.LineNumber}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.LineNumber.tooltip}"
+                                                                           id="ot38">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionInvoiceLineView1.hints.LineNumber.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.SalesOrder.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.SalesOrder.label}"
+                                                                   id="c37">
+                                                            <af:outputText value="#{row.SalesOrder}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.SalesOrder.tooltip}"
+                                                                           id="ot39"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.SalesOrderLine.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.SalesOrderLine.label}"
+                                                                   id="c38">
+                                                            <af:outputText value="#{row.SalesOrderLine}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.SalesOrderLine.tooltip}"
+                                                                           id="ot40">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionInvoiceLineView1.hints.SalesOrderLine.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.ItemNumber.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.ItemNumber.label}"
+                                                                   id="c39">
+                                                            <af:outputText value="#{row.ItemNumber}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.ItemNumber.tooltip}"
+                                                                           id="ot41"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.Description.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.Description.label}"
+                                                                   id="c40">
+                                                            <af:outputText value="#{row.Description}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.Description.tooltip}"
+                                                                           id="ot42"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.Uom.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.Uom.label}"
+                                                                   id="c41">
+                                                            <af:outputText value="#{row.Uom}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.Uom.tooltip}"
+                                                                           id="ot43"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.Quantity.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.Quantity.label}"
+                                                                   id="c42">
+                                                            <af:outputText value="#{row.Quantity}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.Quantity.tooltip}"
+                                                                           id="ot44">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionInvoiceLineView1.hints.Quantity.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.UnitSellingPrice.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.UnitSellingPrice.label}"
+                                                                   id="c43">
+                                                            <af:outputText value="#{row.UnitSellingPrice}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.UnitSellingPrice.tooltip}"
+                                                                           id="ot45">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionInvoiceLineView1.hints.UnitSellingPrice.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.CurrencyCode.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.CurrencyCode.label}"
+                                                                   id="c44">
+                                                            <af:outputText value="#{row.CurrencyCode}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.CurrencyCode.tooltip}"
+                                                                           id="ot46"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.TaxCode.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.TaxCode.label}"
+                                                                   id="c45">
+                                                            <af:outputText value="#{row.TaxCode}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.TaxCode.tooltip}"
+                                                                           id="ot47"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionInvoiceLineView1.hints.Version.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionInvoiceLineView1.hints.Version.label}"
+                                                                   id="c46">
+                                                            <af:outputText value="#{row.Version}"
+                                                                           shortDesc="#{bindings.FusionInvoiceLineView1.hints.Version.tooltip}"
+                                                                           id="ot48">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionInvoiceLineView1.hints.Version.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                    </af:table>
+                                                </af:panelCollection>
+                                            </af:showDetailItem>
+                                            <af:showDetailItem id="tab3" text="Standard Receipt">
+                                                <af:panelGridLayout id="pgl4">
+                                                    <af:gridRow marginTop="5px" height="auto" marginBottom="5px"
+                                                                id="gr2">
+                                                        <af:gridCell marginStart="5px" width="50%" id="gc31" halign="stretch">
+                                                            <af:panelCollection id="pc5" inlineStyle="width:inherit;">
+                                                                <f:facet name="menus"/>
+                                                                <f:facet name="toolbar">
+                                                                    <af:toolbar id="t17">
+                                                                        <af:button text="Export Filtered Standard Receipt to Excel" id="b15">
+                                                                            <af:exportCollectionActionListener type="excelHTML"
+                                                                                                               exportedId="t6"
+                                                                                                               filename="Sales Integration Standard Receipt Data.xls"/>
+                                                                        </af:button>
+                                                                    </af:toolbar>
+                                                                </f:facet>
+                                                                <f:facet name="statusbar"/>
+                                                                <af:table value="#{bindings.FusionStandardReceiptView1.collectionModel}"
+                                                                          var="row"
+                                                                          rows="#{bindings.FusionStandardReceiptView1.rangeSize}"
+                                                                          emptyText="#{bindings.FusionStandardReceiptView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                                          rowBandingInterval="0"
+                                                                          selectedRowKeys="#{bindings.FusionStandardReceiptView1.collectionModel.selectedRow}"
+                                                                          selectionListener="#{bindings.FusionStandardReceiptView1.collectionModel.makeCurrent}"
+                                                                          rowSelection="single"
+                                                                          fetchSize="#{bindings.FusionStandardReceiptView1.rangeSize}"
+                                                                          filterModel="#{bindings.FusionStandardReceiptView1Query.queryDescriptor}"
+                                                                          filterVisible="true"
+                                                                          queryListener="#{bindings.FusionStandardReceiptView1Query.processQuery}"
+                                                                          varStatus="vs" id="t6">
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.RequestId.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.RequestId.label}"
+                                                                               id="c47">
+                                                                        <af:outputText value="#{row.RequestId}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.RequestId.tooltip}"
+                                                                                       id="ot49">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionStandardReceiptView1.hints.RequestId.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.Status.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.Status.label}"
+                                                                               id="c48">
+                                                                        <af:outputText value="#{row.Status}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.Status.tooltip}"
+                                                                                       id="ot50"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.Message.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.Message.label}"
+                                                                               id="c49">
+                                                                        <af:outputText value="#{row.Message}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.Message.tooltip}"
+                                                                                       id="ot51"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.RequestDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.RequestDate.label}"
+                                                                               id="c50">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionStandardReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                                                          id="id7">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.RequestDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.RequestDate}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.RequestDate.tooltip}"
+                                                                                       id="ot52">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.RequestDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.CurrencyCode.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.CurrencyCode.label}"
+                                                                               id="c51">
+                                                                        <af:outputText value="#{row.CurrencyCode}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.CurrencyCode.tooltip}"
+                                                                                       id="ot53"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.ReceiptNumber.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.ReceiptNumber.label}"
+                                                                               id="c52">
+                                                                        <af:outputText value="#{row.ReceiptNumber}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.ReceiptNumber.tooltip}"
+                                                                                       id="ot54"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.ReceiptDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.ReceiptDate.label}"
+                                                                               id="c53">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionStandardReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.ReceiptDate.value}"
+                                                                                          id="id8">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.ReceiptDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.ReceiptDate}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.ReceiptDate.tooltip}"
+                                                                                       id="ot55">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.ReceiptDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.Amount.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.Amount.label}"
+                                                                               id="c54">
+                                                                        <af:outputText value="#{row.Amount}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.Amount.tooltip}"
+                                                                                       id="ot56">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionStandardReceiptView1.hints.Amount.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.GlDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.GlDate.label}"
+                                                                               id="c55">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionStandardReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.GlDate.value}"
+                                                                                          id="id9">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.GlDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.GlDate}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.GlDate.tooltip}"
+                                                                                       id="ot57">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.GlDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.ReceiptMethodId.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.ReceiptMethodId.label}"
+                                                                               id="c56">
+                                                                        <af:outputText value="#{row.ReceiptMethodId}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.ReceiptMethodId.tooltip}"
+                                                                                       id="ot58">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionStandardReceiptView1.hints.ReceiptMethodId.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.RemittanceBackAccId.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.RemittanceBackAccId.label}"
+                                                                               id="c57">
+                                                                        <af:outputText value="#{row.RemittanceBackAccId}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.RemittanceBackAccId.tooltip}"
+                                                                                       id="ot59"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.DepositDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.DepositDate.label}"
+                                                                               id="c58">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionStandardReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.DepositDate.value}"
+                                                                                          id="id10">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.DepositDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.DepositDate}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.DepositDate.tooltip}"
+                                                                                       id="ot60">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.DepositDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.CustomerId.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.CustomerId.label}"
+                                                                               id="c59">
+                                                                        <af:outputText value="#{row.CustomerId}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.CustomerId.tooltip}"
+                                                                                       id="ot61">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionStandardReceiptView1.hints.CustomerId.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.OrgId.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.OrgId.label}"
+                                                                               id="c60">
+                                                                        <af:outputText value="#{row.OrgId}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.OrgId.tooltip}"
+                                                                                       id="ot62">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionStandardReceiptView1.hints.OrgId.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.ExchangeDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.ExchangeDate.label}"
+                                                                               id="c61">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionStandardReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.ExchangeDate.value}"
+                                                                                          id="id11">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.ExchangeDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.ExchangeDate}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.ExchangeDate.tooltip}"
+                                                                                       id="ot63">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionStandardReceiptView1.hints.ExchangeDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionStandardReceiptView1.hints.ExchangeRateType.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionStandardReceiptView1.hints.ExchangeRateType.label}"
+                                                                               id="c62">
+                                                                        <af:outputText value="#{row.ExchangeRateType}"
+                                                                                       shortDesc="#{bindings.FusionStandardReceiptView1.hints.ExchangeRateType.tooltip}"
+                                                                                       id="ot64"/>
+                                                                    </af:column>
+                                                                </af:table>
+                                                            </af:panelCollection>
+                                                        </af:gridCell>
+                                                        <af:gridCell marginStart="5px" width="50%" marginEnd="5px"
+                                                                     id="gc4" halign="stretch">
+                                                            <af:panelCollection id="pc6" inlineStyle="width:inherit;">
+                                                                <f:facet name="menus"/>
+                                                                <f:facet name="toolbar">
+                                                                    <af:toolbar id="t18">
+                                                                        <af:button text="Export Filtered Apply Receipt to Excel" id="b16">
+                                                                            <af:exportCollectionActionListener type="excelHTML"
+                                                                                                               exportedId="t7"
+                                                                                                               filename="Sales Integration Apply Receipt Data.xls"/>
+                                                                        </af:button>
+                                                                    </af:toolbar>
+                                                                </f:facet>
+                                                                <f:facet name="statusbar"/>
+                                                                <af:table value="#{bindings.FusionApplyReceiptView1.collectionModel}"
+                                                                          var="row"
+                                                                          rows="#{bindings.FusionApplyReceiptView1.rangeSize}"
+                                                                          emptyText="#{bindings.FusionApplyReceiptView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                                          rowBandingInterval="0"
+                                                                          fetchSize="#{bindings.FusionApplyReceiptView1.rangeSize}"
+                                                                          filterModel="#{bindings.FusionApplyReceiptView1Query.queryDescriptor}"
+                                                                          filterVisible="true"
+                                                                          queryListener="#{bindings.FusionApplyReceiptView1Query.processQuery}"
+                                                                          varStatus="vs" id="t7">
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.RequestId.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.RequestId.label}"
+                                                                               id="c88">
+                                                                        <af:outputText value="#{row.RequestId}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.RequestId.tooltip}"
+                                                                                       id="ot90">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionApplyReceiptView1.hints.RequestId.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.Status.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.Status.label}"
+                                                                               id="c89">
+                                                                        <af:outputText value="#{row.Status}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.Status.tooltip}"
+                                                                                       id="ot91"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.Message.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.Message.label}"
+                                                                               id="c90">
+                                                                        <af:outputText value="#{row.Message}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.Message.tooltip}"
+                                                                                       id="ot92"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.RequestDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.RequestDate.label}"
+                                                                               id="c91">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionApplyReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                                                          id="id18">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionApplyReceiptView1.hints.RequestDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.RequestDate}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.RequestDate.tooltip}"
+                                                                                       id="ot93">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionApplyReceiptView1.hints.RequestDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.ReceiptNumber.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.ReceiptNumber.label}"
+                                                                               id="c92">
+                                                                        <af:outputText value="#{row.ReceiptNumber}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.ReceiptNumber.tooltip}"
+                                                                                       id="ot94"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.AmountApplied.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.AmountApplied.label}"
+                                                                               id="c93">
+                                                                        <af:outputText value="#{row.AmountApplied}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.AmountApplied.tooltip}"
+                                                                                       id="ot95">
+                                                                            <af:convertNumber groupingUsed="false"
+                                                                                              pattern="#{bindings.FusionApplyReceiptView1.hints.AmountApplied.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.AccountingDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.AccountingDate.label}"
+                                                                               id="c94">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionApplyReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.AccountingDate.value}"
+                                                                                          id="id19">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionApplyReceiptView1.hints.AccountingDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.AccountingDate}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.AccountingDate.tooltip}"
+                                                                                       id="ot96">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionApplyReceiptView1.hints.AccountingDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.TxnNumber.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.TxnNumber.label}"
+                                                                               id="c95">
+                                                                        <af:outputText value="#{row.TxnNumber}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.TxnNumber.tooltip}"
+                                                                                       id="ot97"/>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.ApplicationDate.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.ApplicationDate.label}"
+                                                                               id="c96">
+                                                                        <f:facet name="filter">
+                                                                            <af:inputDate value="#{bindings.FusionApplyReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.ApplicationDate.value}"
+                                                                                          id="id20">
+                                                                                <af:convertDateTime pattern="#{bindings.FusionApplyReceiptView1.hints.ApplicationDate.format}"/>
+                                                                            </af:inputDate>
+                                                                        </f:facet>
+                                                                        <af:outputText value="#{row.ApplicationDate}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.ApplicationDate.tooltip}"
+                                                                                       id="ot98">
+                                                                            <af:convertDateTime pattern="#{bindings.FusionApplyReceiptView1.hints.ApplicationDate.format}"/>
+                                                                        </af:outputText>
+                                                                    </af:column>
+                                                                    <af:column sortProperty="#{bindings.FusionApplyReceiptView1.hints.CurrencyCode.name}"
+                                                                               filterable="true" sortable="true"
+                                                                               headerText="#{bindings.FusionApplyReceiptView1.hints.CurrencyCode.label}"
+                                                                               id="c97">
+                                                                        <af:outputText value="#{row.CurrencyCode}"
+                                                                                       shortDesc="#{bindings.FusionApplyReceiptView1.hints.CurrencyCode.tooltip}"
+                                                                                       id="ot99"/>
+                                                                    </af:column>
+                                                                </af:table>
+                                                            </af:panelCollection>
+                                                        </af:gridCell>
+                                                    </af:gridRow>
+                                                </af:panelGridLayout>
+                                            </af:showDetailItem>
+                                            <af:showDetailItem id="tab4" text="Miscellaneous Receipt">
+                                                <af:panelCollection id="pc7" inlineStyle="width:inherit;">
+                                                    <f:facet name="menus"/>
+                                                    <f:facet name="toolbar">
+                                                        <af:toolbar id="t19">
+                                                            <af:button text="Export Filtered Miscellaneous Receipt to Excel" id="b17">
+                                                                <af:exportCollectionActionListener type="excelHTML"
+                                                                                                   exportedId="t8"
+                                                                                                   filename="Sales Integration Miscellaneous Receipt Data.xls"/>
+                                                            </af:button>
+                                                        </af:toolbar>
+                                                    </f:facet>
+                                                    <f:facet name="statusbar"/>
+                                                    <af:table value="#{bindings.FusionMiscReceiptView1.collectionModel}"
+                                                              var="row"
+                                                              rows="#{bindings.FusionMiscReceiptView1.rangeSize}"
+                                                              emptyText="#{bindings.FusionMiscReceiptView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                              rowBandingInterval="0"
+                                                              fetchSize="#{bindings.FusionMiscReceiptView1.rangeSize}"
+                                                              filterModel="#{bindings.FusionMiscReceiptView1Query.queryDescriptor}"
+                                                              filterVisible="true"
+                                                              queryListener="#{bindings.FusionMiscReceiptView1Query.processQuery}"
+                                                              varStatus="vs" id="t8">
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.RequestId.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.RequestId.label}"
+                                                                   id="c63">
+                                                            <af:outputText value="#{row.RequestId}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.RequestId.tooltip}"
+                                                                           id="ot65">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionMiscReceiptView1.hints.RequestId.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.Status.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.Status.label}"
+                                                                   id="c64">
+                                                            <af:outputText value="#{row.Status}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.Status.tooltip}"
+                                                                           id="ot66"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.Message.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.Message.label}"
+                                                                   id="c65">
+                                                            <af:outputText value="#{row.Message}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.Message.tooltip}"
+                                                                           id="ot67"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.RequestDate.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.RequestDate.label}"
+                                                                   id="c66">
+                                                            <f:facet name="filter">
+                                                                <af:inputDate value="#{bindings.FusionMiscReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                                              id="id12">
+                                                                    <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.RequestDate.format}"/>
+                                                                </af:inputDate>
+                                                            </f:facet>
+                                                            <af:outputText value="#{row.RequestDate}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.RequestDate.tooltip}"
+                                                                           id="ot68">
+                                                                <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.RequestDate.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.ReceiptNumber.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.ReceiptNumber.label}"
+                                                                   id="c67">
+                                                            <af:outputText value="#{row.ReceiptNumber}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.ReceiptNumber.tooltip}"
+                                                                           id="ot69"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.Amount.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.Amount.label}"
+                                                                   id="c68">
+                                                            <af:outputText value="#{row.Amount}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.Amount.tooltip}"
+                                                                           id="ot70">
+                                                                <af:convertNumber groupingUsed="false"
+                                                                                  pattern="#{bindings.FusionMiscReceiptView1.hints.Amount.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.ReceiptDate.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.ReceiptDate.label}"
+                                                                   id="c69">
+                                                            <f:facet name="filter">
+                                                                <af:inputDate value="#{bindings.FusionMiscReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.ReceiptDate.value}"
+                                                                              id="id13">
+                                                                    <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.ReceiptDate.format}"/>
+                                                                </af:inputDate>
+                                                            </f:facet>
+                                                            <af:outputText value="#{row.ReceiptDate}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.ReceiptDate.tooltip}"
+                                                                           id="ot71">
+                                                                <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.ReceiptDate.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.BankAccNumber.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.BankAccNumber.label}"
+                                                                   id="c70">
+                                                            <af:outputText value="#{row.BankAccNumber}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.BankAccNumber.tooltip}"
+                                                                           id="ot72"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.RecActivityName.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.RecActivityName.label}"
+                                                                   id="c71">
+                                                            <af:outputText value="#{row.RecActivityName}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.RecActivityName.tooltip}"
+                                                                           id="ot73"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.CurrencyCode.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.CurrencyCode.label}"
+                                                                   id="c72">
+                                                            <af:outputText value="#{row.CurrencyCode}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.CurrencyCode.tooltip}"
+                                                                           id="ot74"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.ReceiptMethodName.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.ReceiptMethodName.label}"
+                                                                   id="c73">
+                                                            <af:outputText value="#{row.ReceiptMethodName}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.ReceiptMethodName.tooltip}"
+                                                                           id="ot75"/>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.GlDate.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.GlDate.label}"
+                                                                   id="c74">
+                                                            <f:facet name="filter">
+                                                                <af:inputDate value="#{bindings.FusionMiscReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.GlDate.value}"
+                                                                              id="id14">
+                                                                    <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.GlDate.format}"/>
+                                                                </af:inputDate>
+                                                            </f:facet>
+                                                            <af:outputText value="#{row.GlDate}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.GlDate.tooltip}"
+                                                                           id="ot76">
+                                                                <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.GlDate.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.ExchangeDate.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.ExchangeDate.label}"
+                                                                   id="c75">
+                                                            <f:facet name="filter">
+                                                                <af:inputDate value="#{bindings.FusionMiscReceiptView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.ExchangeDate.value}"
+                                                                              id="id15">
+                                                                    <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.ExchangeDate.format}"/>
+                                                                </af:inputDate>
+                                                            </f:facet>
+                                                            <af:outputText value="#{row.ExchangeDate}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.ExchangeDate.tooltip}"
+                                                                           id="ot77">
+                                                                <af:convertDateTime pattern="#{bindings.FusionMiscReceiptView1.hints.ExchangeDate.format}"/>
+                                                            </af:outputText>
+                                                        </af:column>
+                                                        <af:column sortProperty="#{bindings.FusionMiscReceiptView1.hints.ExchangeRateType.name}"
+                                                                   filterable="true" sortable="true"
+                                                                   headerText="#{bindings.FusionMiscReceiptView1.hints.ExchangeRateType.label}"
+                                                                   id="c76">
+                                                            <af:outputText value="#{row.ExchangeRateType}"
+                                                                           shortDesc="#{bindings.FusionMiscReceiptView1.hints.ExchangeRateType.tooltip}"
+                                                                           id="ot78"/>
+                                                        </af:column>
+                                                    </af:table>
+                                                </af:panelCollection>
+                                            </af:showDetailItem>
+                                        </af:panelTabbed>
+                                    </af:showDetailItem>
+                                    <af:showDetailItem text="Inventory Transaction" id="sdi1">
+                                        <af:panelCollection id="pc3" inlineStyle="width:inherit;">
+                                            <f:facet name="menus"/>
+                                            <f:facet name="toolbar">
+                                                <af:toolbar id="t15">
+                                                    <af:button text="Export Filtered Inventory Transactions to Excel" id="b13">
+                                                        <af:exportCollectionActionListener type="excelHTML"
+                                                                                           exportedId="t9"
+                                                                                           filename="Sales Integration Inventory Transactions Data.xls"/>
+                                                    </af:button>
+                                                </af:toolbar>
+                                            </f:facet>
+                                            <f:facet name="statusbar"/>
+                                            <af:table value="#{bindings.FusionInvTxnView1.collectionModel}" var="row"
+                                                      rows="#{bindings.FusionInvTxnView1.rangeSize}"
+                                                      emptyText="#{bindings.FusionInvTxnView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                                      rowBandingInterval="0"
+                                                      fetchSize="#{bindings.FusionInvTxnView1.rangeSize}"
+                                                      filterModel="#{bindings.FusionInvTxnView1Query.queryDescriptor}"
+                                                      filterVisible="true"
+                                                      queryListener="#{bindings.FusionInvTxnView1Query.processQuery}"
+                                                      varStatus="vs" id="t9">
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.RequestId.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.RequestId.label}"
+                                                           id="c77">
+                                                    <af:outputText value="#{row.RequestId}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.RequestId.tooltip}"
+                                                                   id="ot79">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionInvTxnView1.hints.RequestId.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.Status.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.Status.label}"
+                                                           id="c78">
+                                                    <af:outputText value="#{row.Status}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.Status.tooltip}"
+                                                                   id="ot80"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.Message.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.Message.label}"
+                                                           id="c79">
+                                                    <af:outputText value="#{row.Message}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.Message.tooltip}"
+                                                                   id="ot81"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.RequestDate.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.RequestDate.label}"
+                                                           id="c80">
+                                                    <f:facet name="filter">
+                                                        <af:inputDate value="#{bindings.FusionInvTxnView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                                      id="id16">
+                                                            <af:convertDateTime pattern="#{bindings.FusionInvTxnView1.hints.RequestDate.format}"/>
+                                                        </af:inputDate>
+                                                    </f:facet>
+                                                    <af:outputText value="#{row.RequestDate}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.RequestDate.tooltip}"
+                                                                   id="ot82">
+                                                        <af:convertDateTime pattern="#{bindings.FusionInvTxnView1.hints.RequestDate.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.OrganizationName.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.OrganizationName.label}"
+                                                           id="c81">
+                                                    <af:outputText value="#{row.OrganizationName}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.OrganizationName.tooltip}"
+                                                                   id="ot83"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.Sunbinventory.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.Sunbinventory.label}"
+                                                           id="c82">
+                                                    <af:outputText value="#{row.Sunbinventory}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.Sunbinventory.tooltip}"
+                                                                   id="ot84"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.ItemNumber.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.ItemNumber.label}"
+                                                           id="c83">
+                                                    <af:outputText value="#{row.ItemNumber}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.ItemNumber.tooltip}"
+                                                                   id="ot85"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.TxnQty.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.TxnQty.label}"
+                                                           id="c84">
+                                                    <af:outputText value="#{row.TxnQty}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.TxnQty.tooltip}"
+                                                                   id="ot86">
+                                                        <af:convertNumber groupingUsed="false"
+                                                                          pattern="#{bindings.FusionInvTxnView1.hints.TxnQty.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.TxnUom.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.TxnUom.label}"
+                                                           id="c85">
+                                                    <af:outputText value="#{row.TxnUom}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.TxnUom.tooltip}"
+                                                                   id="ot87"/>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.TxnDate.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.TxnDate.label}"
+                                                           id="c86">
+                                                    <f:facet name="filter">
+                                                        <af:inputDate value="#{bindings.FusionInvTxnView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.TxnDate.value}"
+                                                                      id="id17">
+                                                            <af:convertDateTime pattern="#{bindings.FusionInvTxnView1.hints.TxnDate.format}"/>
+                                                        </af:inputDate>
+                                                    </f:facet>
+                                                    <af:outputText value="#{row.TxnDate}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.TxnDate.tooltip}"
+                                                                   id="ot88">
+                                                        <af:convertDateTime pattern="#{bindings.FusionInvTxnView1.hints.TxnDate.format}"/>
+                                                    </af:outputText>
+                                                </af:column>
+                                                <af:column sortProperty="#{bindings.FusionInvTxnView1.hints.TxnSourceName.name}"
+                                                           filterable="true" sortable="true"
+                                                           headerText="#{bindings.FusionInvTxnView1.hints.TxnSourceName.label}"
+                                                           id="c87">
+                                                    <af:outputText value="#{row.TxnSourceName}"
+                                                                   shortDesc="#{bindings.FusionInvTxnView1.hints.TxnSourceName.tooltip}"
+                                                                   id="ot89"/>
+                                                </af:column>
+                                            </af:table>
+                                        </af:panelCollection>
+                                    </af:showDetailItem>
+                                </af:panelTabbed>
+                            </af:showDetailItem>
+                            <af:showDetailItem id="itemsLog" text="Items Integration Log"
+                                               icon="/images/baseline_dashboard_black_24dp.png">
+                                <af:panelCollection id="pc2" inlineStyle="width:inherit;">
+                                    <f:facet name="menus"/>
+                                    <f:facet name="toolbar">
+                                        <af:toolbar id="t14">
+                                            <af:button text="Export Filtered Items to Excel" id="b12">
+                                                <af:exportCollectionActionListener type="excelHTML" exportedId="t1"
+                                                                                   filename="Items Sync Data Exported.xls"/>
+                                            </af:button>
+                                        </af:toolbar>
+                                    </f:facet>
+                                    <f:facet name="statusbar"/>
+                                    <af:table value="#{bindings.VendhqItemMetaView1.collectionModel}" var="row"
+                                              rows="#{bindings.VendhqItemMetaView1.rangeSize}"
+                                              emptyText="#{bindings.VendhqItemMetaView1.viewable ? 'No data to display.' : 'Access Denied.'}"
+                                              rowBandingInterval="0"
+                                              fetchSize="#{bindings.VendhqItemMetaView1.rangeSize}"
+                                              filterModel="#{bindings.VendhqItemMetaView1Query.queryDescriptor}"
+                                              filterVisible="true"
+                                              queryListener="#{bindings.VendhqItemMetaView1Query.processQuery}"
+                                              varStatus="vs" id="t1">
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.RequestId.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.RequestId.label}"
+                                                   id="c1">
+                                            <af:outputText value="#{row.RequestId}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.RequestId.tooltip}"
+                                                           id="ot1">
+                                                <af:convertNumber groupingUsed="false"
+                                                                  pattern="#{bindings.VendhqItemMetaView1.hints.RequestId.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.RequestDate.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.RequestDate.label}"
+                                                   id="c2">
+                                            <f:facet name="filter">
+                                                <af:inputDate value="#{bindings.VendhqItemMetaView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.RequestDate.value}"
+                                                              id="id1">
+                                                    <af:convertDateTime pattern="#{bindings.VendhqItemMetaView1.hints.RequestDate.format}"/>
+                                                </af:inputDate>
+                                            </f:facet>
+                                            <af:outputText value="#{row.RequestDate}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.RequestDate.tooltip}"
+                                                           id="ot2">
+                                                <af:convertDateTime pattern="#{bindings.VendhqItemMetaView1.hints.RequestDate.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Status.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Status.label}"
+                                                   id="c3">
+                                            <af:outputText value="#{row.Status}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Status.tooltip}"
+                                                           id="ot3"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Message.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Message.label}"
+                                                   id="c4">
+                                            <af:outputText value="#{row.Message}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Message.tooltip}"
+                                                           id="ot4"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Name.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Name.label}"
+                                                   id="c5">
+                                            <af:outputText value="#{row.Name}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Name.tooltip}"
+                                                           id="ot5"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Description.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Description.label}"
+                                                   id="c6">
+                                            <af:outputText value="#{row.Description}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Description.tooltip}"
+                                                           id="ot6"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.UomCode.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.UomCode.label}"
+                                                   id="c7">
+                                            <af:outputText value="#{row.UomCode}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.UomCode.tooltip}"
+                                                           id="ot7"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.RetailPrice.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.RetailPrice.label}"
+                                                   id="c8">
+                                            <af:outputText value="#{row.RetailPrice}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.RetailPrice.tooltip}"
+                                                           id="ot8">
+                                                <af:convertNumber groupingUsed="false"
+                                                                  pattern="#{bindings.VendhqItemMetaView1.hints.RetailPrice.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.LastUpdateDate.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.LastUpdateDate.label}"
+                                                   id="c10">
+                                            <f:facet name="filter">
+                                                <af:inputDate value="#{bindings.VendhqItemMetaView1Query.queryDescriptor.filterConjunctionCriterion.criterionMap.LastUpdateDate.value}"
+                                                              id="id2">
+                                                    <af:convertDateTime pattern="#{bindings.VendhqItemMetaView1.hints.LastUpdateDate.format}"/>
+                                                </af:inputDate>
+                                            </f:facet>
+                                            <af:outputText value="#{row.LastUpdateDate}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.LastUpdateDate.tooltip}"
+                                                           id="ot10">
+                                                <af:convertDateTime pattern="#{bindings.VendhqItemMetaView1.hints.LastUpdateDate.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.ItemId.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.ItemId.label}"
+                                                   id="c11">
+                                            <af:outputText value="#{row.ItemId}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.ItemId.tooltip}"
+                                                           id="ot11"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.SourceId.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.SourceId.label}"
+                                                   id="c12">
+                                            <af:outputText value="#{row.SourceId}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.SourceId.tooltip}"
+                                                           id="ot12">
+                                                <af:convertNumber groupingUsed="false"
+                                                                  pattern="#{bindings.VendhqItemMetaView1.hints.SourceId.format}"/>
+                                            </af:outputText>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Handle1.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Handle1.label}"
+                                                   id="c13">
+                                            <af:outputText value="#{row.Handle1}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Handle1.tooltip}"
+                                                           id="ot13"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Sku.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Sku.label}"
+                                                   id="c14">
+                                            <af:outputText value="#{row.Sku}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Sku.tooltip}"
+                                                           id="ot15"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Type.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Type.label}"
+                                                   id="c15">
+                                            <af:outputText value="#{row.Type}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Type.tooltip}"
+                                                           id="ot106"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.UomName.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.UomName.label}"
+                                                   id="c98">
+                                            <af:outputText value="#{row.UomName}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.UomName.tooltip}"
+                                                           id="ot107"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.Active.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.Active.label}"
+                                                   id="c99">
+                                            <af:outputText value="#{row.Active}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.Active.tooltip}"
+                                                           id="ot108"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.BrandId.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.BrandId.label}"
+                                                   id="c100">
+                                            <af:outputText value="#{row.BrandId}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.BrandId.tooltip}"
+                                                           id="ot109"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.TrackInventory.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.TrackInventory.label}"
+                                                   id="c101">
+                                            <af:outputText value="#{row.TrackInventory}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.TrackInventory.tooltip}"
+                                                           id="ot110"/>
+                                        </af:column>
+                                        <af:column sortProperty="#{bindings.VendhqItemMetaView1.hints.TaxId.name}"
+                                                   filterable="true" sortable="true"
+                                                   headerText="#{bindings.VendhqItemMetaView1.hints.TaxId.label}"
+                                                   id="c102">
+                                            <af:outputText value="#{row.TaxId}"
+                                                           shortDesc="#{bindings.VendhqItemMetaView1.hints.TaxId.tooltip}"
+                                                           id="ot111"/>
+                                        </af:column>
+                                    </af:table>
+                                </af:panelCollection>
+                            </af:showDetailItem>
+                        </af:panelAccordion>
+                    </af:panelGroupLayout>
+                </f:facet>
+                <f:facet name="start"/>
+                <f:facet name="end"/>
+                <f:attribute name="endWidth" value="0"/>
+                <f:attribute name="brandingMaxWidth" value="1920px"/>
+                <f:attribute name="startWidth" value="0"/>
+                <f:attribute name="showFooter" value="true"/>
+            </af:pageTemplate>
+        </af:form>
+    </af:document>
+</f:view>

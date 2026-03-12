@@ -1,0 +1,273 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<view xmlns="http://xmlns.oracle.com/jdeveloper/1211/offlinedb">
+  <name>TXN_QUANTITY_DECIMALS</name>
+  <SQLQuery>
+    <queryString>SELECT A.REGION, A.OUTLET_NAME, A.SALE_DATE, B.INVOICE_NUMBER, B.ITEM_NUMBER, B.QUANTITY, MOD(B.QUANTITY*100000, 100000)/100000 AS DECIM, C.UOM_NAME
+FROM BACKUP_VENDHQ_SALES A LEFT JOIN BACKUP_VENDHQ_LINE_ITEMS B ON A.INVOICE_NUMBER = B.INVOICE_NUMBER AND A.SALE_DATE = B.SALE_DATE, VENDHQ_ITEM_META C
+WHERE MOD(B.QUANTITY*100000, 100000) &gt; 0 AND B.ITEM_NUMBER = C.HANDLE AND A.REGION = C.REGION 
+AND C.LAST_UPDATE_DATE = (SELECT MAX(D.LAST_UPDATE_DATE) FROM VENDHQ_ITEM_META D WHERE D.HANDLE = B.ITEM_NUMBER AND D.REGION = A.REGION)</queryString>
+  </SQLQuery>
+  <columns>
+    <column>
+      <name>REGION</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">5</value>
+          </entry>
+          <entry>
+            <key>unit</key>
+            <value class="java.lang.String">BYTE</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>REGION</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>OUTLET_NAME</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">15</value>
+          </entry>
+          <entry>
+            <key>unit</key>
+            <value class="java.lang.String">BYTE</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>OUTLET_NAME</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>SALE_DATE</name>
+      <dataTypeUsage>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>DATE</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>true</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>SALE_DATE</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>INVOICE_NUMBER</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">15</value>
+          </entry>
+          <entry>
+            <key>unit</key>
+            <value class="java.lang.String">BYTE</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>false</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>INVOICE_NUMBER</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>ITEM_NUMBER</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">20</value>
+          </entry>
+          <entry>
+            <key>unit</key>
+            <value class="java.lang.String">BYTE</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>false</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>ITEM_NUMBER</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>QUANTITY</name>
+      <dataTypeUsage>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>NUMBER</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>false</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>QUANTITY</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>DECIM</name>
+      <dataTypeUsage>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>NUMBER</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>false</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>DECIM</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+    <column>
+      <name>UOM_NAME</name>
+      <dataTypeUsage>
+        <attributeValues>
+          <entry>
+            <key>size</key>
+            <value class="java.lang.Long">20</value>
+          </entry>
+          <entry>
+            <key>unit</key>
+            <value class="java.lang.String">BYTE</value>
+          </entry>
+        </attributeValues>
+        <dataTypeID class="oracle.javatools.db.datatypes.DataTypeID">
+          <typeName>VARCHAR2</typeName>
+        </dataTypeID>
+      </dataTypeUsage>
+      <notNull>false</notNull>
+      <properties>
+        <entry>
+          <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+          <value class="oracle.javatools.db.ReferenceID">
+            <name>UOM_NAME</name>
+            <parent class="oracle.javatools.db.ReferenceID">
+              <name>TXN_QUANTITY_DECIMALS</name>
+              <identifier class="java.math.BigDecimal">129719</identifier>
+              <schemaName>INTEGRATION</schemaName>
+              <type>VIEW</type>
+            </parent>
+            <type>COLUMN</type>
+          </value>
+        </entry>
+      </properties>
+    </column>
+  </columns>
+  <forceOnCreate>false</forceOnCreate>
+  <properties>
+    <entry>
+      <key>OfflineDBConstants.IMPORT_SOURCE_CONNECTION</key>
+      <value class="java.lang.String">AlQurashi Prod DB</value>
+    </entry>
+    <entry>
+      <key>OfflineDBConstants.IMPORT_SOURCE_ID</key>
+      <value class="oracle.javatools.db.ReferenceID">
+        <name>TXN_QUANTITY_DECIMALS</name>
+        <identifier class="java.math.BigDecimal">129719</identifier>
+        <schemaName>INTEGRATION</schemaName>
+        <type>VIEW</type>
+      </value>
+    </entry>
+  </properties>
+  <schema>
+    <name>INTEGRATION</name>
+  </schema>
+</view>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!--Import Google Icon Font-->
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+        <!--Import materialize.css-->
+        <link type="text/css" rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+              media="screen,projection"/>
+        <!--Let browser know website is optimized for mobile-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>AlQurashi Middleware Login</title>
+    </head>
+    <body class="black accent-2">
+        <div class="container">
+            <div class="row">
+                <div class="col s12">
+                    <img class="responsive-img"
+                         style="display: block; margin-left: auto; margin-right: auto;"
+                         src="data:image/png;base64,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"/>
+                </div>
+                <div class="col s12">
+                    <h5 class="center-align yellow-text">Integration Middleware</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12 m10 offset-m1 l6 offset-l3">
+                    <form method="POST" action="j_security_check">
+                        <div class="card darken-1">
+                            <div class="card-content black-text">
+                                <span class="card-title">Login</span>
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">account_circle</i>
+                                         
+                                        <input id="j_username" name="j_username" type="text" class="validate"/>
+                                         
+                                        <label for="j_username">User Name</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        <i class="material-icons prefix">vpn_key</i>
+                                         
+                                        <input id="j_password" name="j_password" type="password" class="validate"/>
+                                         
+                                        <label for="j_password">Password</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-action">
+                                <div class="row">
+                                    <button class="col s4 offset-s1 waves-effect waves-light green btn-large" type="submit" name="submit" value="Submit">
+                                        <i class="material-icons left">send</i>Sign In</button>
+                                     
+                                    <button class="col s4 offset-s2 waves-effect waves-light red btn-large">
+                                        <i class="material-icons left">cancel</i>Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <br><br><br><br><br><br><br>
+            <footer class="page-footer white">
+          <div class="footer-copyright white">
+            <div class="container black-text">
+            © 2018 Copyright. All Rights Reserved.
+            <div class="right">
+                <img class="responsive-img" src="images/tamer logo.jpg" width="96"/></div>
+            </div>
+          </div>
+        </footer>
+        </div>
+        <!--JavaScript at end of body for optimized loading-->
+        <script type="text/javascript"
+                src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    </body>
+</html>

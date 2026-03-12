@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="windows-1252" ?>
+<menu xmlns="http://myfaces.apache.org/trinidad/menu">
+  <itemNode id="itemNode_FusionSettings" label="label_FusionSettings" action="adfMenu_FusionSettings"
+            focusViewId="/FusionSettings"/>
+  <itemNode id="itemNode_GeneralSettings" label="label_GeneralSettings" action="adfMenu_GeneralSettings"
+            focusViewId="/GeneralSettings"/>
+  <itemNode id="itemNode_HomePage" label="label_HomePage" action="adfMenu_HomePage" focusViewId="/HomePage"/>
+  <itemNode id="itemNode_OnHandDetails" label="label_OnHandDetails" action="adfMenu_OnHandDetails"
+            focusViewId="/OnHandDetails"/>
+  <itemNode id="itemNode_OpenCartSettings" label="label_OpenCartSettings" action="adfMenu_OpenCartSettings"
+            focusViewId="/OpenCartSettings"/>
+  <itemNode id="itemNode_VendHQSettings" label="label_VendHQSettings" action="adfMenu_VendHQSettings"
+            focusViewId="/VendHQSettings"/>
+  <itemNode id="itemNode_VendHQSales" label="label_VendHQSales" action="adfMenu_VendHQSales"
+            focusViewId="/VendHQSales"/>
+</menu>
