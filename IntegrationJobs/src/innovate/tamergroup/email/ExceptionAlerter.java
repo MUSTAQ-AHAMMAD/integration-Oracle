@@ -75,7 +75,8 @@ public class ExceptionAlerter {
             System.out.println("Email sent!!");
 
         } catch (MessagingException e) {
-            throw new RuntimeException(e);
+            System.err.println("[ExceptionAlerter] Failed to send alert email for region " + region + ": " + e);
+            e.printStackTrace();
         }
     }
 

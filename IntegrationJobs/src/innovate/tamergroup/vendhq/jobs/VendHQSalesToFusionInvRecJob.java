@@ -68,14 +68,23 @@ public class VendHQSalesToFusionInvRecJob implements Job {
                     System.out.println("Exception in VendHQ Sales Integration");
                     System.out.println("====================================================================");
                     System.out.println(e.getMessage());
-                    if (session != null && integStatus != null) {
-                        integStatus.setStatus(IDLE);
-                        session.mergeSalesIntegrationStatus(integStatus);
+                    try {
+                        if (session != null && integStatus != null) {
+                            integStatus.setStatus(IDLE);
+                            session.mergeSalesIntegrationStatus(integStatus);
+                        }
+                    } catch (Exception statusEx) {
+                        System.err.println("[VendHQSalesToFusionInvRecJob] Failed to reset integration status to IDLE: " + statusEx);
+                        statusEx.printStackTrace();
                     }
                     new ExceptionAlerter(vendHqDomainCredential.getRegion()).sendException(e);
                 }
             }
-        } catch (NamingException e) {}
+        } catch (NamingException e) {
+            System.err.println("[VendHQSalesToFusionInvRecJob] Failed to obtain EJB session, integration job could not run: " + e);
+            e.printStackTrace();
+            new ExceptionAlerter("UNKNOWN").sendException(e);
+        }
 
     }
 }

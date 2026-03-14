@@ -149,11 +149,16 @@ public class IntegrationSchedulerBean {
         } catch (Exception e) {
             FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR, exceptionMessage, null );
             FacesContext.getCurrentInstance().addMessage(null, message); 
-            if (session != null && integStatus != null) {
-                integStatus.setStatus(IDLE);
-                session.mergeSalesIntegrationStatus(integStatus);
+            try {
+                if (session != null && integStatus != null) {
+                    integStatus.setStatus(IDLE);
+                    session.mergeSalesIntegrationStatus(integStatus);
+                }
+            } catch (Exception statusEx) {
+                System.err.println("[IntegrationSchedulerBean] Failed to reset integration status to IDLE: " + statusEx);
+                statusEx.printStackTrace();
             }
-            new ExceptionAlerter(currentRegion).sendException(e);
+            new ExceptionAlerter(currentRegion != null ? currentRegion : "UNKNOWN").sendException(e);
         }
     }
     
@@ -184,11 +189,16 @@ public class IntegrationSchedulerBean {
         } catch (Exception e) {
             FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_ERROR, exceptionMessage, null );
             FacesContext.getCurrentInstance().addMessage(null, message); 
-            if (session != null && integStatus != null) {
-                integStatus.setStatus(IDLE);
-                session.mergeSalesIntegrationStatus(integStatus);
+            try {
+                if (session != null && integStatus != null) {
+                    integStatus.setStatus(IDLE);
+                    session.mergeSalesIntegrationStatus(integStatus);
+                }
+            } catch (Exception statusEx) {
+                System.err.println("[IntegrationSchedulerBean] Failed to reset integration status to IDLE: " + statusEx);
+                statusEx.printStackTrace();
             }
-            new ExceptionAlerter(currentRegion).sendException(e);
+            new ExceptionAlerter(currentRegion != null ? currentRegion : "UNKNOWN").sendException(e);
         }
     }
     
