@@ -569,6 +569,195 @@ Each integration class follows the same pattern:
 
 ---
 
+## Standard Receipt – Endpoint and Payload
+
+The Standard Receipt flow uses two Oracle Fusion SOAP operations on the same web service:
+`createStandardReceipt` (records the customer payment) followed by `createApplyReceipt`
+(applies that payment to the corresponding invoice).
+
+**Relevant files:**
+
+| File | Purpose |
+|------|---------|
+| `FusionSOAPClient/src/…/StandardReceiptService_Service.java` | JAX-WS service stub – builds the endpoint URL |
+| `FusionSOAPClient/src/…/services/FusionReceiptClient.java` | Calls the SOAP operations and handles the response |
+| `FusionSOAPClient/src/…/model/StandardReceiptRequest.java` | Java payload model for `createStandardReceipt` |
+| `FusionSOAPClient/src/…/model/ApplyReceiptRequest.java` | Java payload model for `createApplyReceipt` |
+| `FusionSOAPClient/src/…/transformation/FusionStdReceiptTransform.java` | Maps `StandardReceiptRequest` → SOAP `StandardReceipt` |
+| `FusionSOAPClient/src/…/transformation/FusionApplyReceiptTransform.java` | Maps `ApplyReceiptRequest` → SOAP `ApplyReceipt` |
+| `IntegrationJobs/src/…/mapping/FusionStdReceiptMapping.java` | Builds `StandardReceiptRequest` from VendHQ sale data |
+| `IntegrationJobs/src/…/mapping/FusionApplyReceiptMapping.java` | Builds `ApplyReceiptRequest` from an accepted `StandardReceiptRequest` |
+
+---
+
+### Endpoint
+
+| Attribute | Value |
+|-----------|-------|
+| **Protocol** | SOAP over HTTPS |
+| **WSDL URL** | `https://{hostname}.fa.{region}.oraclecloud.com/fscmService/StandardReceiptService?WSDL` |
+| **Target namespace** | `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/` |
+| **Service name** | `StandardReceiptService` |
+| **Port name** | `StandardReceiptServiceSoapHttpPort` |
+| **Authentication** | HTTP Basic Auth (`Authorization: Basic <Base64(username:password)>`) |
+
+The URL is assembled at runtime from the `FusionAppParams` object loaded from the database:
+
+```java
+// StandardReceiptService_Service.java (constructor used by FusionReceiptClient)
+new URL("https://" + params.getHostname() + ".fa." + params.getRegion()
+        + ".oraclecloud.com/fscmService/StandardReceiptService?WSDL")
+```
+
+Example for hostname `ehxk-test`, region `em2`:
+```
+https://ehxk-test.fa.em2.oraclecloud.com/fscmService/StandardReceiptService?WSDL
+```
+
+---
+
+### Operation 1 – `createStandardReceipt`
+
+Records a customer payment (cash or bank) in Oracle Fusion Receivables.
+
+#### Request payload – `StandardReceiptRequest` fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `currencyCode` | `String` | ✔ | ISO 4217 currency code (e.g. `"AED"`, `"USD"`) |
+| `saleDate` | `Date` | ✔ | Receipt date; also used as `glDate` and `depositDate` |
+| `receiptMethodId` | `Long` | ✔ | Fusion payment-method ID (must exist in Fusion) |
+| `receiptNumber` | `String` | ✔ | Unique receipt identifier – concatenated as `paymentType + "-" + transactionNumber` (e.g. `"Cash-TXN1234"`) |
+| `remittanceBankAccountId` | `Long` | ✔ | Fusion cash or bank account ID; cash account is used when `FusionReceiptMethod.receiptIsCash == "1"`, otherwise bank account |
+| `accountValue` | `String` | ✔ | Bill-To customer account number; resolved to `customerId` via `FusionCustomerProfileClient` |
+| `orgId` | `Long` | ✔ | Fusion Operating Unit ID, looked up from `FusionBusinessUnitIdMap` by outlet region |
+| `receiptAmount` | `BigDecimal` | ✔ | Total amount received (default `0`) |
+| `region` | `String` | – | Region code used for duplicate-check in the local DB (not sent to Fusion) |
+| `customerId` | `Long` | – | Populated automatically from `accountValue` during transformation |
+
+How `receiptNumber` is built (see `FusionStdReceiptMapping`):
+
+```java
+standardReceipt.setReceiptNumber(paymentType + "-" + transactionNumber);
+// e.g. "Cash-abc123" or "Card-abc123"
+```
+
+How `remittanceBankAccountId` is selected:
+
+```java
+standardReceipt.setRemittanceBankAccountId(
+    receiptMethodMeta.getReceiptIsCash().equals("1")
+        ? registerDetails.getCashAccountId().longValue()
+        : registerDetails.getBankAccountId().longValue());
+```
+
+#### SOAP fields sent to Fusion (`StandardReceipt` object)
+
+| SOAP field | Source |
+|------------|--------|
+| `CurrencyCode` | `currencyCode` |
+| `ReceiptMethodId` | `receiptMethodId` |
+| `OrgId` | `orgId` |
+| `ReceiptNumber` | `receiptNumber` |
+| `RemittanceBankAccountId` | `remittanceBankAccountId` |
+| `CustomerId` | resolved from `accountValue` via customer profile REST call |
+| `ReceiptDate` | `saleDate` (as `XMLGregorianCalendar`) |
+| `GlDate` | same as `saleDate` |
+| `DepositDate` | same as `saleDate` |
+| `Amount.value` | `receiptAmount` |
+| `Amount.currencyCode` | `currencyCode` |
+
+#### Response – `StandardReceiptResponse` fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `successResponse` | `Boolean` | `true` if the SOAP result contains at least one receipt object |
+| `customerReceiptReferenceMap` | `HashMap<String, String>` | Maps `receiptNumber` → Fusion-generated `customerReceiptReference` |
+
+The SOAP client also logs the raw values returned by Fusion:
+
+```
+Message: <Fusion status message>
+Cust Receipt Ref: <customerReceiptReference>
+Receipt#: <receiptNumber>
+```
+
+---
+
+### Operation 2 – `createApplyReceipt`
+
+Applies the created receipt to a specific invoice transaction, closing the open receivable.
+Uses the **same** `StandardReceiptService` WSDL and port as `createStandardReceipt`.
+
+#### Request payload – `ApplyReceiptRequest` fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `receiptNumber` | `String` | ✔ | Must match a previously created receipt (`createStandardReceipt`) |
+| `transactionNumber` | `String` | ✔ | The Fusion invoice (transaction) number to apply the receipt to |
+| `amountApplied` | `BigDecimal` | ✔ | Amount to apply; may be adjusted downward by `0.01` per retry to resolve rounding differences |
+| `receiptCurrency` | `String` | ✔ | Currency code (must match the receipt currency) |
+| `receiptDate` | `Date` | ✔ | Used as both `accountingDate` and `applicationDate` |
+| `transactionSource` | `String` | ✔ | Source system identifier (e.g. `"VendHQ"`) |
+
+`ApplyReceiptRequest` is built from an already-accepted `StandardReceiptRequest` (see `FusionApplyReceiptMapping`):
+
+```java
+applyReceiptRequest.setReceiptDate(standardReceiptRequest.getSaleDate());
+applyReceiptRequest.setTransactionNumber(receiptInvoiceResultMapping.get(standardReceiptRequest));
+applyReceiptRequest.setReceiptNumber(standardReceiptRequest.getReceiptNumber());
+applyReceiptRequest.setAmountApplied(standardReceiptRequest.getReceiptAmount());
+applyReceiptRequest.setReceiptCurrency(standardReceiptRequest.getCurrencyCode());
+applyReceiptRequest.setTransactionSource(transactionSource);
+```
+
+#### SOAP fields sent to Fusion (`ApplyReceipt` object)
+
+| SOAP field | Source |
+|------------|--------|
+| `ReceiptNumber` | `receiptNumber` |
+| `TransactionNumber` | `transactionNumber` |
+| `AmountApplied` | `amountApplied` |
+| `ReceiptCurrency` | `receiptCurrency` |
+| `TransactionSource` | `transactionSource` |
+| `AccountingDate` | `receiptDate` (as `XMLGregorianCalendar`) |
+| `ApplicationDate` | `receiptDate` (as `XMLGregorianCalendar`) |
+
+#### Response – `ApplyReceiptResponse` fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `successResponse` | `Boolean` | `true` if the SOAP result is non-null |
+
+#### Retry logic
+
+`createApplyReceipt` is called inside a loop (up to **50 retries**) to handle invoice/receipt
+amount rounding discrepancies. On each failed attempt `amountApplied` is decreased by `0.01`
+before the next call:
+
+```java
+// VendHQSalesToFusionInvRecIntParallel.java
+applyReceipt.setAmountApplied(
+    applyReceipt.getAmountApplied().subtract(BigDecimal.valueOf(0.01)));
+```
+
+---
+
+### Authentication
+
+Both operations use **HTTP Basic Authentication** injected via `SOAPUtils`:
+
+```java
+Credential cred = new Credential(fusionUsername, fusionPassword);
+SOAPUtils.setCredentials((BindingProvider) standardReceiptService, cred);
+```
+
+This sets the `javax.xml.ws.security.auth.username` / `password` properties on the JAX-WS
+`BindingProvider`, which causes WebLogic's JAX-WS runtime to add the
+`Authorization: Basic <Base64(username:password)>` header to every SOAP request.
+
+---
+
 ## Data Flow: End-to-End Example
 
 ### VendHQ Sales → Oracle Fusion (nightly at 03:00)
