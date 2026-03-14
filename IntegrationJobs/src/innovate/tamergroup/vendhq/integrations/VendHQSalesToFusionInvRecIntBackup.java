@@ -85,13 +85,23 @@ public class VendHQSalesToFusionInvRecIntBackup {
         Float minutesDecimal = timeZoneOffset.abs().floatValue();
         Integer minutesOffset = (int) ((minutesDecimal * 100 % 100) * 60 / 100);
 
-        Calendar currentCalendar = Calendar.getInstance();
         Date lastSaleDate = session.getLastSalesTxnDate(region, isManual, startDate);
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(lastSaleDate);
-        //calendar.add(Calendar.DAY_OF_MONTH, 1);
-                
-        Long diffLong = currentCalendar.getTimeInMillis() - lastSaleDate.getTime();
+
+        // Normalize to calendar midnight so the day-count is based on calendar dates,
+        // not raw milliseconds (avoids undercounting when lastSaleDate has a late time component).
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        Calendar todayMidnight = Calendar.getInstance();
+        todayMidnight.set(Calendar.HOUR_OF_DAY, 0);
+        todayMidnight.set(Calendar.MINUTE, 0);
+        todayMidnight.set(Calendar.SECOND, 0);
+        todayMidnight.set(Calendar.MILLISECOND, 0);
+
+        Long diffLong = todayMidnight.getTimeInMillis() - calendar.getTimeInMillis();
         Integer diffDays = (int) (diffLong/(1000*60*60*24));
                 
         Integer daysToAdd = !isManual ? diffDays + 1 : (dateRange<=0 ? 1 : dateRange);

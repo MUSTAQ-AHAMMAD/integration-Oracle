@@ -155,7 +155,7 @@ public class IntegrationSchedulerBean {
                     session.mergeSalesIntegrationStatus(integStatus);
                 }
             } catch (Exception statusEx) {
-                System.err.println("[IntegrationSchedulerBean] Failed to reset integration status to IDLE: " + statusEx);
+                System.err.println("[IntegrationSchedulerBean.runSalesJobOnce] Failed to reset integration status to IDLE: " + statusEx.getMessage());
                 statusEx.printStackTrace();
             }
             new ExceptionAlerter(currentRegion != null ? currentRegion : "UNKNOWN").sendException(e);
@@ -195,7 +195,7 @@ public class IntegrationSchedulerBean {
                     session.mergeSalesIntegrationStatus(integStatus);
                 }
             } catch (Exception statusEx) {
-                System.err.println("[IntegrationSchedulerBean] Failed to reset integration status to IDLE: " + statusEx);
+                System.err.println("[IntegrationSchedulerBean.runSalesAutomatedOnce] Failed to reset integration status to IDLE: " + statusEx.getMessage());
                 statusEx.printStackTrace();
             }
             new ExceptionAlerter(currentRegion != null ? currentRegion : "UNKNOWN").sendException(e);

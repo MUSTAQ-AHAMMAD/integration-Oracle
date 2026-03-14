@@ -74,14 +74,14 @@ public class VendHQSalesToFusionInvRecJob implements Job {
                             session.mergeSalesIntegrationStatus(integStatus);
                         }
                     } catch (Exception statusEx) {
-                        System.err.println("[VendHQSalesToFusionInvRecJob] Failed to reset integration status to IDLE: " + statusEx);
+                        System.err.println("[VendHQSalesToFusionInvRecJob] Failed to reset integration status to IDLE: " + statusEx.getMessage());
                         statusEx.printStackTrace();
                     }
                     new ExceptionAlerter(vendHqDomainCredential.getRegion()).sendException(e);
                 }
             }
         } catch (NamingException e) {
-            System.err.println("[VendHQSalesToFusionInvRecJob] Failed to obtain EJB session, integration job could not run: " + e);
+            System.err.println("[VendHQSalesToFusionInvRecJob] Failed to obtain EJB session, integration job could not run: " + e.getMessage());
             e.printStackTrace();
             new ExceptionAlerter("UNKNOWN").sendException(e);
         }
