@@ -94,7 +94,7 @@ public class VendHQSalesToFusionInvRecIntBackup {
         Long diffLong = currentCalendar.getTimeInMillis() - lastSaleDate.getTime();
         Integer diffDays = (int) (diffLong/(1000*60*60*24));
                 
-        Integer daysToAdd = !isManual ? diffDays : (dateRange<=0 ? 1 : dateRange);
+        Integer daysToAdd = !isManual ? diffDays + 1 : (dateRange<=0 ? 1 : dateRange);
         Integer finalDaysAddition = daysToAdd<=7 ? daysToAdd-1 : 7;        
         
         Boolean intError = false;

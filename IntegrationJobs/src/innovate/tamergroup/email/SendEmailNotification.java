@@ -154,7 +154,8 @@ public class SendEmailNotification {
             System.out.println("Email sent!!");
 
         } catch (MessagingException e) {
-            throw new RuntimeException(e);
+            System.err.println("[SendEmailNotification] Failed to send notification email for region " + region + ": " + e);
+            e.printStackTrace();
         }
     }
     
