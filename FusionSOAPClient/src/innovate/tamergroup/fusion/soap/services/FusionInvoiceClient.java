@@ -26,6 +26,16 @@ import weblogic.jws.jaxws.ClientPolicyFeature;
 import weblogic.jws.jaxws.policy.InputStreamPolicySource;
 
 
+/**
+ * SOAP client for creating invoices in Oracle Fusion Receivables.
+ *
+ * <p><b>Endpoint:</b>
+ * {@code https://{hostname}.fa.{region}.oraclecloud.com/fscmService/RecInvoiceService?WSDL}
+ * <br>Service: {@code InvoiceService} (port: {@code InvoiceServiceSoapHttpPort})
+ * <br>Namespace: {@code http://xmlns.oracle.com/apps/financials/receivables/transactions/invoices/invoiceService/}
+ *
+ * <p><b>Authentication:</b> HTTP Basic Auth via {@link innovate.tamergroup.shared.utils.SOAPUtils#setCredentials}.
+ */
 public class FusionInvoiceClient {
     
     private FusionAppParams params;
@@ -40,6 +50,46 @@ public class FusionInvoiceClient {
         this.fusionInvoiceTransform = new FusionInvoiceTransform(params, credential);
     }
 
+    /**
+     * Creates a simple invoice in Oracle Fusion Receivables.
+     *
+     * <p><b>SOAP Operation:</b> {@code createSimpleInvoice}
+     * <br><b>SOAP Action:</b>
+     * {@code http://xmlns.oracle.com/apps/financials/receivables/transactions/invoices/invoiceService/createSimpleInvoice}
+     *
+     * <p><b>Request payload fields ({@link innovate.tamergroup.fusion.soap.model.InvoiceHeader}):</b>
+     * <ul>
+     *   <li>{@code billToCustomerName}  – customer name for the bill-to party</li>
+     *   <li>{@code billToLocation}      – customer site / location number</li>
+     *   <li>{@code billToAccountNumber} – customer account number in Fusion</li>
+     *   <li>{@code businessUnit}        – Oracle Fusion business unit name</li>
+     *   <li>{@code transactionSource}   – transaction source (e.g. {@code Manual})</li>
+     *   <li>{@code transactionType}     – transaction type (e.g. {@code PASA CONSULTING SALE})</li>
+     *   <li>{@code invoiceCurrencyCode} – ISO currency code (e.g. {@code AED}, {@code USD})</li>
+     *   <li>{@code conversionRateType}  – {@code Corporate} or {@code User}</li>
+     *   <li>{@code paymentTermsName}    – payment terms fetched from CustomerProfileService</li>
+     *   <li>{@code saleDate}            – invoice date / GL date</li>
+     *   <li>{@code invoiceLines}        – list of {@link innovate.tamergroup.fusion.soap.model.InvoiceLineModel}:
+     *     <ul>
+     *       <li>{@code lineNumber}           – sequential line number</li>
+     *       <li>{@code itemNumber}           – Fusion inventory item number</li>
+     *       <li>{@code memoLineName}         – memo line name (used for discount lines)</li>
+     *       <li>{@code description}          – line description</li>
+     *       <li>{@code quantity}             – quantity sold</li>
+     *       <li>{@code uomCode}              – unit of measure code</li>
+     *       <li>{@code unitSellingPrice}     – selling price per unit</li>
+     *       <li>{@code currencyCode}         – line currency code</li>
+     *       <li>{@code salesOrder}           – VendHQ invoice number used as sales order reference</li>
+     *       <li>{@code salesOrderLine}       – sales order line number</li>
+     *       <li>{@code taxClassificationCode}– tax classification code</li>
+     *     </ul>
+     *   </li>
+     * </ul>
+     *
+     * @param invoiceHeader the invoice header and line data to submit
+     * @return {@link innovate.tamergroup.fusion.soap.model.InvoiceResponse} containing
+     *         {@code serviceStatus}, {@code transactionNumber}, and {@code customerTransactionId}
+     */
     public InvoiceResponse saveInvoice(InvoiceHeader invoiceHeader) throws ServiceException, 
                                         MalformedURLException, DatatypeConfigurationException, 
         com.oracle.xmlns.apps.financials.receivables.customers.customerprofileservice.ServiceException {
