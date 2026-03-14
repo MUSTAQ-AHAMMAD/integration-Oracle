@@ -113,10 +113,21 @@ public class VendHQSalesToFusionInvRecIntParallel {
         Long diffLong = todayMidnight.getTimeInMillis() - calendar.getTimeInMillis();
         Integer diffDays = (int) (diffLong/(1000*60*60*24));
                 
-        Integer daysToAdd = !isManual ? diffDays + 1 : (dateRange<=0 ? 1 : dateRange);
-        Integer finalDaysAddition = daysToAdd<=7 ? daysToAdd-1 : 7;     
-        
-        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()+1);
+        Integer daysToAdd;
+        if (isManual) {
+            daysToAdd = dateRange <= 0 ? 1 : dateRange;
+        } else {
+            daysToAdd = diffDays + 1;
+        }
+        Integer finalDaysAddition = daysToAdd<=7 ? daysToAdd-1 : 7;
+
+        // For manual re-processing the user specifies how many days back to cover.
+        // Reset the calendar so the loop starts at (today - finalDaysAddition) and
+        // advances to today, regardless of when the last automatic integration ran.
+        if (isManual) {
+            calendar.setTimeInMillis(todayMidnight.getTimeInMillis());
+            calendar.add(Calendar.DAY_OF_MONTH, -finalDaysAddition);
+        }
         
         AtomicBoolean intError = new AtomicBoolean(false);
         while (finalDaysAddition-- >= 0 && !intError.get()) {
