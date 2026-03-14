@@ -1,0 +1,79 @@
+{
+  "id": "oracle-fusion-vendhq-integration-environment",
+  "name": "Oracle Fusion & VendHQ Integration – Environment",
+  "values": [
+    {
+      "key": "fusion_hostname",
+      "value": "ehxk-test",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud hostname prefix (the part before .fa.{region}.oraclecloud.com). Example: ehxk-test"
+    },
+    {
+      "key": "fusion_region",
+      "value": "em2",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud region/server code. Examples: em2, us2, uk2, ap1"
+    },
+    {
+      "key": "fusion_base_url",
+      "value": "https://ehxk-test.fa.em2.oraclecloud.com",
+      "type": "default",
+      "enabled": true,
+      "description": "Full Oracle Fusion Cloud base URL. Set this to https://{fusion_hostname}.fa.{fusion_region}.oraclecloud.com"
+    },
+    {
+      "key": "fusion_username",
+      "value": "fusion.admin",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud username used for HTTP Basic Authentication on all REST and SOAP calls"
+    },
+    {
+      "key": "fusion_password",
+      "value": "YourFusionPassword",
+      "type": "secret",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud password. Keep secret — never commit to version control"
+    },
+    {
+      "key": "vendhq_base_url",
+      "value": "https://api.vendhq.com",
+      "type": "default",
+      "enabled": true,
+      "description": "VendHQ REST API base URL (v2.0). All VendHQ endpoints are relative to this URL"
+    },
+    {
+      "key": "vendhq_api_token",
+      "value": "your-vendhq-bearer-token",
+      "type": "secret",
+      "enabled": true,
+      "description": "VendHQ API Bearer token used in the Authorization header. Obtain from VendHQ Settings > API Access"
+    },
+    {
+      "key": "opencart_base_url",
+      "value": "https://your-opencart-store.com",
+      "type": "default",
+      "enabled": true,
+      "description": "Opencart store base URL. All Opencart REST endpoints are relative to this URL"
+    },
+    {
+      "key": "opencart_api_key",
+      "value": "your-opencart-api-key",
+      "type": "secret",
+      "enabled": true,
+      "description": "Opencart REST API key sent in the X-Oc-Restadmin-Id header"
+    },
+    {
+      "key": "last_sync_date",
+      "value": "2024-03-01",
+      "type": "default",
+      "enabled": true,
+      "description": "ISO 8601 date used to filter Fusion items/transactions by LastUpdateDate. Adjust to your desired cutoff date (YYYY-MM-DD)"
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2024-03-14T00:00:00.000Z",
+  "_postman_exported_using": "Postman/10.0"
+}
