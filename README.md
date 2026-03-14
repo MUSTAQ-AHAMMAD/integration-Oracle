@@ -9,7 +9,12 @@ A production-grade **Enterprise Integration Platform** built on Oracle ADF 12.x 
 1. [Architecture Overview](#architecture-overview)
 2. [Technology Stack](#technology-stack)
 3. [Project Structure](#project-structure)
-4. [Middleware Layer – SharedResources](#middleware-layer--sharedresources)
+4. [Invoice & Receipt Creation Endpoints](#invoice--receipt-creation-endpoints)
+   - [Standard Invoice](#1-standard-invoice-creation)
+   - [Standard Receipt](#2-standard-receipt-creation)
+   - [Miscellaneous Receipt](#3-miscellaneous-receipt-creation)
+   - [Apply Receipt to Invoice](#4-apply-receipt-to-invoice)
+5. [Middleware Layer – SharedResources](#middleware-layer--sharedresources)
    - [BackgroundTaskExecutor](#1-backgroundtaskexecutor)
    - [ExecutionListener](#2-executionlistener)
    - [Constants](#3-constants)
@@ -18,9 +23,8 @@ A production-grade **Enterprise Integration Platform** built on Oracle ADF 12.x 
    - [SOAPUtils](#6-soaputils)
    - [FusionAppDomain](#7-fusionappdomain)
    - [FusionAppParams](#8-fusionappparams)
-5. [Scheduler Layer – VendHQIntegrationScheduler](#scheduler-layer--vendhqintegrationscheduler)
-6. [Integration Processing Layer](#integration-processing-layer)
-7. [Standard Receipt – Endpoint and Payload](#standard-receipt--endpoint-and-payload)
+6. [Scheduler Layer – VendHQIntegrationScheduler](#scheduler-layer--vendhqintegrationscheduler)
+7. [Integration Processing Layer](#integration-processing-layer)
 8. [Data Flow: End-to-End Example](#data-flow-end-to-end-example)
 9. [Database Layer](#database-layer)
 10. [Error Handling and Notifications](#error-handling-and-notifications)
@@ -119,7 +123,162 @@ integration-Oracle/
 
 ---
 
-## Middleware Layer – SharedResources
+## Invoice & Receipt Creation Endpoints
+
+This section documents the Oracle Fusion SOAP endpoints and request payloads used to create invoices and receipts.  All calls use **HTTP Basic Authentication** configured via `SOAPUtils.setCredentials()`.
+
+The base WSDL URL pattern is:
+
+```
+https://{hostname}.fa.{region}.oraclecloud.com/fscmService/{ServiceName}?WSDL
+```
+
+where `{hostname}` and `{region}` are loaded at runtime from the `FusionCredentials` database entity via `FusionAppParams`.
+
+---
+
+### 1. Standard Invoice Creation
+
+**Purpose:** Creates a receivables invoice in Oracle Fusion AR for a VendHQ POS sale.
+
+| Item | Value |
+|------|-------|
+| **WSDL** | `https://{hostname}.fa.{region}.oraclecloud.com/fscmService/RecInvoiceService?WSDL` |
+| **Service** | `InvoiceService` |
+| **Port** | `InvoiceServiceSoapHttpPort` |
+| **SOAP Operation** | `createSimpleInvoice` |
+| **Namespace** | `http://xmlns.oracle.com/apps/financials/receivables/transactions/invoices/invoiceService/` |
+| **Client class** | `FusionSOAPClient/.../services/FusionInvoiceClient.java` → `saveInvoice()` |
+| **Payload model** | `FusionSOAPClient/.../model/InvoiceHeader.java` |
+| **Mapping source** | `IntegrationJobs/.../mapping/FusionInvoiceMapping.java` |
+
+**Request payload (`InvoiceHeader`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `billToCustomerName` | `String` | Customer name for the bill-to party |
+| `billToLocation` | `String` | Customer site / location number |
+| `billToAccountNumber` | `String` | Customer account number in Fusion |
+| `businessUnit` | `String` | Oracle Fusion business unit name |
+| `transactionSource` | `String` | Transaction source (e.g. `Manual`) |
+| `transactionType` | `String` | Transaction type (e.g. `PASA CONSULTING SALE`) |
+| `invoiceCurrencyCode` | `String` | ISO currency code (e.g. `AED`, `USD`) |
+| `conversionRateType` | `String` | `Corporate` or `User` |
+| `paymentTermsName` | `String` | Payment terms fetched live from CustomerProfileService |
+| `saleDate` | `Date` | Invoice date and GL date |
+| `invoiceLines` | `List<InvoiceLineModel>` | One entry per product / discount line (see below) |
+
+**Invoice line fields (`InvoiceLineModel`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lineNumber` | `Integer` | Sequential line number |
+| `itemNumber` | `String` | Fusion inventory item number |
+| `memoLineName` | `String` | Memo line name (used for discount lines) |
+| `description` | `String` | Line description |
+| `quantity` | `BigDecimal` | Quantity sold |
+| `uomCode` | `String` | Unit of measure code |
+| `unitSellingPrice` | `BigDecimal` | Selling price per unit |
+| `currencyCode` | `String` | Line currency code |
+| `salesOrder` | `String` | VendHQ invoice number (sales order reference) |
+| `salesOrderLine` | `String` | Sales order line number |
+| `taxClassificationCode` | `String` | Tax classification code |
+
+---
+
+### 2. Standard Receipt Creation
+
+**Purpose:** Creates a cash or bank receipt in Oracle Fusion AR and links it to a payment method (used for regular customer payments).
+
+| Item | Value |
+|------|-------|
+| **WSDL** | `https://{hostname}.fa.{region}.oraclecloud.com/fscmService/StandardReceiptService?WSDL` |
+| **Service** | `StandardReceiptService` |
+| **Port** | `StandardReceiptServiceSoapHttpPort` |
+| **SOAP Operation** | `createStandardReceipt` |
+| **Namespace** | `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/` |
+| **Client class** | `FusionSOAPClient/.../services/FusionReceiptClient.java` → `saveStandardReceipt()` |
+| **Payload model** | `FusionSOAPClient/.../model/StandardReceiptRequest.java` |
+| **Mapping source** | `IntegrationJobs/.../mapping/FusionStdReceiptMapping.java` |
+
+**Request payload (`StandardReceiptRequest`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currencyCode` | `String` | ISO currency code (e.g. `AED`, `USD`) |
+| `saleDate` | `Date` | Receipt date and GL date |
+| `receiptMethodId` | `Long` | Payment method ID (bank or cash method) |
+| `receiptNumber` | `String` | Receipt number – format: `{PaymentType}-{TransactionNumber}` |
+| `remittanceBankAccountId` | `Long` | Bank or cash account ID for remittance |
+| `accountValue` | `String` | Customer account number |
+| `region` | `String` | Region code (e.g. `KW`, `OM`) |
+| `orgId` | `Long` | Oracle Fusion business unit / org ID |
+| `customerId` | `Long` | Customer party ID in Fusion |
+| `receiptAmount` | `BigDecimal` | Total receipt amount |
+
+---
+
+### 3. Miscellaneous Receipt Creation
+
+**Purpose:** Creates a miscellaneous (non-customer) receipt in Oracle Fusion AR.  Used for cash-rounding adjustments and any payment that is posted directly to a receivable activity account rather than applied to a customer invoice.
+
+| Item | Value |
+|------|-------|
+| **WSDL** | `https://{hostname}.fa.{region}.oraclecloud.com/fscmService/MiscellaneousReceiptService?WSDL` |
+| **Service** | `MiscellaneousReceiptService` |
+| **Port** | `MiscellaneousReceiptServiceSoapHttpPort` |
+| **SOAP Operation** | `createMiscellaneousReceipt` |
+| **Namespace** | `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/miscellaneousReceiptService/commonService/` |
+| **Client class** | `FusionSOAPClient/.../services/FusionReceiptClient.java` → `saveMiscReceipt()` |
+| **Payload model** | `FusionSOAPClient/.../model/MiscReceiptRequest.java` |
+| **Mapping source** | `IntegrationJobs/.../mapping/FusionMiscReceiptMapping.java` |
+
+**Request payload (`MiscReceiptRequest`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currencyCode` | `String` | ISO currency code (e.g. `AED`, `USD`) |
+| `saleDate` | `Date` | Receipt date and GL date |
+| `receiptMethodId` | `Long` | Payment method ID in Fusion |
+| `receiptMethodName` | `String` | Payment method name (e.g. `Cash`, `Credit Card`) |
+| `receiptNumber` | `String` | Unique receipt number – format: `{PaymentType}-{TransactionNumber}-MISC` |
+| `bankAccountName` | `String` | Bank account name; uses cash account for rounding, bank account otherwise |
+| `receivableActivityName` | `String` | Receivable activity to post to (e.g. `Cash Rounding`) |
+| `orgId` | `Long` | Oracle Fusion business unit / org ID |
+| `receiptAmount` | `BigDecimal` | Receipt amount (negative for cash-rounding adjustments) |
+
+---
+
+### 4. Apply Receipt to Invoice
+
+**Purpose:** Applies an existing standard receipt to a specific customer invoice in Oracle Fusion AR, clearing the open receivable balance.
+
+| Item | Value |
+|------|-------|
+| **WSDL** | `https://{hostname}.fa.{region}.oraclecloud.com/fscmService/StandardReceiptService?WSDL` |
+| **Service** | `StandardReceiptService` |
+| **Port** | `StandardReceiptServiceSoapHttpPort` |
+| **SOAP Operation** | `createApplyReceipt` |
+| **Namespace** | `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/` |
+| **Client class** | `FusionSOAPClient/.../services/FusionReceiptClient.java` → `saveApplyStandardReceipt()` |
+| **Payload model** | `FusionSOAPClient/.../model/ApplyReceiptRequest.java` |
+| **Mapping source** | `IntegrationJobs/.../mapping/FusionApplyReceiptMapping.java` |
+
+**Request payload (`ApplyReceiptRequest`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transactionNumber` | `String` | Fusion invoice transaction number to apply against |
+| `receiptNumber` | `String` | Receipt number of the previously created standard receipt |
+| `amountApplied` | `BigDecimal` | Amount to apply from the receipt to the invoice |
+| `receiptCurrency` | `String` | ISO currency code of the receipt |
+| `transactionSource` | `String` | Transaction source used on the invoice |
+| `accountingDate` | `Date` | Accounting date for the application |
+| `applicationDate` | `Date` | Application date |
+
+---
+
+
 
 The `SharedResources` module (package `innovate.tamergroup.shared.utils`) is the foundation of the integration platform.  It provides the building blocks used by every other module.
 

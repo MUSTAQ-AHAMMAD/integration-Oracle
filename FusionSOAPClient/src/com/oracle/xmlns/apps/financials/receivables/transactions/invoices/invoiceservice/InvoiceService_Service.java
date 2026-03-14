@@ -53,7 +53,7 @@ public class InvoiceService_Service
     }
     
     public InvoiceService_Service(FusionAppParams params) throws MalformedURLException {
-        super(new URL("https://" + params.getHostname() + ".fa.em2.oraclecloud.com/fscmService/RecInvoiceService?WSDL"), INVOICESERVICE_QNAME);
+        super(new URL("https://" + params.getHostname() + ".fa." + params.getRegion() + ".oraclecloud.com/fscmService/RecInvoiceService?WSDL"), INVOICESERVICE_QNAME);
     }
 
     public InvoiceService_Service(URL wsdlLocation, WebServiceFeature... features) {
