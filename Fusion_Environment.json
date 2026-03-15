@@ -1,0 +1,128 @@
+{
+  "id": "fusion-json-environment",
+  "name": "Oracle Fusion – Environment",
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2024-03-15T00:00:00.000Z",
+  "_postman_exported_using": "Postman/10.0",
+  "values": [
+    {
+      "key": "fusion_hostname",
+      "value": "ehxk-test",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud hostname prefix, e.g. ehxk-test. Used to build fusion_base_url."
+    },
+    {
+      "key": "fusion_region",
+      "value": "em2",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion data-center region code (em2, us2, uk2, ap1). Used to build fusion_base_url."
+    },
+    {
+      "key": "fusion_base_url",
+      "value": "https://ehxk-test.fa.em2.oraclecloud.com",
+      "type": "default",
+      "enabled": true,
+      "description": "Full Oracle Fusion Cloud base URL. Set this to https://{fusion_hostname}.fa.{fusion_region}.oraclecloud.com"
+    },
+    {
+      "key": "fusion_username",
+      "value": "fusion.admin",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud username for HTTP Basic Authentication on all REST calls."
+    },
+    {
+      "key": "fusion_password",
+      "value": "",
+      "type": "secret",
+      "enabled": true,
+      "description": "Oracle Fusion Cloud password. NEVER commit to version control."
+    },
+    {
+      "key": "last_sync_date",
+      "value": "2024-03-01",
+      "type": "default",
+      "enabled": true,
+      "description": "ISO 8601 date (YYYY-MM-DD) used to filter items/transactions updated since this date."
+    },
+    {
+      "key": "org_code",
+      "value": "VWH",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion inventory organization code, e.g. VWH. Used in GET Items, On-Hand Qty, and Inventory Transactions."
+    },
+    {
+      "key": "bu_name",
+      "value": "Ibrahim AL Qurashi - KSA",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion Management Business Unit name. Used in GET Inventory Organizations to resolve OrgId."
+    },
+    {
+      "key": "item_number",
+      "value": "OIL00001",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion item number used in On-Hand Quantity and Available Quantity requests."
+    },
+    {
+      "key": "subinventory_name",
+      "value": "FLAMINGO",
+      "type": "default",
+      "enabled": true,
+      "description": "Subinventory name (maps to VendHQ outlet name). Used in GET Active Subinventories."
+    },
+    {
+      "key": "uom_name",
+      "value": "Each",
+      "type": "default",
+      "enabled": true,
+      "description": "Unit-of-measure display name (e.g. Each, Gram, Liter). Used in GET Units of Measure."
+    },
+    {
+      "key": "customer_number",
+      "value": "ACC-001",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion AR customer account number used in GET Customer Profile."
+    },
+    {
+      "key": "customer_account_id",
+      "value": "",
+      "type": "default",
+      "enabled": true,
+      "description": "Auto-populate this from the CustomerAccountId returned by GET Customer Profile. Used in POST Standard Receipt as CustomerId."
+    },
+    {
+      "key": "transaction_number",
+      "value": "",
+      "type": "default",
+      "enabled": true,
+      "description": "Auto-populate from TransactionNumber returned by POST Create Invoice. Used in POST Apply Receipt to Invoice."
+    },
+    {
+      "key": "receipt_id",
+      "value": "",
+      "type": "default",
+      "enabled": true,
+      "description": "Auto-populate from ReceiptId returned by POST Create Standard Receipt. Used as the path parameter in POST Apply Receipt to Invoice."
+    },
+    {
+      "key": "bank_account_number",
+      "value": "1011203",
+      "type": "default",
+      "enabled": true,
+      "description": "Bank account number to look up in GET External Bank Accounts. Returned ExternalBankAccountId is used as RemittanceBankAccountId in receipts."
+    },
+    {
+      "key": "ledger_id",
+      "value": "300000001418025",
+      "type": "default",
+      "enabled": true,
+      "description": "Oracle Fusion GL ledger ID. Used in POST Import Journal."
+    }
+  ]
+}
