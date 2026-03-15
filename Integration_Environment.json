@@ -71,6 +71,48 @@
       "type": "default",
       "enabled": true,
       "description": "ISO 8601 date used to filter Fusion items/transactions by LastUpdateDate. Adjust to your desired cutoff date (YYYY-MM-DD)"
+    },
+    {
+      "key": "vendhq_domain",
+      "value": "ibraheemalqurashi",
+      "type": "default",
+      "enabled": true,
+      "description": "VendHQ retailer subdomain (the part before .vendhq.com). Example: ibraheemalqurashi"
+    },
+    {
+      "key": "product_id",
+      "value": "product-uuid-001",
+      "type": "default",
+      "enabled": true,
+      "description": "VendHQ product UUID used in single-product and image-upload requests"
+    },
+    {
+      "key": "customer_id",
+      "value": "customer-uuid-001",
+      "type": "default",
+      "enabled": true,
+      "description": "VendHQ customer UUID used in single-customer lookup requests"
+    },
+    {
+      "key": "order_date_from",
+      "value": "2024-03-01",
+      "type": "default",
+      "enabled": true,
+      "description": "ISO 8601 date (YYYY-MM-DD) – start of the date range for Opencart order queries"
+    },
+    {
+      "key": "order_date_to",
+      "value": "2024-03-31",
+      "type": "default",
+      "enabled": true,
+      "description": "ISO 8601 date (YYYY-MM-DD) – end of the date range for Opencart order queries"
+    },
+    {
+      "key": "fusion_basic_auth",
+      "value": "",
+      "type": "secret",
+      "enabled": true,
+      "description": "Base64-encoded 'username:password' string for Oracle Fusion SOAP Basic Auth header. Generate with: echo -n 'user:pass' | base64"
     }
   ],
   "_postman_variable_scope": "environment",

@@ -1,0 +1,1178 @@
+{
+  "info": {
+    "_postman_id": "fusion-json-endpoints-collection",
+    "name": "Oracle Fusion – All Endpoints (JSON)",
+    "description": "Complete Oracle Fusion Cloud REST API collection with **JSON request/response bodies only**.\n\n## Modules covered\n| Folder | Module | Endpoints |\n|--------|--------|-----------|\n| **AR – Receivables** | Accounts Receivable | GET Customer Profile, POST Invoice, POST Standard Receipt, POST Apply Receipt, POST Miscellaneous Receipt |\n| **SCM – Inventory** | Supply Chain Management | GET Items, GET On-Hand Qty, POST Available Qty, GET Orgs, GET Subinventories, GET UOM, GET Inv Transactions, POST Inv Transaction |\n| **GL – General Ledger** | General Ledger | POST Import Journal |\n| **Payments – Bank Accounts** | Payments | GET External Bank Accounts |\n\n## Authentication\nAll requests use **HTTP Basic Authentication**. Set the following in the active Postman environment:\n- `fusion_username` – Oracle Fusion Cloud username\n- `fusion_password` – Oracle Fusion Cloud password\n- `fusion_base_url` – Full base URL (e.g. `https://ehxk-test.fa.em2.oraclecloud.com`)\n\n## AR Flow (complete POS sale sync)\nRun the AR requests in this order:\n1. **GET Customer Profile** – obtain `CustomerAccountId` → set `{{customer_account_id}}` variable\n2. **POST Create Invoice** – obtain `TransactionNumber` → set `{{transaction_number}}` variable\n3. **POST Create Standard Receipt** – obtain `ReceiptId` → set `{{receipt_id}}` variable\n4. **POST Apply Receipt to Invoice** – clears the AR balance\n5. **POST Create Miscellaneous Receipt** – only for cash-rounding lines\n6. **POST Import Journal** – final GL posting step\n\n## How to import\n1. In Postman, click **Import** and select this file.\n2. Import `Fusion_Environment.json` and set it as the active environment.\n3. Fill in your Oracle Fusion Cloud credentials and instance URL.\n4. Execute requests in the order shown above.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{fusion_username}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{fusion_password}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "AR – Receivables",
+      "description": "Oracle Fusion Accounts Receivable (AR) REST endpoints.\n\n**Recommended execution order for a complete POS sale sync:**\n1. GET Customer Profile → note `CustomerAccountId` and `PaymentTerms`\n2. POST Create Invoice → note `TransactionNumber`\n3. POST Create Standard Receipt → note `ReceiptId` and set `{{receipt_id}}`\n4. POST Apply Receipt to Invoice → links the receipt to the invoice\n5. POST Create Miscellaneous Receipt → for cash-rounding adjustments (if applicable)\n\nAll endpoints use **HTTP Basic Authentication** (set `fusion_username` and `fusion_password` in the active environment).",
+      "item": [
+        {
+          "name": "GET Customer Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/customers?q=CustomerNumber='ACC-001'&fields=CustomerAccountId,CustomerNumber,CustomerName,AccountType,AccountStatus,PaymentTerms,CreditLimit,CurrencyCode&limit=1",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "CustomerNumber='ACC-001'",
+                  "description": "Filter by customer account number"
+                },
+                {
+                  "key": "fields",
+                  "value": "CustomerAccountId,CustomerNumber,CustomerName,AccountType,AccountStatus,PaymentTerms,CreditLimit,CurrencyCode",
+                  "description": "Fields to return"
+                },
+                {
+                  "key": "limit",
+                  "value": "1",
+                  "description": "Return only one record"
+                }
+              ]
+            },
+            "description": "Retrieves an Oracle Fusion AR customer account record filtered by account number. The response `CustomerAccountId` is used as `customerId` in the Standard Receipt payload, and `PaymentTerms` is used as `PaymentTermsName` in the Invoice payload.\n\n**Mapped to:** `FusionCustomerProfileClient.getCustomerAccountId()` / `getPaymentTerms()`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/customers`\n\n### Query parameters\n| Parameter | Example | Description |\n|-----------|---------|-------------|\n| q | CustomerNumber='ACC-001' | Filter expression |\n| fields | CustomerAccountId,… | Comma-separated fields to include |\n| limit | 1 | Max records to return |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Customer found",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"CustomerAccountId\": 300000001100001,\n      \"CustomerNumber\": \"ACC-001\",\n      \"CustomerName\": \"Ahmed Al Qurashi Stores\",\n      \"AccountType\": \"EXTERNAL\",\n      \"AccountStatus\": \"Active\",\n      \"PaymentTerms\": \"Immediate\",\n      \"CreditLimit\": 50000.0,\n      \"CurrencyCode\": \"AED\",\n      \"links\": [\n        {\n          \"rel\": \"self\",\n          \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/customers/300000001100001\"\n        }\n      ]\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 25,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"BillToCustomerName\": \"Ahmed Al Qurashi Stores\",\n  \"BillToAccountNumber\": \"ACC-001\",\n  \"BillToLocation\": \"AE-DUBAI\",\n  \"BusinessUnit\": \"Ibrahim AL Qurashi - KSA\",\n  \"TransactionSource\": \"Manual\",\n  \"TransactionType\": \"PASA CONSULTING SALE\",\n  \"TransactionDate\": \"2024-03-14\",\n  \"GlDate\": \"2024-03-14\",\n  \"InvoiceCurrencyCode\": \"AED\",\n  \"ConversionRateType\": \"Corporate\",\n  \"PaymentTermsName\": \"Immediate\",\n  \"invoiceLine\": [\n    {\n      \"LineNumber\": 1,\n      \"ItemNumber\": \"OIL00001\",\n      \"Description\": \"Pure Olive Oil 500ml \\u2013 FLAMINGO outlet POS sale\",\n      \"Quantity\": 2,\n      \"UomCode\": \"Ea\",\n      \"UnitSellingPrice\": 250.0,\n      \"CurrencyCode\": \"AED\",\n      \"SalesOrder\": \"INV-10001\",\n      \"SalesOrderLine\": \"1\",\n      \"TaxClassificationCode\": \"UAE-VAT-5\"\n    },\n    {\n      \"LineNumber\": 2,\n      \"MemoLineName\": \"DISCOUNT\",\n      \"Description\": \"Promotional discount\",\n      \"Quantity\": 1,\n      \"UomCode\": \"Ea\",\n      \"UnitSellingPrice\": -25.0,\n      \"CurrencyCode\": \"AED\",\n      \"SalesOrder\": \"INV-10001\",\n      \"SalesOrderLine\": \"2\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesInvoices",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "receivablesInvoices"
+              ]
+            },
+            "description": "Creates a Receivables invoice in Oracle Fusion AR for a VendHQ POS sale.\n\n**Mapped to:** `FusionInvoiceClient.saveInvoice()` → `InvoiceService.createSimpleInvoice()`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/receivablesInvoices`\n\n### InvoiceHeader fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| BillToCustomerName | String | Yes | Ahmed Al Qurashi Stores | AR customer name |\n| BillToAccountNumber | String | Yes | ACC-001 | AR customer account number |\n| BillToLocation | String | Yes | AE-DUBAI | Customer site code |\n| BusinessUnit | String | Yes | Ibrahim AL Qurashi - KSA | Fusion BU name |\n| TransactionSource | String | Yes | Manual | Source of the transaction |\n| TransactionType | String | Yes | PASA CONSULTING SALE | AR transaction type |\n| TransactionDate | String | Yes | 2024-03-14 | Invoice date (YYYY-MM-DD) |\n| GlDate | String | Yes | 2024-03-14 | GL accounting date (YYYY-MM-DD) |\n| InvoiceCurrencyCode | String | Yes | AED | ISO 4217 currency code |\n| ConversionRateType | String | Yes | Corporate | Rate type for conversion |\n| PaymentTermsName | String | Yes | Immediate | Fetched from customer profile |\n\n### invoiceLine fields\n| Field | Type | Required | Notes |\n|-------|------|----------|-------|\n| LineNumber | Integer | Yes | Sequential line number |\n| ItemNumber | String | No | Fusion item number (product lines) |\n| MemoLineName | String | No | Used for discount/memo lines |\n| Description | String | No | Line description |\n| Quantity | Number | Yes | Quantity |\n| UomCode | String | Yes | Unit of measure code e.g. Ea |\n| UnitSellingPrice | Number | Yes | Negative for discounts |\n| CurrencyCode | String | Yes | ISO 4217 |\n| SalesOrder | String | No | VendHQ invoice number |\n| SalesOrderLine | String | No | Line number string |\n| TaxClassificationCode | String | No | Tax code e.g. UAE-VAT-5 |"
+          },
+          "response": [
+            {
+              "name": "201 Created – Invoice created",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"CustomerTrxId\": 300000001234001,\n  \"TransactionNumber\": \"TXN-20240314-001\",\n  \"ServiceStatus\": \"S\",\n  \"links\": [\n    {\n      \"rel\": \"self\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesInvoices/300000001234001\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Create Standard Receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"CurrencyCode\": \"AED\",\n  \"ReceiptDate\": \"2024-03-14\",\n  \"GlDate\": \"2024-03-14\",\n  \"DepositDate\": \"2024-03-14\",\n  \"ReceiptMethodId\": 300000001001001,\n  \"ReceiptNumber\": \"Cash-INV-10001\",\n  \"RemittanceBankAccountId\": 300000001100999,\n  \"CustomerId\": 300000001100001,\n  \"OrgId\": 300000001001000,\n  \"Amount\": {\n    \"CurrencyCode\": \"AED\",\n    \"Value\": 550.0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesReceipts",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "receivablesReceipts"
+              ]
+            },
+            "description": "Creates a cash or bank standard receipt in Oracle Fusion AR and links it to a payment method. Used for regular customer payments (Visa, Cash, Master Card, etc.).\n\n**Mapped to:** `FusionReceiptClient.saveStandardReceipt()` → `StandardReceiptService.createStandardReceipt()`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/receivablesReceipts`\n\n**Flow:** Call AFTER `POST Create Invoice`. The `ReceiptNumber` follows the pattern `{PaymentType}-{VendHQTransactionNumber}`.\n\n### Request fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| CurrencyCode | String | Yes | AED | ISO 4217 currency code |\n| ReceiptDate | String | Yes | 2024-03-14 | Receipt date (YYYY-MM-DD) |\n| GlDate | String | Yes | 2024-03-14 | GL date (YYYY-MM-DD) |\n| DepositDate | String | Yes | 2024-03-14 | Bank deposit date |\n| ReceiptMethodId | Long | Yes | 300000001001001 | Payment method ID from FusionReceiptMethod |\n| ReceiptNumber | String | Yes | Cash-INV-10001 | Format: {PaymentType}-{TransactionNumber} |\n| RemittanceBankAccountId | Long | Yes | 300000001100999 | From ExternalBankAccount lookup |\n| CustomerId | Long | Yes | 300000001100001 | From Customer Profile lookup |\n| OrgId | Long | Yes | 300000001001000 | Fusion business unit / org ID |\n| Amount.Value | Number | Yes | 550.00 | Total receipt amount |\n| Amount.CurrencyCode | String | Yes | AED | Must match CurrencyCode |"
+          },
+          "response": [
+            {
+              "name": "201 Created – Standard Receipt created",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"ReceiptId\": 300000001300001,\n  \"ReceiptNumber\": \"Cash-INV-10001\",\n  \"CustomerReceiptReference\": \"REF-20240314-001\",\n  \"Status\": \"Confirmed\",\n  \"CurrencyCode\": \"AED\",\n  \"Amount\": 550.0,\n  \"links\": [\n    {\n      \"rel\": \"self\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesReceipts/300000001300001\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Apply Receipt to Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"TransactionNumber\": \"TXN-20240314-001\",\n  \"ReceiptNumber\": \"Cash-INV-10001\",\n  \"AmountApplied\": 550.0,\n  \"ReceiptCurrencyCode\": \"AED\",\n  \"TransactionSource\": \"Manual\",\n  \"ApplicationDate\": \"2024-03-14\",\n  \"AccountingDate\": \"2024-03-14\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesReceipts/{{receipt_id}}/child/applyReceiptOnAccount",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "receivablesReceipts",
+                "{{receipt_id}}",
+                "child",
+                "applyReceiptOnAccount"
+              ]
+            },
+            "description": "Applies an existing standard receipt to a specific customer invoice in Oracle Fusion AR, clearing the open receivable balance on that invoice.\n\n**Mapped to:** `FusionReceiptClient.saveApplyStandardReceipt()` → `StandardReceiptService.createApplyReceipt()`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/receivablesReceipts/{ReceiptId}/child/applyReceiptOnAccount`\n\n**Flow:** Run this AFTER both `POST Create Invoice` AND `POST Create Standard Receipt` have succeeded. Set `receipt_id` (Postman variable) to the `ReceiptId` returned by the Standard Receipt call.\n\n### Request fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| TransactionNumber | String | Yes | TXN-20240314-001 | Fusion invoice transaction number |\n| ReceiptNumber | String | Yes | Cash-INV-10001 | Receipt number from previous step |\n| AmountApplied | Number | Yes | 550.00 | Amount to apply |\n| ReceiptCurrencyCode | String | Yes | AED | ISO 4217 |\n| TransactionSource | String | Yes | Manual | Same source used on the invoice |\n| ApplicationDate | String | Yes | 2024-03-14 | Application date |\n| AccountingDate | String | Yes | 2024-03-14 | GL accounting date |"
+          },
+          "response": [
+            {
+              "name": "201 Created – Receipt applied to invoice",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"ApplicationId\": 300000001400001,\n  \"ReceiptNumber\": \"Cash-INV-10001\",\n  \"TransactionNumber\": \"TXN-20240314-001\",\n  \"AmountApplied\": 550.0,\n  \"Status\": \"APP\",\n  \"links\": [\n    {\n      \"rel\": \"self\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesReceipts/300000001300001/child/applyReceiptOnAccount/300000001400001\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Create Miscellaneous Receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"CurrencyCode\": \"AED\",\n  \"ReceiptDate\": \"2024-03-14\",\n  \"GlDate\": \"2024-03-14\",\n  \"ReceiptMethodId\": 300000001001002,\n  \"ReceiptMethodName\": \"Cash Rounding\",\n  \"ReceiptNumber\": \"Cash-INV-10001-MISC\",\n  \"RemittanceBankAccountName\": \"Main Cash Account\",\n  \"ReceivableActivityName\": \"Cash Rounding\",\n  \"OrgId\": 300000001001000,\n  \"Amount\": {\n    \"CurrencyCode\": \"AED\",\n    \"Value\": -0.5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "receivablesMiscellaneousReceipts"
+              ]
+            },
+            "description": "Creates a miscellaneous (non-customer) receipt in Oracle Fusion AR. Used for cash-rounding adjustments — any payment posted directly to a receivable activity account rather than applied to a customer invoice.\n\n**Mapped to:** `FusionReceiptClient.saveMiscReceipt()` → `MiscellaneousReceiptService.createMiscellaneousReceipt()`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts`\n\n**Flow:** Run this AFTER `POST Create Invoice`. A negative `Amount.Value` represents a cash-rounding deduction.\n\n### Request fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| CurrencyCode | String | Yes | AED | ISO 4217 currency code |\n| ReceiptDate | String | Yes | 2024-03-14 | Receipt date (YYYY-MM-DD) |\n| GlDate | String | Yes | 2024-03-14 | GL date (YYYY-MM-DD) |\n| ReceiptMethodId | Long | Yes | 300000001001002 | Payment method ID |\n| ReceiptMethodName | String | Yes | Cash Rounding | Payment method name |\n| ReceiptNumber | String | Yes | Cash-INV-10001-MISC | Format: {PaymentType}-{TxnNumber}-MISC |\n| RemittanceBankAccountName | String | Yes | Main Cash Account | Bank/cash account name |\n| ReceivableActivityName | String | Yes | Cash Rounding | Receivable activity to post to |\n| OrgId | Long | Yes | 300000001001000 | Fusion business unit / org ID |\n| Amount.Value | Number | Yes | -0.50 | Negative for cash-rounding deduction |\n| Amount.CurrencyCode | String | Yes | AED | Must match CurrencyCode |"
+          },
+          "response": [
+            {
+              "name": "201 Created – Miscellaneous Receipt created",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"MiscReceiptId\": 300000001500001,\n  \"ReceiptNumber\": \"Cash-INV-10001-MISC\",\n  \"Status\": \"Confirmed\",\n  \"CurrencyCode\": \"AED\",\n  \"Amount\": -0.5,\n  \"links\": [\n    {\n      \"rel\": \"self\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/300000001500001\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SCM – Inventory",
+      "description": "Oracle Fusion Supply Chain Management (SCM) REST endpoints for inventory management.\n\n**Base path:** `{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/`\n\nAll endpoints use **HTTP Basic Authentication** (set `fusion_username` and `fusion_password` in the active environment). Set `org_code`, `item_number`, `last_sync_date`, and `bu_name` as needed before executing requests.",
+      "item": [
+        {
+          "name": "GET Inventory Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/items?q=LastUpdateDate>'{last_sync_date}';UserItemTypeValue=Finished Good;OrganizationCode={org_code}&fields=ItemId,ItemClass,OrganizationId,OrganizationCode,ItemNumber,ItemDescription,MarketPrice,PrimaryUOMCode,PrimaryUOMValue,UserItemTypeValue,InventoryItemStatusCode,LongDescription,OutputTaxClassificationCodeValue,LastUpdateDate,CreationDate&orderBy=LastUpdateDate&limit=500",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "LastUpdateDate>'{{last_sync_date}}';UserItemTypeValue=Finished Good;OrganizationCode={{org_code}}",
+                  "description": "Filter: items updated after last_sync_date, type = Finished Good, in the given org"
+                },
+                {
+                  "key": "fields",
+                  "value": "ItemId,ItemClass,OrganizationId,OrganizationCode,ItemNumber,ItemDescription,MarketPrice,PrimaryUOMCode,PrimaryUOMValue,UserItemTypeValue,InventoryItemStatusCode,LongDescription,OutputTaxClassificationCodeValue,LastUpdateDate,CreationDate",
+                  "description": "Fields to include in the response"
+                },
+                {
+                  "key": "orderBy",
+                  "value": "LastUpdateDate",
+                  "description": "Sort order"
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Max records per page"
+                }
+              ]
+            },
+            "description": "Retrieves Oracle Fusion inventory items updated after a specified date, filtered by type and organization. Used by `FusionItemsService.getFusionItems()` during the items sync job to push new/updated products to VendHQ.\n\n**Mapped to:** `FusionItemsService.getFusionItems(Date lastFetchedDate, String orgCode)`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/items`\n\n### Key query parameters\n| Parameter | Example | Description |\n|-----------|---------|-------------|\n| q | LastUpdateDate>'2024-03-01';UserItemTypeValue=Finished Good;OrganizationCode=VWH | Filter expression |\n| fields | ItemId,ItemNumber,… | Fields to return |\n| orderBy | LastUpdateDate | Sort field |\n| limit | 500 | Max records per page |\n\nSet `last_sync_date` (e.g. `2024-03-01`) and `org_code` (e.g. `VWH`) in the Postman environment."
+          },
+          "response": [
+            {
+              "name": "200 OK – Items list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"ItemId\": 300000001100015,\n      \"OrganizationCode\": \"VWH\",\n      \"OrganizationId\": 300000001001005,\n      \"ItemNumber\": \"OIL00001\",\n      \"ItemDescription\": \"Pure Olive Oil 500ml\",\n      \"MarketPrice\": 45.0,\n      \"PrimaryUOMCode\": \"Ea\",\n      \"PrimaryUOMValue\": \"Each\",\n      \"UserItemTypeValue\": \"Finished Good\",\n      \"InventoryItemStatusCode\": \"Active\",\n      \"LongDescription\": \"Cold-pressed pure olive oil \\u2013 500ml bottle\",\n      \"OutputTaxClassificationCodeValue\": \"UAE-VAT-5\",\n      \"LastUpdateDate\": \"2024-03-14T10:30:00.000+03:00\",\n      \"CreationDate\": \"2023-01-01T00:00:00.000+03:00\",\n      \"links\": [\n        {\n          \"rel\": \"self\",\n          \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/items/300000001100015\"\n        }\n      ]\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 500,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET On-Hand Quantity Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/onhandQuantityDetails?q=ItemNumber={item_number};OrganizationCode={org_code}&fields=OrganizationCode,ItemNumber,SubinventoryCode,OnhandQuantity,OrganizationId,InventoryItemId,PrimaryUOMCode,ReservedQuantity,ReceivingQuantity&limit=500",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "onhandQuantityDetails"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "ItemNumber={{item_number}};OrganizationCode={{org_code}}",
+                  "description": "Filter by item number and organization code"
+                },
+                {
+                  "key": "fields",
+                  "value": "OrganizationCode,ItemNumber,SubinventoryCode,OnhandQuantity,OrganizationId,InventoryItemId,PrimaryUOMCode,ReservedQuantity,ReceivingQuantity",
+                  "description": "Fields to return"
+                },
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Max records per page"
+                }
+              ]
+            },
+            "description": "Retrieves on-hand inventory quantity details per subinventory for a specific item and organization. Used by `FusionOnHandQtyService.getOnHandQtyDetails()` to determine current stock levels before triggering inventory transactions.\n\n**Mapped to:** `FusionOnHandQtyService.getOnHandQtyDetails(String itemNumber, String orgCode)`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/onhandQuantityDetails`\n\nSet `item_number` (e.g. `OIL00001`) and `org_code` (e.g. `VWH`) in the Postman environment."
+          },
+          "response": [
+            {
+              "name": "200 OK – On-Hand quantities",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"OrganizationId\": 300000001001005,\n      \"OrganizationCode\": \"VWH\",\n      \"InventoryItemId\": 300000001100015,\n      \"ItemNumber\": \"OIL00001\",\n      \"SubinventoryCode\": \"FLAMINGO\",\n      \"OnhandQuantity\": 150.0,\n      \"SecondaryOnhandQuantity\": null,\n      \"ReceivingQuantity\": 0.0,\n      \"ReservedQuantity\": 10.0,\n      \"PrimaryUOMCode\": \"Ea\",\n      \"links\": [\n        {\n          \"rel\": \"self\",\n          \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/onhandQuantityDetails/300000001100015\"\n        }\n      ]\n    },\n    {\n      \"OrganizationId\": 300000001001005,\n      \"OrganizationCode\": \"VWH\",\n      \"InventoryItemId\": 300000001100015,\n      \"ItemNumber\": \"OIL00001\",\n      \"SubinventoryCode\": \"TAHLIA\",\n      \"OnhandQuantity\": 80.0,\n      \"SecondaryOnhandQuantity\": null,\n      \"ReceivingQuantity\": 5.0,\n      \"ReservedQuantity\": 0.0,\n      \"PrimaryUOMCode\": \"Ea\"\n    }\n  ],\n  \"count\": 2,\n  \"hasMore\": false,\n  \"limit\": 500,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Get Available Quantity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"OrganizationCode\": \"VWH\",\n  \"ItemNumber\": \"OIL00001\",\n  \"Subinventory\": \"FLAMINGO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/availableQuantityDetails",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "availableQuantityDetails"
+              ]
+            },
+            "description": "Queries the available-to-transact quantity for a specific item in a subinventory. Uses a POST request with a JSON body (Oracle Fusion's REST pattern for complex queries).\n\n**Mapped to:** `FusionAvailableQtyService.getAvailableQty(AvailableQuantityRequest)`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/availableQuantityDetails`\n\n### Request fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| OrganizationCode | String | Yes | VWH | Inventory organization code |\n| ItemNumber | String | Yes | OIL00001 | Fusion item number |\n| Subinventory | String | No | FLAMINGO | Subinventory name (optional filter) |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Available quantity returned",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"OrganizationCode\": \"VWH\",\n  \"OrganizationId\": 300000001001005,\n  \"ItemNumber\": \"OIL00001\",\n  \"InventoryItemId\": 300000001100015,\n  \"Subinventory\": \"FLAMINGO\",\n  \"PrimaryUnitOfMeasure\": \"Each\",\n  \"QuantityOnhand\": \"150.0\",\n  \"AvailableToTransact\": \"140.0\",\n  \"ReturnStatus\": \"S\",\n  \"ReturnMessageText\": \"Success\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Inventory Organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/inventoryOrganizations?q=ManagementBusinessUnitName={bu_name}&limit=1000",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "inventoryOrganizations"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "ManagementBusinessUnitName={{bu_name}}",
+                  "description": "Filter by business unit name to resolve OrgId and BU ID"
+                },
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Max records per page"
+                }
+              ]
+            },
+            "description": "Retrieves Oracle Fusion inventory organizations optionally filtered by Business Unit name. Used by `FusionInvOrgService.getbuIdFromName()` to resolve the `ManagementBusinessUnitId` from a BU name — this ID is stored in `OutletsIntegrationConfig` and used in receipt payloads as `OrgId`.\n\n**Mapped to:** `FusionInvOrgService.getbuIdFromName(String buName)`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/inventoryOrganizations`\n\nSet `bu_name` (e.g. `Ibrahim AL Qurashi - KSA`) in the Postman environment."
+          },
+          "response": [
+            {
+              "name": "200 OK – Organizations list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"OrganizationId\": 300000001001005,\n      \"OrganizationCode\": \"VWH\",\n      \"OrganizationName\": \"Ibrahim AL Qurashi - KSA\",\n      \"ManagementBusinessUnitId\": 300000001001000,\n      \"ManagementBusinessUnitName\": \"Ibrahim AL Qurashi - KSA\",\n      \"LegalEntityId\": 300000001000001,\n      \"LegalEntityName\": \"Ibrahim Al Qurashi For Trade\",\n      \"Status\": \"Active\",\n      \"InventoryFlag\": true\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 1000,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Active Subinventories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/activeSubinventories?q=SecondaryInventoryName={subinventory_name}&fields=OrganizationName,OrganizationCode,SecondaryInventoryName,OrganizationId&limit=25",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "activeSubinventories"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "SecondaryInventoryName={{subinventory_name}}",
+                  "description": "Filter by subinventory name (outlet name in VendHQ)"
+                },
+                {
+                  "key": "fields",
+                  "value": "OrganizationName,OrganizationCode,SecondaryInventoryName,OrganizationId",
+                  "description": "Fields to return"
+                },
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "Max records"
+                }
+              ]
+            },
+            "description": "Retrieves active subinventories filtered by name. Used by `FusionSubinventoryService.getOrganizationName()` and `getOrganizationCode()` to map a VendHQ outlet name (e.g. FLAMINGO) to its Fusion organization code and name.\n\n**Mapped to:** `FusionSubinventoryService.getOrganizationName(String subinventoryName)`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/activeSubinventories`\n\nSet `subinventory_name` (e.g. `FLAMINGO`) in the Postman environment."
+          },
+          "response": [
+            {
+              "name": "200 OK – Subinventories",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"SubinventoryId\": 300000001002001,\n      \"SecondaryInventoryName\": \"FLAMINGO\",\n      \"OrganizationId\": 300000001001005,\n      \"OrganizationCode\": \"VWH\",\n      \"OrganizationName\": \"Ibrahim AL Qurashi - KSA\",\n      \"Description\": \"Flamingo Mall outlet subinventory\",\n      \"Nettable\": \"Yes\",\n      \"AllowReservations\": \"Yes\",\n      \"QuantityTracked\": \"Yes\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 25,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Units of Measure (UOM)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/unitsOfMeasure?q=UOM={uom_name}&fields=UOMCode,UOM,UOMClass,Description&limit=1",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "unitsOfMeasure"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "UOM={{uom_name}}",
+                  "description": "Filter by UOM name (e.g. Each, Gram)"
+                },
+                {
+                  "key": "fields",
+                  "value": "UOMCode,UOM,UOMClass,Description",
+                  "description": "Fields to return"
+                },
+                {
+                  "key": "limit",
+                  "value": "1",
+                  "description": "Limit to one result"
+                }
+              ]
+            },
+            "description": "Looks up the Oracle Fusion UOM code for a given unit-of-measure name. Used by `FusionUomService.getUomCode()` to resolve a human-readable UOM name (e.g. 'Each') to its short code (e.g. 'Ea') before building invoice line payloads.\n\n**Mapped to:** `FusionUomService.getUomCode(String uomName)`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/unitsOfMeasure`\n\nSet `uom_name` in the Postman environment, e.g. `Each` or `Gram`. Leave the `q` parameter empty (remove it) to list all UOM codes."
+          },
+          "response": [
+            {
+              "name": "200 OK – Units of measure",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"UOMCode\": \"Ea\",\n      \"UOM\": \"Each\",\n      \"UOMClass\": \"Quantity\",\n      \"Description\": \"Each unit\"\n    },\n    {\n      \"UOMCode\": \"Gm\",\n      \"UOM\": \"Gram\",\n      \"UOMClass\": \"Weight\",\n      \"Description\": \"Gram\"\n    },\n    {\n      \"UOMCode\": \"Kg\",\n      \"UOM\": \"Kilogram\",\n      \"UOMClass\": \"Weight\",\n      \"Description\": \"Kilogram\"\n    },\n    {\n      \"UOMCode\": \"Lt\",\n      \"UOM\": \"Liter\",\n      \"UOMClass\": \"Volume\",\n      \"Description\": \"Liter\"\n    },\n    {\n      \"UOMCode\": \"Ml\",\n      \"UOM\": \"Milliliter\",\n      \"UOMClass\": \"Volume\",\n      \"Description\": \"Milliliter\"\n    }\n  ],\n  \"count\": 5,\n  \"hasMore\": false,\n  \"limit\": 100,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Inventory Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/inventoryTransactions?q=OrganizationCode='{org_code}' and TransactionDate>='{last_sync_date}'&limit=50&offset=0",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "inventoryTransactions"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "OrganizationCode='{{org_code}}' and TransactionDate>='{{last_sync_date}}'",
+                  "description": "Filter by org code and date"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Max records per page"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Pagination offset"
+                }
+              ]
+            },
+            "description": "Retrieves posted inventory transactions for a given organization and date range. Used to verify that inventory adjustments from VendHQ sales have been successfully posted in Oracle Fusion SCM.\n\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/inventoryTransactions`\n\nSet `org_code` (e.g. `VWH`) and `last_sync_date` (e.g. `2024-03-01`) in the Postman environment."
+          },
+          "response": [
+            {
+              "name": "200 OK – Inventory transactions",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"UniqueTransactionId\": 100001,\n      \"TransactionHeaderId\": 200001,\n      \"OrganizationId\": 300000001001005,\n      \"OrganizationName\": \"Ibrahim AL Qurashi - KSA\",\n      \"Item\": \"OIL00001\",\n      \"Subinventory\": \"FLAMINGO\",\n      \"TransactionQuantity\": -2.0,\n      \"TransactionUnitOfMeasure\": \"Gram\",\n      \"TransactionType\": \"Miscellaneous issue\",\n      \"TransactionDate\": \"2024-03-14T10:30:00.000+03:00\",\n      \"TransactionSourceName\": \"Vend POS\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 50,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Create Inventory Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionLines\": [\n    {\n      \"OrganizationName\": \"Ibrahim AL Qurashi - KSA\",\n      \"Item\": \"OIL00001\",\n      \"Subinventory\": \"FLAMINGO\",\n      \"TransactionType\": \"Miscellaneous issue\",\n      \"TransactionUnitOfMeasure\": \"Gram\",\n      \"TransactionQuantity\": -3.0,\n      \"TransactionDate\": \"2024-03-14T10:30:00+03:00\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/inventoryTransactions",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "inventoryTransactions"
+              ]
+            },
+            "description": "Posts one or more inventory transaction lines to Oracle Fusion SCM to adjust on-hand quantities. Called by `FusionInvTxnService.insertInvTransactions()` after each VendHQ sale is processed. Negative `TransactionQuantity` = stock issue (sale); positive = receipt.\n\n**Mapped to:** `FusionInvTxnService.insertInvTransactions(List<TransactionLine>)`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/inventoryTransactions`\n\n### TransactionLine fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| OrganizationName | String | Yes | Ibrahim AL Qurashi - KSA | Inventory org |\n| Item | String | Yes | OIL00001 | Fusion item number |\n| Subinventory | String | Yes | FLAMINGO | Sub-inventory code (VendHQ outlet name) |\n| TransactionType | String | Yes | Miscellaneous issue | Fusion transaction type |\n| TransactionUnitOfMeasure | String | Yes | Gram | UOM name |\n| TransactionQuantity | Number | Yes | -3.0 | Negative = issue, positive = receipt |\n| TransactionDate | String | Yes | 2024-03-14T10:30:00+03:00 | ISO-8601 with TZ offset |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Transactions created",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"ReturnStatus\": \"S\",\n  \"ReturnMessageText\": \"Inventory transactions created successfully.\",\n  \"TransactionHeaderId\": 987654321,\n  \"transactionLines\": [\n    {\n      \"UniqueTransactionId\": 100002,\n      \"TransactionHeaderId\": 987654321,\n      \"OrganizationName\": \"Ibrahim AL Qurashi - KSA\",\n      \"Item\": \"OIL00001\",\n      \"Subinventory\": \"FLAMINGO\",\n      \"TransactionType\": \"Miscellaneous issue\",\n      \"TransactionQuantity\": -3.0,\n      \"TransactionDate\": \"2024-03-14T10:30:00+03:00\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GL – General Ledger",
+      "description": "Oracle Fusion General Ledger (GL) REST endpoints.\n\n**Base path:** `{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/`\n\nThe journal import is the final step in the VendHQ → Oracle Fusion AR integration flow, called after all AR invoices and receipts have been successfully created.",
+      "item": [
+        {
+          "name": "POST Import Journal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"BatchName\": \"Mar-24: VENDHQ-INV-10001\",\n  \"BatchDescription\": \"Journal Import for VendHQ sale INV-10001\",\n  \"LedgerId\": 300000001418025,\n  \"AccountingPeriodName\": \"Mar-24\",\n  \"AccountingDate\": \"2024-03-14\",\n  \"UserSourceName\": \"Vend\",\n  \"UserCategoryName\": \"Vend\",\n  \"ErrorToSuspenseFlag\": false,\n  \"SummaryFlag\": false,\n  \"JournalLine\": [\n    {\n      \"LedgerId\": 300000001418025,\n      \"PeriodName\": \"Mar-24\",\n      \"AccountingDate\": \"2024-03-14\",\n      \"JeSourceName\": \"Vend\",\n      \"JeCategoryName\": \"Vend\",\n      \"GroupId\": 10001,\n      \"ChartOfAccountsId\": 2001,\n      \"Segment1\": \"01\",\n      \"Segment2\": \"5000104\",\n      \"Segment3\": \"52\",\n      \"Segment4\": \"0203\",\n      \"Segment5\": \"00\",\n      \"Segment6\": \"01\",\n      \"Segment7\": \"00\",\n      \"Segment8\": \"00\",\n      \"Segment9\": \"00\",\n      \"Segment10\": \"00\",\n      \"CurrencyCode\": \"AED\",\n      \"EnteredCrAmount\": 550.0,\n      \"AccountedCr\": 550.0,\n      \"CurrencyConversionType\": \"Corporate\",\n      \"CurrencyConversionDate\": \"2024-03-14\",\n      \"CurrencyConversionRate\": 1,\n      \"Status\": \"P\",\n      \"TaxCode\": \"N\",\n      \"TransactionDate\": \"2024-03-14\"\n    },\n    {\n      \"LedgerId\": 300000001418025,\n      \"PeriodName\": \"Mar-24\",\n      \"AccountingDate\": \"2024-03-14\",\n      \"JeSourceName\": \"Vend\",\n      \"JeCategoryName\": \"Vend\",\n      \"GroupId\": 10001,\n      \"ChartOfAccountsId\": 2001,\n      \"Segment1\": \"01\",\n      \"Segment2\": \"1200001\",\n      \"Segment3\": \"52\",\n      \"Segment4\": \"0203\",\n      \"Segment5\": \"00\",\n      \"Segment6\": \"01\",\n      \"Segment7\": \"00\",\n      \"Segment8\": \"00\",\n      \"Segment9\": \"00\",\n      \"Segment10\": \"00\",\n      \"CurrencyCode\": \"AED\",\n      \"EnteredDrAmount\": 550.0,\n      \"AccountedDr\": 550.0,\n      \"CurrencyConversionType\": \"Corporate\",\n      \"CurrencyConversionDate\": \"2024-03-14\",\n      \"CurrencyConversionRate\": 1,\n      \"Status\": \"P\",\n      \"TaxCode\": \"N\",\n      \"TransactionDate\": \"2024-03-14\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/journals",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "journals"
+              ]
+            },
+            "description": "Imports a General Ledger journal batch into Oracle Fusion GL. Called by `FusionJournalClient.saveImportJournal()` after all AR receipts for a VendHQ sale have been successfully created.\n\n**Mapped to:** `FusionJournalClient.saveImportJournal(JournalHeader)`\n**REST path:** `POST /fscmRestApi/resources/11.13.17.11/journals`\n\n**Important:** A balanced journal entry requires at least one debit line and one credit line whose amounts sum to zero. The example below shows one credit (Revenue) and one debit (AR).\n\n### JournalHeader fields\n| Field | Type | Required | Example | Notes |\n|-------|------|----------|---------|-------|\n| BatchName | String | Yes | Mar-24: VENDHQ-INV-10001 | Unique batch identifier |\n| BatchDescription | String | No | Journal Import for... | Description |\n| LedgerId | Long | Yes | 300000001418025 | Fusion GL ledger ID |\n| AccountingPeriodName | String | Yes | Mar-24 | GL period in format Mon-YY |\n| AccountingDate | String | Yes | 2024-03-14 | Accounting date (YYYY-MM-DD) |\n| UserSourceName | String | Yes | Vend | Journal source (must exist in GL setup) |\n| UserCategoryName | String | Yes | Vend | Journal category (must exist in GL setup) |\n| ErrorToSuspenseFlag | Boolean | No | false | Post errors to suspense account |\n| SummaryFlag | Boolean | No | false | Summary vs detail posting |\n\n### JournalLine fields (per line)\n| Field | Type | Required | Notes |\n|-------|------|----------|-------|\n| LedgerId | Long | Yes | Same as header |\n| PeriodName | String | Yes | Same as header AccountingPeriodName |\n| AccountingDate | String | Yes | YYYY-MM-DD |\n| JeSourceName | String | Yes | Same as UserSourceName |\n| JeCategoryName | String | Yes | Same as UserCategoryName |\n| GroupId | Long | Yes | VendHQ invoice number (as Long) |\n| ChartOfAccountsId | Long | Yes | Chart of accounts ID |\n| Segment1–Segment10 | String | Yes | 10-segment chart-of-accounts values |\n| CurrencyCode | String | Yes | ISO 4217 |\n| EnteredCrAmount / EnteredDrAmount | Number | Yes (one) | Credit or debit (not both) |\n| AccountedCr / AccountedDr | Number | Yes (one) | Accounted amount |\n| CurrencyConversionType | String | Yes | Corporate or User |\n| CurrencyConversionDate | String | Yes | YYYY-MM-DD |\n| CurrencyConversionRate | Number | Yes | 1 if same currency |\n| Status | String | No | P = Posted |\n| TaxCode | String | No | N = No tax |\n| TransactionDate | String | Yes | YYYY-MM-DD |"
+          },
+          "response": [
+            {
+              "name": "201 Created – Journal imported",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"JeHeaderId\": 300000001234567,\n  \"BatchName\": \"Mar-24: VENDHQ-INV-10001\",\n  \"Status\": \"Posted\",\n  \"AccountingPeriodName\": \"Mar-24\",\n  \"LedgerId\": 300000001418025,\n  \"links\": [\n    {\n      \"rel\": \"self\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/journals/300000001234567\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payments – Bank Accounts",
+      "description": "Oracle Fusion Payments REST endpoints for external bank account lookup.\n\n**Base path:** `{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/`\n\nThe `ExternalBankAccountId` retrieved here is passed as `RemittanceBankAccountId` in Standard Receipt requests and as `RemittanceBankAccountName` in Miscellaneous Receipt requests.",
+      "item": [
+        {
+          "name": "GET External Bank Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/cashBankAccounts?q=BankAccountNumber='{bank_account_number}'&fields=ExternalBankAccountId,BankAccountNumber,BankAccountName,CurrencyCode,BankName,BranchName,AccountType,Status&limit=25",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "cashBankAccounts"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "BankAccountNumber='{{bank_account_number}}'",
+                  "description": "Filter by bank account number"
+                },
+                {
+                  "key": "fields",
+                  "value": "ExternalBankAccountId,BankAccountNumber,BankAccountName,CurrencyCode,BankName,BranchName,AccountType,Status",
+                  "description": "Fields to return"
+                },
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "Max records"
+                }
+              ]
+            },
+            "description": "Retrieves external bank accounts filtered by account number. The returned `ExternalBankAccountId` is stored in `FusionReceiptMethod` and used as `RemittanceBankAccountId` in the Standard Receipt and `RemittanceBankAccountName` in the Miscellaneous Receipt payloads.\n\n**Mapped to:** `FusionExternalBankClient.getBankAccountId(params, credential, accountNumber)`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/cashBankAccounts`\n\nSet `bank_account_number` in the Postman environment (e.g. `1011203`). Remove the `q` parameter to list all bank accounts."
+          },
+          "response": [
+            {
+              "name": "200 OK – Bank accounts found",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"ExternalBankAccountId\": 300000001100999,\n      \"BankAccountNumber\": \"1011203\",\n      \"BankAccountName\": \"Main Cash Account \\u2013 KSA\",\n      \"CurrencyCode\": \"AED\",\n      \"BankName\": \"Al Rajhi Bank\",\n      \"BranchName\": \"Riyadh Main Branch\",\n      \"IBAN\": \"SA0000000000000000000001\",\n      \"AccountType\": \"Savings\",\n      \"Status\": \"Active\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 25,\n  \"offset\": 0\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "fusion_base_url",
+      "value": "https://{{fusion_hostname}}.fa.{{fusion_region}}.oraclecloud.com",
+      "description": "Oracle Fusion base URL"
+    },
+    {
+      "key": "fusion_hostname",
+      "value": "ehxk-test",
+      "description": "Hostname prefix"
+    },
+    {
+      "key": "fusion_region",
+      "value": "em2",
+      "description": "Region code"
+    },
+    {
+      "key": "fusion_username",
+      "value": "fusion.admin",
+      "description": "Oracle Fusion username"
+    },
+    {
+      "key": "fusion_password",
+      "value": "",
+      "description": "Oracle Fusion password (fill in)"
+    }
+  ]
+}

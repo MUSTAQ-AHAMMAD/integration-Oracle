@@ -75,8 +75,14 @@
             ],
             "url": {
               "raw": "{{vendhq_base_url}}/api/2.0/sales?after=0&page_size=50&status=CLOSED",
-              "host": ["{{vendhq_base_url}}"],
-              "path": ["api", "2.0", "sales"],
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "sales"
+              ],
               "query": [
                 {
                   "key": "after",
@@ -103,7 +109,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": \"sale-uuid-001\",\n      \"outlet_id\": \"outlet-uuid-001\",\n      \"register_id\": \"register-uuid-001\",\n      \"customer_id\": \"customer-uuid-001\",\n      \"invoice_number\": \"INV-10001\",\n      \"status\": \"CLOSED\",\n      \"sale_date\": \"2024-03-14T10:30:00Z\",\n      \"total_price\": 525.00,\n      \"total_tax\": 25.00,\n      \"total_price_incl\": 550.00,\n      \"note\": \"POS sale note\",\n      \"line_items\": [\n        {\n          \"id\": \"line-uuid-001\",\n          \"product_id\": \"product-uuid-001\",\n          \"product_name\": \"Sample Product\",\n          \"sku\": \"SKU-001\",\n          \"quantity\": 2,\n          \"price\": 250.00,\n          \"tax\": 12.50,\n          \"line_note\": null\n        }\n      ],\n      \"payments\": [\n        {\n          \"id\": \"payment-uuid-001\",\n          \"payment_type_id\": \"payment-type-uuid-001\",\n          \"payment_type_name\": \"Cash\",\n          \"amount\": 550.00,\n          \"retailer_payment_type_id\": null\n        }\n      ]\n    }\n  ],\n  \"version\": {\n    \"max\": 12345,\n    \"min\": 0\n  }\n}"
             }
@@ -127,8 +136,14 @@
             ],
             "url": {
               "raw": "{{vendhq_base_url}}/api/2.0/outlets",
-              "host": ["{{vendhq_base_url}}"],
-              "path": ["api", "2.0", "outlets"]
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "outlets"
+              ]
             },
             "description": "Retrieves all outlets (store locations) configured in VendHQ. Used to map each sale to its originating outlet and determine Oracle Fusion Business Unit and Org IDs."
           },
@@ -138,7 +153,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": \"outlet-uuid-001\",\n      \"name\": \"Main Store – Dubai\",\n      \"currency\": \"AED\",\n      \"country\": \"AE\",\n      \"time_zone\": \"Asia/Dubai\",\n      \"email\": \"store@example.com\",\n      \"phone\": \"+971-4-000-0000\"\n    },\n    {\n      \"id\": \"outlet-uuid-002\",\n      \"name\": \"Kuwait Branch\",\n      \"currency\": \"KWD\",\n      \"country\": \"KW\",\n      \"time_zone\": \"Asia/Kuwait\",\n      \"email\": \"kuwait@example.com\",\n      \"phone\": \"+965-0000-0000\"\n    }\n  ]\n}"
             }
@@ -162,8 +180,14 @@
             ],
             "url": {
               "raw": "{{vendhq_base_url}}/api/2.0/products?page_size=50&after=0",
-              "host": ["{{vendhq_base_url}}"],
-              "path": ["api", "2.0", "products"],
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "products"
+              ],
               "query": [
                 {
                   "key": "page_size",
@@ -185,7 +209,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": \"product-uuid-001\",\n      \"name\": \"Sample Product\",\n      \"sku\": \"SKU-001\",\n      \"handle\": \"sample-product\",\n      \"type\": \"STANDARD\",\n      \"has_variants\": false,\n      \"active\": true,\n      \"price\": 250.00,\n      \"tax\": 5,\n      \"tax_name\": \"VAT\",\n      \"inventory\": [\n        {\n          \"outlet_id\": \"outlet-uuid-001\",\n          \"outlet_name\": \"Main Store – Dubai\",\n          \"count\": 10,\n          \"reorder_point\": 2,\n          \"restock_level\": 20\n        }\n      ]\n    }\n  ],\n  \"version\": {\n    \"max\": 5678,\n    \"min\": 0\n  }\n}"
             }
@@ -216,13 +243,21 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"Sample Product\",\n  \"sku\": \"SKU-001\",\n  \"handle\": \"sample-product\",\n  \"description\": \"Product synchronised from Oracle Fusion SCM\",\n  \"type\": \"STANDARD\",\n  \"price\": 250.00,\n  \"tax\": 5,\n  \"tax_name\": \"VAT\",\n  \"tax_included\": false,\n  \"active\": true,\n  \"inventory\": [\n    {\n      \"outlet_id\": \"outlet-uuid-001\",\n      \"count\": 10,\n      \"reorder_point\": 2,\n      \"restock_level\": 20\n    }\n  ]\n}",
               "options": {
-                "raw": { "language": "json" }
+                "raw": {
+                  "language": "json"
+                }
               }
             },
             "url": {
               "raw": "{{vendhq_base_url}}/api/2.0/products",
-              "host": ["{{vendhq_base_url}}"],
-              "path": ["api", "2.0", "products"]
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "products"
+              ]
             },
             "description": "Creates a new product or updates an existing product in VendHQ. Called by FusionItemsToVendHQItemsIntegration when syncing items from Oracle Fusion SCM."
           },
@@ -232,7 +267,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": {\n    \"id\": \"product-uuid-001\",\n    \"name\": \"Sample Product\",\n    \"sku\": \"SKU-001\",\n    \"handle\": \"sample-product\",\n    \"price\": 250.00,\n    \"active\": true,\n    \"updated_at\": \"2024-03-14T10:30:00Z\"\n  }\n}"
             }
@@ -256,8 +294,14 @@
             ],
             "url": {
               "raw": "{{vendhq_base_url}}/api/2.0/registers",
-              "host": ["{{vendhq_base_url}}"],
-              "path": ["api", "2.0", "registers"]
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "registers"
+              ]
             },
             "description": "Retrieves all POS register configurations. Used to look up cash account IDs and bank account IDs needed when building Oracle Fusion receipt requests."
           },
@@ -267,7 +311,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": \"register-uuid-001\",\n      \"name\": \"Register 1\",\n      \"outlet_id\": \"outlet-uuid-001\",\n      \"open\": true\n    }\n  ]\n}"
             }
@@ -291,11 +338,23 @@
             ],
             "url": {
               "raw": "{{vendhq_base_url}}/api/2.0/customers?page_size=50&after=0",
-              "host": ["{{vendhq_base_url}}"],
-              "path": ["api", "2.0", "customers"],
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "customers"
+              ],
               "query": [
-                { "key": "page_size", "value": "50" },
-                { "key": "after", "value": "0" }
+                {
+                  "key": "page_size",
+                  "value": "50"
+                },
+                {
+                  "key": "after",
+                  "value": "0"
+                }
               ]
             },
             "description": "Retrieves customers from VendHQ. Used to match VendHQ customer records with Oracle Fusion customer accounts during the sales integration."
@@ -306,9 +365,308 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": \"customer-uuid-001\",\n      \"first_name\": \"John\",\n      \"last_name\": \"Doe\",\n      \"email\": \"john.doe@example.com\",\n      \"phone\": \"+971-50-000-0000\",\n      \"customer_code\": \"CUST-001\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Brands",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendhq_api_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{vendhq_base_url}}/api/2.0/brands?after=0",
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "brands"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "0",
+                  "description": "Pagination version offset"
+                }
+              ]
+            },
+            "description": "Retrieves all product brands defined in VendHQ. Used by `VendHQBrandService.getVendHQBrands()` to populate the local `VendhqBrandMeta` table and link each VendHQ product to its Oracle Fusion brand equivalent during item sync."
+          },
+          "response": [
+            {
+              "name": "200 OK – Brands list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"brand-uuid-001\",\n      \"name\": \"Nike\",\n      \"deleted_at\": null,\n      \"version\": 12345\n    },\n    {\n      \"id\": \"brand-uuid-002\",\n      \"name\": \"Adidas\",\n      \"deleted_at\": null,\n      \"version\": 12346\n    }\n  ],\n  \"version\": {\n    \"max\": 12346,\n    \"min\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Taxes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendhq_api_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{vendhq_base_url}}/api/2.0/taxes?after=0",
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "taxes"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "0",
+                  "description": "Pagination version offset"
+                }
+              ]
+            },
+            "description": "Retrieves all tax configurations from VendHQ. Used by `VendHQTaxService.getVendHQTaxes()` to populate the `VendhqTaxMeta` table and map VendHQ tax rates to Oracle Fusion tax classification codes."
+          },
+          "response": [
+            {
+              "name": "200 OK – Tax list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"tax-uuid-001\",\n      \"name\": \"VAT 5%\",\n      \"rates\": [\n        {\n          \"id\": \"rate-uuid-001\",\n          \"name\": \"Standard\",\n          \"rate\": 0.05\n        }\n      ],\n      \"deleted_at\": null,\n      \"version\": 10001\n    }\n  ],\n  \"version\": {\n    \"max\": 10001,\n    \"min\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Payment Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendhq_api_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{vendhq_base_url}}/api/2.0/payment_types?after=0",
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "payment_types"
+              ],
+              "query": [
+                {
+                  "key": "after",
+                  "value": "0",
+                  "description": "Pagination version offset"
+                }
+              ]
+            },
+            "description": "Retrieves all payment types configured in VendHQ (e.g. Cash, Visa, Master Card). The `payment_type_id` on each sale payment is resolved against this list to determine the Fusion `receiptMethodId` and `remittanceBankAccountId` during receipt creation."
+          },
+          "response": [
+            {
+              "name": "200 OK – Payment types list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"pt-uuid-001\",\n      \"name\": \"Cash\",\n      \"type_id\": 1,\n      \"config\": null,\n      \"version\": 5001\n    },\n    {\n      \"id\": \"pt-uuid-002\",\n      \"name\": \"Visa\",\n      \"type_id\": 2,\n      \"config\": null,\n      \"version\": 5002\n    },\n    {\n      \"id\": \"pt-uuid-003\",\n      \"name\": \"Master Card\",\n      \"type_id\": 2,\n      \"config\": null,\n      \"version\": 5003\n    },\n    {\n      \"id\": \"pt-uuid-004\",\n      \"name\": \"Cash Rounding\",\n      \"type_id\": 3,\n      \"config\": null,\n      \"version\": 5004\n    }\n  ],\n  \"version\": {\n    \"max\": 5004,\n    \"min\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendhq_api_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{vendhq_base_url}}/api/2.0/products/{{product_id}}",
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Fetches a single product record by its VendHQ UUID. Used by `VendHQItemService.getVendHQItemDetail(productId)` to retrieve full product details including inventory counts, brand, and tax rates."
+          },
+          "response": [
+            {
+              "name": "200 OK – Product detail",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"product-uuid-001\",\n    \"name\": \"Sample Product\",\n    \"sku\": \"SKU-001\",\n    \"handle\": \"sample-product\",\n    \"source_id\": \"300000001100015\",\n    \"retail_price\": 6.25,\n    \"brand_id\": \"brand-uuid-001\",\n    \"tax_id\": \"tax-uuid-001\",\n    \"inventory\": [\n      {\n        \"outlet_id\": \"outlet-uuid-001\",\n        \"outlet_name\": \"Main Store\",\n        \"count\": \"10\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendhq_api_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{vendhq_base_url}}/api/2.0/customers/{{customer_id}}",
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "customers",
+                "{{customer_id}}"
+              ]
+            },
+            "description": "Fetches a single customer record by its VendHQ UUID. Used by `VendHQCustomerService.getVendHQCustomerDetail(customerId)` to resolve customer details when building Oracle Fusion invoice and receipt payloads."
+          },
+          "response": [
+            {
+              "name": "200 OK – Customer detail",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"customer-uuid-001\",\n    \"first_name\": \"Ahmed\",\n    \"last_name\": \"Al Qurashi\",\n    \"email\": \"ahmed@example.com\",\n    \"phone\": \"+966-500-000-000\",\n    \"customer_code\": \"CUST-001\",\n    \"deleted_at\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upload Product Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendhq_api_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/path/to/product-image.jpg",
+                  "description": "Product image file (JPEG or PNG)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{vendhq_base_url}}/api/2.0/products/{{product_id}}/actions/image_upload",
+              "host": [
+                "{{vendhq_base_url}}"
+              ],
+              "path": [
+                "api",
+                "2.0",
+                "products",
+                "{{product_id}}",
+                "actions",
+                "image_upload"
+              ]
+            },
+            "description": "Uploads a product image (JPEG or PNG) to a specific VendHQ product. Used by `VendHQItemService.insertVendHQItemImage(filePath, productId)` after a new product is created in VendHQ to attach the Oracle Fusion item image. The request body must be multipart/form-data with a single `image` field."
+          },
+          "response": [
+            {
+              "name": "200 OK – Image uploaded",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"image-uuid-001\",\n    \"product_id\": \"product-uuid-001\",\n    \"status\": \"success\",\n    \"url\": \"https://cdn.vendhq.com/products/product-uuid-001/image.jpg\"\n  }\n}"
             }
           ]
         }
@@ -338,22 +696,45 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/inventoryItems?q=LastUpdateDate>='{{last_sync_date}}'&limit=100&offset=0",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "inventoryItems"],
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "inventoryItems"
+              ],
               "query": [
                 {
                   "key": "q",
                   "value": "LastUpdateDate>='{{last_sync_date}}'",
                   "description": "Filter items updated on or after this date (ISO 8601). Set last_sync_date in your Postman environment, e.g. 2024-03-01"
                 },
-                { "key": "limit", "value": "100", "description": "Maximum records to return" },
-                { "key": "offset", "value": "0", "description": "Pagination offset" }
+                {
+                  "key": "limit",
+                  "value": "100",
+                  "description": "Maximum records to return"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Pagination offset"
+                }
               ]
             },
             "description": "Fetches inventory items from Oracle Fusion SCM. Called by FusionItemsToVendHQItemsIntegration to retrieve the current product catalogue and sync it into VendHQ."
@@ -364,7 +745,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"ItemId\": 12345,\n      \"ItemNumber\": \"SKU-001\",\n      \"Description\": \"Sample Product Description\",\n      \"PrimaryUOMCode\": \"Ea\",\n      \"ItemStatus\": \"Active\",\n      \"LastUpdateDate\": \"2024-03-14T10:30:00Z\",\n      \"CreationDate\": \"2023-01-01T00:00:00Z\",\n      \"InventoryItemId\": 12345,\n      \"OrganizationId\": 204\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 100,\n  \"offset\": 0\n}"
             }
@@ -377,8 +761,16 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "header": [
@@ -390,16 +782,29 @@
             ],
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/inventoryOnhandQuantities?q=OrganizationCode='V1'&limit=100&offset=0",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "inventoryOnhandQuantities"],
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "inventoryOnhandQuantities"
+              ],
               "query": [
                 {
                   "key": "q",
                   "value": "OrganizationCode='V1'",
                   "description": "Filter by inventory organization code"
                 },
-                { "key": "limit", "value": "100" },
-                { "key": "offset", "value": "0" }
+                {
+                  "key": "limit",
+                  "value": "100"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             },
             "description": "Retrieves current on-hand inventory quantities from Oracle Fusion. Called by FusionOnHandQtyFetch to check stock levels before syncing inventory to VendHQ outlets."
@@ -410,7 +815,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"InventoryItemId\": 12345,\n      \"ItemNumber\": \"SKU-001\",\n      \"Description\": \"Sample Product Description\",\n      \"OrganizationId\": 204,\n      \"OrganizationCode\": \"V1\",\n      \"SubinventoryCode\": \"FGS\",\n      \"OnhandQuantity\": 42.0,\n      \"UOMCode\": \"Ea\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 100,\n  \"offset\": 0\n}"
             }
@@ -423,8 +831,16 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "header": [
@@ -436,16 +852,29 @@
             ],
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/inventoryAvailableToPromise?q=OrganizationCode='V1'&limit=100&offset=0",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "inventoryAvailableToPromise"],
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "inventoryAvailableToPromise"
+              ],
               "query": [
                 {
                   "key": "q",
                   "value": "OrganizationCode='V1'",
                   "description": "Filter by inventory organization code"
                 },
-                { "key": "limit", "value": "100" },
-                { "key": "offset", "value": "0" }
+                {
+                  "key": "limit",
+                  "value": "100"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             },
             "description": "Retrieves available-to-promise (ATP) quantities from Oracle Fusion SCM. Used alongside on-hand quantities to determine stock levels to synchronise into VendHQ."
@@ -456,7 +885,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"InventoryItemId\": 12345,\n      \"ItemNumber\": \"SKU-001\",\n      \"OrganizationId\": 204,\n      \"OrganizationCode\": \"V1\",\n      \"OnhandQuantity\": 42.0,\n      \"ReservedQuantity\": 5.0,\n      \"AvailableQuantity\": 37.0,\n      \"UOMCode\": \"Ea\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 100,\n  \"offset\": 0\n}"
             }
@@ -469,8 +901,16 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "header": [
@@ -482,8 +922,15 @@
             ],
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/inventoryOrganizations",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "inventoryOrganizations"]
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "inventoryOrganizations"
+              ]
             },
             "description": "Retrieves all inventory organisations defined in Oracle Fusion. Used to map VendHQ outlet IDs to Fusion Org IDs and Business Unit IDs."
           },
@@ -493,7 +940,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"OrganizationId\": 204,\n      \"OrganizationCode\": \"V1\",\n      \"OrganizationName\": \"Vision Operations\",\n      \"BusinessUnitId\": 101,\n      \"BusinessUnitName\": \"Vision Corporation\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false\n}"
             }
@@ -506,8 +956,16 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "header": [
@@ -519,16 +977,29 @@
             ],
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/inventoryTransactions?q=OrganizationCode='V1' and TransactionDate>='2024-03-01'&limit=50&offset=0",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "inventoryTransactions"],
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "inventoryTransactions"
+              ],
               "query": [
                 {
                   "key": "q",
                   "value": "OrganizationCode='V1' and TransactionDate>='2024-03-01'",
                   "description": "Filter by org code and transaction date"
                 },
-                { "key": "limit", "value": "50" },
-                { "key": "offset", "value": "0" }
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             },
             "description": "Retrieves inventory transactions from Oracle Fusion. Used to track inventory movements and update on-hand quantities in VendHQ."
@@ -539,7 +1010,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"TransactionId\": 99001,\n      \"InventoryItemId\": 12345,\n      \"ItemNumber\": \"SKU-001\",\n      \"OrganizationId\": 204,\n      \"TransactionDate\": \"2024-03-14T08:00:00Z\",\n      \"TransactionQuantity\": -2.0,\n      \"TransactionUomCode\": \"Ea\",\n      \"TransactionType\": \"Sales order issue\"\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false\n}"
             }
@@ -552,8 +1026,16 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "header": [
@@ -565,8 +1047,15 @@
             ],
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/subinventories?q=OrganizationCode='V1'",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "subinventories"],
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "subinventories"
+              ],
               "query": [
                 {
                   "key": "q",
@@ -583,7 +1072,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"SubinventoryCode\": \"FGS\",\n      \"Description\": \"Finished Goods Store\",\n      \"OrganizationId\": 204,\n      \"OrganizationCode\": \"V1\",\n      \"AssetInventory\": true\n    }\n  ]\n}"
             }
@@ -596,8 +1088,16 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "header": [
@@ -609,8 +1109,15 @@
             ],
             "url": {
               "raw": "{{fusion_base_url}}/fscmRestApi/resources/latest/unitsOfMeasure",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmRestApi", "resources", "latest", "unitsOfMeasure"]
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "latest",
+                "unitsOfMeasure"
+              ]
             },
             "description": "Retrieves all Unit of Measure codes from Oracle Fusion. Used to populate the UOM code on invoice lines when creating Fusion invoices from VendHQ sales."
           },
@@ -620,9 +1127,81 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"items\": [\n    {\n      \"UomCode\": \"Ea\",\n      \"UomName\": \"Each\",\n      \"BaseUomFlag\": true,\n      \"UomClass\": \"Quantity\"\n    },\n    {\n      \"UomCode\": \"KG\",\n      \"UomName\": \"Kilogram\",\n      \"BaseUomFlag\": false,\n      \"UomClass\": \"Weight\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Inventory Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"TransactionLines\": [\n    {\n      \"OrganizationName\": \"Ibrahim AL Qurashi - KSA\",\n      \"Item\": \"OIL00001\",\n      \"Subinventory\": \"IBRAHEEM ALQURASHI TAHLIA\",\n      \"TransactionType\": \"Miscellaneous issue\",\n      \"TransactionUnitOfMeasure\": \"Gram\",\n      \"TransactionQuantity\": -3.0,\n      \"TransactionDate\": \"2024-03-14T10:30:00+03:00\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/inventoryTransactions",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "inventoryTransactions"
+              ]
+            },
+            "description": "Posts one or more inventory transaction lines to Oracle Fusion SCM to adjust on-hand quantities. Used by `FusionInvTxnService.insertInvTransactions()` after each VendHQ sale is processed; negative `TransactionQuantity` values represent stock issues (sales), positive values represent receipts.\n\n### Key TransactionLine fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| OrganizationName | Ibrahim AL Qurashi - KSA | Inventory org |\n| Item | OIL00001 | Fusion item number |\n| Subinventory | IBRAHEEM ALQURASHI TAHLIA | Sub-inventory code |\n| TransactionType | Miscellaneous issue | Fusion transaction type |\n| TransactionUnitOfMeasure | Gram | UOM name |\n| TransactionQuantity | -3.0 | Negative = issue, positive = receipt |\n| TransactionDate | ISO-8601 datetime | Must include timezone offset |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Transactions created",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"ReturnStatus\": \"S\",\n  \"ReturnMessageText\": \"Inventory transactions created successfully.\",\n  \"TransactionHeaderId\": 987654321\n}"
             }
           ]
         }
@@ -657,21 +1236,36 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:inv=\"http://xmlns.oracle.com/apps/financials/receivables/transactions/invoices/invoiceService/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <inv:createSimpleInvoice>\n      <inv:invoiceHeader>\n        <!-- Customer Details -->\n        <inv:BillToCustomerName>John Doe</inv:BillToCustomerName>\n        <inv:BillToAccountNumber>CUST-001</inv:BillToAccountNumber>\n        <inv:BillToLocation>AE-DUBAI</inv:BillToLocation>\n        <!-- Business Unit / Transaction -->\n        <inv:BusinessUnit>Vision Corporation BU</inv:BusinessUnit>\n        <inv:TransactionSource>Manual</inv:TransactionSource>\n        <inv:TransactionType>PASA CONSULTING SALE</inv:TransactionType>\n        <!-- Currency -->\n        <inv:InvoiceCurrencyCode>AED</inv:InvoiceCurrencyCode>\n        <inv:ConversionRateType>Corporate</inv:ConversionRateType>\n        <!-- Payment Terms -->\n        <inv:PaymentTermsName>Immediate</inv:PaymentTermsName>\n        <!-- Dates -->\n        <inv:TransactionDate>2024-03-14</inv:TransactionDate>\n        <inv:GlDate>2024-03-14</inv:GlDate>\n        <!-- Invoice Lines -->\n        <inv:invoiceLine>\n          <inv:LineNumber>1</inv:LineNumber>\n          <inv:ItemNumber>SKU-001</inv:ItemNumber>\n          <inv:Description>Sample Product – Dubai outlet POS sale</inv:Description>\n          <inv:Quantity>2</inv:Quantity>\n          <inv:UomCode>Ea</inv:UomCode>\n          <inv:UnitSellingPrice>250.00</inv:UnitSellingPrice>\n          <inv:CurrencyCode>AED</inv:CurrencyCode>\n          <inv:SalesOrder>INV-10001</inv:SalesOrder>\n          <inv:SalesOrderLine>1</inv:SalesOrderLine>\n          <inv:TaxClassificationCode>UAE-VAT-5</inv:TaxClassificationCode>\n        </inv:invoiceLine>\n        <!-- Discount line (optional) -->\n        <inv:invoiceLine>\n          <inv:LineNumber>2</inv:LineNumber>\n          <inv:MemoLineName>DISCOUNT</inv:MemoLineName>\n          <inv:Description>Promotional discount</inv:Description>\n          <inv:Quantity>1</inv:Quantity>\n          <inv:UomCode>Ea</inv:UomCode>\n          <inv:UnitSellingPrice>-25.00</inv:UnitSellingPrice>\n          <inv:CurrencyCode>AED</inv:CurrencyCode>\n          <inv:SalesOrder>INV-10001</inv:SalesOrder>\n          <inv:SalesOrderLine>2</inv:SalesOrderLine>\n        </inv:invoiceLine>\n      </inv:invoiceHeader>\n    </inv:createSimpleInvoice>\n  </soapenv:Body>\n</soapenv:Envelope>",
               "options": {
-                "raw": { "language": "xml" }
+                "raw": {
+                  "language": "xml"
+                }
               }
             },
             "url": {
               "raw": "{{fusion_base_url}}/fscmService/RecInvoiceService",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmService", "RecInvoiceService"]
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "RecInvoiceService"
+              ]
             },
             "description": "**Purpose:** Creates a Receivables invoice in Oracle Fusion AR for a VendHQ POS sale.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/RecInvoiceService?WSDL`\n**Operation:** `createSimpleInvoice`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/receivables/transactions/invoices/invoiceService/`\n**Mapped by:** `FusionInvoiceMapping.java`\n\n### Key InvoiceHeader fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| BillToCustomerName | John Doe | Customer name |\n| BillToAccountNumber | CUST-001 | Customer account in Fusion |\n| BusinessUnit | Vision Corporation BU | Fusion BU name |\n| TransactionSource | Manual | |\n| TransactionType | PASA CONSULTING SALE | |\n| InvoiceCurrencyCode | AED | ISO 4217 |\n| PaymentTermsName | Immediate | Fetched from CustomerProfileService |\n| TransactionDate | 2024-03-14 | VendHQ sale date |\n\n### Invoice Line fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| ItemNumber | SKU-001 | Fusion item number |\n| Quantity | 2 | |\n| UomCode | Ea | Unit of measure |\n| UnitSellingPrice | 250.00 | |\n| SalesOrder | INV-10001 | VendHQ invoice number |"
           },
@@ -681,7 +1275,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "text/xml; charset=utf-8" }
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
               ],
               "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <createSimpleInvoiceResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/receivables/transactions/invoices/invoiceService/\">\n      <result>\n        <Value>TXN-20240314-001</Value>\n        <Successful>true</Successful>\n      </result>\n    </createSimpleInvoiceResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
@@ -706,21 +1303,36 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:rec=\"http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <rec:createStandardReceipt>\n      <rec:standardReceipt>\n        <!-- Currency & Amount -->\n        <rec:CurrencyCode>AED</rec:CurrencyCode>\n        <rec:Amount>\n          <rec:value>550.00</rec:value>\n          <rec:currencyCode>AED</rec:currencyCode>\n        </rec:Amount>\n        <!-- Receipt Identification -->\n        <rec:ReceiptNumber>Cash-INV-10001</rec:ReceiptNumber>\n        <!-- Date Fields -->\n        <rec:ReceiptDate>2024-03-14</rec:ReceiptDate>\n        <rec:GlDate>2024-03-14</rec:GlDate>\n        <rec:DepositDate>2024-03-14</rec:DepositDate>\n        <!-- Payment Method -->\n        <rec:ReceiptMethodId>100001</rec:ReceiptMethodId>\n        <rec:RemittanceBankAccountId>200001</rec:RemittanceBankAccountId>\n        <!-- Customer -->\n        <rec:CustomerId>12345</rec:CustomerId>\n        <!-- Business Unit -->\n        <rec:OrgId>204</rec:OrgId>\n      </rec:standardReceipt>\n    </rec:createStandardReceipt>\n  </soapenv:Body>\n</soapenv:Envelope>",
               "options": {
-                "raw": { "language": "xml" }
+                "raw": {
+                  "language": "xml"
+                }
               }
             },
             "url": {
               "raw": "{{fusion_base_url}}/fscmService/StandardReceiptService",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmService", "StandardReceiptService"]
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "StandardReceiptService"
+              ]
             },
             "description": "**Purpose:** Creates a customer receipt (cash or bank) in Oracle Fusion Receivables. Run this **after** creating the invoice.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/StandardReceiptService?WSDL`\n**Operation:** `createStandardReceipt`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/`\n**Mapped by:** `FusionStdReceiptMapping.java`\n\n### Key StandardReceipt fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| CurrencyCode | AED | ISO 4217 |\n| Amount.value | 550.00 | Total receipt amount |\n| ReceiptNumber | Cash-INV-10001 | Format: `{PaymentType}-{InvoiceNumber}` |\n| ReceiptDate | 2024-03-14 | VendHQ sale date |\n| GlDate | 2024-03-14 | Same as ReceiptDate |\n| DepositDate | 2024-03-14 | Same as ReceiptDate |\n| ReceiptMethodId | 100001 | Fusion payment method ID |\n| RemittanceBankAccountId | 200001 | Cash or bank account ID in Fusion |\n| CustomerId | 12345 | Resolved from account number via CustomerProfileService |\n| OrgId | 204 | Oracle Fusion Operating Unit ID |\n\n**ReceiptNumber format:**\n```\npaymentType + \"-\" + transactionNumber\n// e.g. \"Cash-abc123\" or \"Card-abc123\"\n```\n\n**RemittanceBankAccountId selection:**\n- If `FusionReceiptMethod.receiptIsCash == \"1\"` → use `registerDetails.getCashAccountId()`\n- Otherwise → use `registerDetails.getBankAccountId()`"
           },
@@ -730,7 +1342,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "text/xml; charset=utf-8" }
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
               ],
               "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <createStandardReceiptResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/\">\n      <result>\n        <ReceiptNumber>Cash-INV-10001</ReceiptNumber>\n        <CustomerReceiptReference>AR-REC-20240314-001</CustomerReceiptReference>\n        <Status>APPROVED</Status>\n        <Message>Receipt created successfully</Message>\n      </result>\n    </createStandardReceiptResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
@@ -755,21 +1370,36 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:rec=\"http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <rec:createApplyReceipt>\n      <rec:applyReceipt>\n        <!-- Receipt & Invoice Matching -->\n        <rec:ReceiptNumber>Cash-INV-10001</rec:ReceiptNumber>\n        <rec:TransactionNumber>TXN-20240314-001</rec:TransactionNumber>\n        <!-- Amount (retry loop decrements by 0.01 on each failed attempt) -->\n        <rec:AmountApplied>550.00</rec:AmountApplied>\n        <rec:ReceiptCurrency>AED</rec:ReceiptCurrency>\n        <!-- Dates -->\n        <rec:AccountingDate>2024-03-14</rec:AccountingDate>\n        <rec:ApplicationDate>2024-03-14</rec:ApplicationDate>\n        <!-- Source System -->\n        <rec:TransactionSource>VendHQ</rec:TransactionSource>\n      </rec:applyReceipt>\n    </rec:createApplyReceipt>\n  </soapenv:Body>\n</soapenv:Envelope>",
               "options": {
-                "raw": { "language": "xml" }
+                "raw": {
+                  "language": "xml"
+                }
               }
             },
             "url": {
               "raw": "{{fusion_base_url}}/fscmService/StandardReceiptService",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmService", "StandardReceiptService"]
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "StandardReceiptService"
+              ]
             },
             "description": "**Purpose:** Applies the receipt created in step 2 to the invoice created in step 1, clearing the open AR balance.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/StandardReceiptService?WSDL` *(same service as createStandardReceipt)*\n**Operation:** `createApplyReceipt`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/`\n**Mapped by:** `FusionApplyReceiptMapping.java`\n\n### Key ApplyReceipt fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| ReceiptNumber | Cash-INV-10001 | Must match a receipt created by createStandardReceipt |\n| TransactionNumber | TXN-20240314-001 | Fusion invoice number returned from createSimpleInvoice |\n| AmountApplied | 550.00 | Decremented by 0.01 per retry (up to 50 retries) |\n| ReceiptCurrency | AED | Must match the receipt currency |\n| AccountingDate | 2024-03-14 | |\n| ApplicationDate | 2024-03-14 | |\n| TransactionSource | VendHQ | Source system identifier |\n\n**Retry logic (rounding adjustment):**\n```java\n// Up to 50 retries\napplyReceipt.setAmountApplied(\n    applyReceipt.getAmountApplied().subtract(BigDecimal.valueOf(0.01)));\n```"
           },
@@ -779,7 +1409,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "text/xml; charset=utf-8" }
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
               ],
               "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <createApplyReceiptResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/standardReceiptService/commonService/\">\n      <result>\n        <Successful>true</Successful>\n        <Message>Receipt applied to invoice successfully</Message>\n      </result>\n    </createApplyReceiptResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
@@ -804,21 +1437,36 @@
             "auth": {
               "type": "basic",
               "basic": [
-                { "key": "username", "value": "{{fusion_username}}", "type": "string" },
-                { "key": "password", "value": "{{fusion_password}}", "type": "string" }
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
               ]
             },
             "body": {
               "mode": "raw",
               "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:misc=\"http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/miscellaneousReceiptService/commonService/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <misc:createMiscellaneousReceipt>\n      <misc:miscellaneousReceipt>\n        <!-- Currency & Amount -->\n        <misc:CurrencyCode>AED</misc:CurrencyCode>\n        <misc:Amount>\n          <misc:value>-0.50</misc:value>\n          <misc:currencyCode>AED</misc:currencyCode>\n        </misc:Amount>\n        <!-- Receipt Identification -->\n        <misc:ReceiptNumber>Cash-INV-10001-MISC</misc:ReceiptNumber>\n        <!-- Date Fields -->\n        <misc:ReceiptDate>2024-03-14</misc:ReceiptDate>\n        <misc:GlDate>2024-03-14</misc:GlDate>\n        <!-- Payment Method -->\n        <misc:ReceiptMethodId>100001</misc:ReceiptMethodId>\n        <misc:ReceiptMethodName>Cash</misc:ReceiptMethodName>\n        <!-- Account -->\n        <misc:BankAccountName>Cash Clearing Account</misc:BankAccountName>\n        <!-- Receivable Activity (for posting) -->\n        <misc:ReceivableActivityName>Cash Rounding</misc:ReceivableActivityName>\n        <!-- Business Unit -->\n        <misc:OrgId>204</misc:OrgId>\n      </misc:miscellaneousReceipt>\n    </misc:createMiscellaneousReceipt>\n  </soapenv:Body>\n</soapenv:Envelope>",
               "options": {
-                "raw": { "language": "xml" }
+                "raw": {
+                  "language": "xml"
+                }
               }
             },
             "url": {
               "raw": "{{fusion_base_url}}/fscmService/MiscellaneousReceiptService",
-              "host": ["{{fusion_base_url}}"],
-              "path": ["fscmService", "MiscellaneousReceiptService"]
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "MiscellaneousReceiptService"
+              ]
             },
             "description": "**Purpose:** Creates a miscellaneous (non-customer) receipt in Oracle Fusion AR. Used for cash-rounding adjustments and direct postings to a receivable activity account.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/MiscellaneousReceiptService?WSDL`\n**Operation:** `createMiscellaneousReceipt`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/miscellaneousReceiptService/commonService/`\n**Mapped by:** `FusionMiscReceiptMapping.java`\n\n### Key MiscellaneousReceipt fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| CurrencyCode | AED | ISO 4217 |\n| Amount.value | -0.50 | Negative for cash-rounding debits |\n| ReceiptNumber | Cash-INV-10001-MISC | Format: `{PaymentType}-{InvoiceNumber}-MISC` |\n| ReceiptMethodId | 100001 | Fusion payment method ID |\n| ReceiptMethodName | Cash | Payment method name |\n| BankAccountName | Cash Clearing Account | Uses cash account for rounding |\n| ReceivableActivityName | Cash Rounding | AR activity to post to |\n| OrgId | 204 | Oracle Fusion Operating Unit ID |"
           },
@@ -828,9 +1476,304 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "text/xml; charset=utf-8" }
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
               ],
               "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <createMiscellaneousReceiptResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/receivables/receipts/shared/miscellaneousReceiptService/commonService/\">\n      <result>\n        <ReceiptNumber>Cash-INV-10001-MISC</ReceiptNumber>\n        <Status>APPROVED</Status>\n        <Message>Miscellaneous receipt created successfully</Message>\n      </result>\n    </createMiscellaneousReceiptResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          ]
+        },
+        {
+          "name": "5. Journal Import – importJournals",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Basic {{fusion_basic_auth}}",
+                "type": "text",
+                "description": "Base64-encoded username:password"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8",
+                "type": "text"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"importJournals\"",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:jrn=\"http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <jrn:importJournals>\n      <jrn:JournalHeader>\n        <!-- Batch identification -->\n        <jrn:BatchName>Jan-21: VENDHQ</jrn:BatchName>\n        <jrn:BatchDescription>Journal Import: 209354</jrn:BatchDescription>\n        <!-- Ledger & period -->\n        <jrn:LedgerId>300000001418025</jrn:LedgerId>\n        <jrn:AccountingPeriodName>Jan-21</jrn:AccountingPeriodName>\n        <!-- Dates & source -->\n        <jrn:AccountingDate>2021-01-14</jrn:AccountingDate>\n        <jrn:UserSourceName>Vend</jrn:UserSourceName>\n        <jrn:UserCategoryName>Vend</jrn:UserCategoryName>\n        <jrn:ErrorToSuspenseFlag>false</jrn:ErrorToSuspenseFlag>\n        <jrn:SummaryFlag>false</jrn:SummaryFlag>\n        <!-- Journal lines -->\n        <jrn:JournalLines>\n          <jrn:LedgerId>300000001418025</jrn:LedgerId>\n          <jrn:PeriodName>Jan-21</jrn:PeriodName>\n          <jrn:AccountingDate>2021-01-14</jrn:AccountingDate>\n          <jrn:UserJeSourceName>Vend</jrn:UserJeSourceName>\n          <jrn:JeCategoryName>Vend</jrn:JeCategoryName>\n          <jrn:GroupId>209354</jrn:GroupId>\n          <jrn:ChartOfAccountsId>2001</jrn:ChartOfAccountsId>\n          <!-- Account segments (10-segment CoA) -->\n          <jrn:Segment1>01</jrn:Segment1>\n          <jrn:Segment2>5000104</jrn:Segment2>\n          <jrn:Segment3>52</jrn:Segment3>\n          <jrn:Segment4>0203</jrn:Segment4>\n          <jrn:Segment5>00</jrn:Segment5>\n          <jrn:Segment6>01</jrn:Segment6>\n          <jrn:Segment7>00</jrn:Segment7>\n          <jrn:Segment8>00</jrn:Segment8>\n          <jrn:Segment9>00</jrn:Segment9>\n          <jrn:Segment10>00</jrn:Segment10>\n          <!-- Currency & amounts -->\n          <jrn:CurrencyCode>AED</jrn:CurrencyCode>\n          <jrn:EnteredCrAmount>1580.50</jrn:EnteredCrAmount>\n          <jrn:AccountedCr>1580.50</jrn:AccountedCr>\n          <jrn:CurrencyConversionType>Corporate</jrn:CurrencyConversionType>\n          <jrn:CurrencyConversionDate>2021-01-14</jrn:CurrencyConversionDate>\n          <jrn:CurrencyConversionRate>1</jrn:CurrencyConversionRate>\n          <jrn:Status>P</jrn:Status>\n          <jrn:TaxCode>N</jrn:TaxCode>\n          <jrn:TransactionDate>2021-01-14</jrn:TransactionDate>\n        </jrn:JournalLines>\n      </jrn:JournalHeader>\n    </jrn:importJournals>\n  </soapenv:Body>\n</soapenv:Envelope>",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/finGlDesktopEntry/JournalImportService",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "finGlDesktopEntry",
+                "JournalImportService"
+              ]
+            },
+            "description": "**Purpose:** Imports one General Ledger journal batch into Oracle Fusion GL. Called by `FusionJournalClient.saveImportJournal()` after all receipts for a VendHQ sale have been successfully created in AR.\n\n**WSDL:** `{{fusion_base_url}}/finGlDesktopEntry/JournalImportService?WSDL`\n**Operation:** `importJournals`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/`\n**Client class:** `FusionJournalClient.java` → `saveImportJournal()`\n\n### Key JournalHeader fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| BatchName | Jan-21: VENDHQ | Unique batch identifier |\n| LedgerId | 300000001418025 | Fusion GL ledger ID |\n| AccountingPeriodName | Jan-21 | GL period name |\n| UserSourceName | Vend | Journal source |\n| UserCategoryName | Vend | Journal category |\n\n### Key JournalLine fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| Segment1–10 | 01, 5000104, … | 10-segment chart-of-accounts |\n| CurrencyCode | AED | ISO 4217 |\n| EnteredCrAmount / EnteredDrAmount | 1580.50 | Credit or debit amount |\n| GroupId | 209354 | Links to VendHQ invoice number |\n\n**Returns:** the `JeHeaderId` (Long) of the created journal; `null` on failure."
+          },
+          "response": [
+            {
+              "name": "200 OK – Journal imported",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
+              ],
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <importJournalsResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/generalLedger/journals/desktopEntry/journalImportService/\">\n      <result>300000001234567</result>\n    </importJournalsResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          ]
+        },
+        {
+          "name": "6. Customer Profile – getActiveCustomerProfile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Basic {{fusion_basic_auth}}",
+                "type": "text",
+                "description": "Base64-encoded username:password"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8",
+                "type": "text"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"getActiveCustomerProfile\"",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:cus=\"http://xmlns.oracle.com/apps/financials/receivables/customers/customerProfileService/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <cus:getActiveCustomerProfile>\n      <cus:customerProfile>\n        <!-- Customer account number as stored in Oracle Fusion AR -->\n        <cus:AccountNumber>ACC-001</cus:AccountNumber>\n      </cus:customerProfile>\n    </cus:getActiveCustomerProfile>\n  </soapenv:Body>\n</soapenv:Envelope>",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmService/ReceivablesCustomerProfileService",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "ReceivablesCustomerProfileService"
+              ]
+            },
+            "description": "**Purpose:** Retrieves the active AR customer profile for a given account number. Used by `FusionCustomerProfileClient.getPaymentTerms()` and `getCustomerAccountId()` to resolve the customer's `paymentTermsName` and `customerId` before creating an invoice.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/ReceivablesCustomerProfileService?WSDL`\n**Operation:** `getActiveCustomerProfile`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/receivables/customers/customerProfileService/`\n**Client class:** `FusionCustomerProfileClient.java`\n\n### Request fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| AccountNumber | ACC-001 | Customer account number in Fusion AR |\n\n### Response fields used by integration\n| Field | Usage |\n|-------|-------|\n| CustomerAccountId | Passed as `customerId` on standard receipt |\n| PaymentTerms | Passed as `paymentTermsName` on invoice |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Customer profile returned",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
+              ],
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <getActiveCustomerProfileResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/receivables/customers/customerProfileService/\">\n      <result>\n        <value>\n          <CustomerAccountId>300000001100001</CustomerAccountId>\n          <AccountNumber>ACC-001</AccountNumber>\n          <PaymentTerms>Immediate</PaymentTerms>\n          <CreditLimit>50000.00</CreditLimit>\n        </value>\n      </result>\n    </getActiveCustomerProfileResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          ]
+        },
+        {
+          "name": "7. External Bank Account – findExternalBankAccount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Basic {{fusion_basic_auth}}",
+                "type": "text",
+                "description": "Base64-encoded username:password"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8",
+                "type": "text"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"findExternalBankAccount\"",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:bak=\"http://xmlns.oracle.com/apps/financials/payments/shared/bankAccounts/bankAccountServiceV2/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <bak:findExternalBankAccount>\n      <bak:findCriteria>\n        <bak:fetchStart>0</bak:fetchStart>\n        <bak:fetchSize>1</bak:fetchSize>\n        <bak:filter>\n          <bak:group>\n            <bak:item>\n              <!-- Filter by bank account number to resolve remittanceBankAccountId -->\n              <bak:attribute>BankAccountNumber</bak:attribute>\n              <bak:operator>=</bak:operator>\n              <bak:value>1011203</bak:value>\n            </bak:item>\n          </bak:group>\n        </bak:filter>\n      </bak:findCriteria>\n      <bak:findControl>\n        <bak:retrieveAllTranslations>false</bak:retrieveAllTranslations>\n      </bak:findControl>\n    </bak:findExternalBankAccount>\n  </soapenv:Body>\n</soapenv:Envelope>",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmService/ExternalBankAccountServiceV2",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "ExternalBankAccountServiceV2"
+              ]
+            },
+            "description": "**Purpose:** Looks up an external bank account by account number to obtain its `ExternalBankAccountId`. The returned ID is stored as `remittanceBankAccountId` in `FusionReceiptMethod` and passed to `StandardReceiptRequest` / `MiscReceiptRequest` when creating receipts.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/ExternalBankAccountServiceV2?WSDL`\n**Operation:** `findExternalBankAccount`\n**Namespace:** `http://xmlns.oracle.com/apps/financials/payments/shared/bankAccounts/bankAccountServiceV2/`\n**Client class:** `FusionExternalBankClient.java` → `getBankAccountId()`\n\n### FindCriteria fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| attribute | BankAccountNumber | Criterion attribute name |\n| operator | = | Comparison operator |\n| value | 1011203 | Bank account number to look up |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Bank account found",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
+              ],
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <findExternalBankAccountResponse\n        xmlns=\"http://xmlns.oracle.com/apps/financials/payments/shared/bankAccounts/bankAccountServiceV2/\">\n      <result>\n        <ExternalBankAccountId>300000001100999</ExternalBankAccountId>\n        <BankAccountNumber>1011203</BankAccountNumber>\n        <BankAccountName>Main Cash Account</BankAccountName>\n        <Currency>AED</Currency>\n      </result>\n    </findExternalBankAccountResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
+            }
+          ]
+        },
+        {
+          "name": "8. Item Catalog – findItem",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Basic {{fusion_basic_auth}}",
+                "type": "text",
+                "description": "Base64-encoded username:password"
+              },
+              {
+                "key": "Content-Type",
+                "value": "text/xml; charset=utf-8",
+                "type": "text"
+              },
+              {
+                "key": "SOAPAction",
+                "value": "\"findItem\"",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:itm=\"http://xmlns.oracle.com/apps/scm/productModel/items/itemServiceV2/\">\n  <soapenv:Header/>\n  <soapenv:Body>\n    <itm:findItem>\n      <itm:findCriteria>\n        <itm:fetchStart>0</itm:fetchStart>\n        <itm:fetchSize>1</itm:fetchSize>\n        <itm:filter>\n          <itm:group>\n            <itm:item>\n              <!-- Filter by item number to look up localized item description -->\n              <itm:attribute>ItemNumber</itm:attribute>\n              <itm:operator>=</itm:operator>\n              <itm:value>OIL00001</itm:value>\n            </itm:item>\n          </itm:group>\n        </itm:filter>\n      </itm:findCriteria>\n      <itm:findControl>\n        <itm:retrieveAllTranslations>false</itm:retrieveAllTranslations>\n      </itm:findControl>\n    </itm:findItem>\n  </soapenv:Body>\n</soapenv:Envelope>",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmService/ItemServiceV2",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmService",
+                "ItemServiceV2"
+              ]
+            },
+            "description": "**Purpose:** Searches the Oracle Fusion item catalog for a product by item number and returns its localised description. Used by `FusionItemClient.getItemNameTranslation()` during items sync to populate the VendHQ product name with the Arabic / localised translation stored in Fusion.\n\n**WSDL:** `{{fusion_base_url}}/fscmService/ItemServiceV2?WSDL`\n**Operation:** `findItem`\n**Namespace:** `http://xmlns.oracle.com/apps/scm/productModel/items/itemServiceV2/`\n**Client class:** `FusionItemClient.java` → `getItemNameTranslation()`\n\n### FindCriteria fields\n| Field | Example | Notes |\n|-------|---------|-------|\n| attribute | ItemNumber | Criterion attribute name |\n| operator | = | Comparison operator |\n| value | OIL00001 | Fusion item number to find |\n\n### Response field used by integration\n| Field | Usage |\n|-------|-------|\n| ItemTranslation[0].ItemDescription | Localised product name pushed to VendHQ |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Item found",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/xml; charset=utf-8"
+                }
+              ],
+              "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soapenv:Body>\n    <findItemResponse\n        xmlns=\"http://xmlns.oracle.com/apps/scm/productModel/items/itemServiceV2/\">\n      <result>\n        <ItemId>300000001100015</ItemId>\n        <ItemNumber>OIL00001</ItemNumber>\n        <ItemTranslation>\n          <Language>US</Language>\n          <ItemDescription>Pure Olive Oil 500ml</ItemDescription>\n        </ItemTranslation>\n      </result>\n    </findItemResponse>\n  </soapenv:Body>\n</soapenv:Envelope>"
             }
           ]
         }
@@ -858,11 +1801,23 @@
             ],
             "url": {
               "raw": "{{opencart_base_url}}/api/rest/product?page=1&limit=50",
-              "host": ["{{opencart_base_url}}"],
-              "path": ["api", "rest", "product"],
+              "host": [
+                "{{opencart_base_url}}"
+              ],
+              "path": [
+                "api",
+                "rest",
+                "product"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "50" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
               ]
             },
             "description": "Retrieves the product catalogue from the Opencart store. Used by the integration to compare Fusion/VendHQ products against the online store inventory."
@@ -873,7 +1828,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"product_id\": \"101\",\n      \"name\": \"Sample Product\",\n      \"model\": \"SKU-001\",\n      \"sku\": \"SKU-001\",\n      \"price\": \"250.0000\",\n      \"quantity\": \"10\",\n      \"status\": \"1\"\n    }\n  ],\n  \"total\": 1\n}"
             }
@@ -904,13 +1862,21 @@
               "mode": "raw",
               "raw": "{\n  \"customer_id\": \"1\",\n  \"firstname\": \"John\",\n  \"lastname\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"telephone\": \"+971-50-000-0000\",\n  \"payment_firstname\": \"John\",\n  \"payment_lastname\": \"Doe\",\n  \"payment_address_1\": \"123 Main Street\",\n  \"payment_city\": \"Dubai\",\n  \"payment_country\": \"United Arab Emirates\",\n  \"payment_country_id\": \"229\",\n  \"payment_zone\": \"Dubai\",\n  \"payment_zone_id\": \"0\",\n  \"payment_method\": \"Cash on Delivery\",\n  \"payment_code\": \"cod\",\n  \"shipping_firstname\": \"John\",\n  \"shipping_lastname\": \"Doe\",\n  \"shipping_address_1\": \"123 Main Street\",\n  \"shipping_city\": \"Dubai\",\n  \"shipping_country\": \"United Arab Emirates\",\n  \"shipping_country_id\": \"229\",\n  \"shipping_zone\": \"Dubai\",\n  \"shipping_zone_id\": \"0\",\n  \"shipping_method\": \"Flat Shipping Rate\",\n  \"shipping_code\": \"flat.flat\",\n  \"comment\": \"Order from VendHQ POS sync\",\n  \"total\": \"550.00\",\n  \"currency_code\": \"AED\",\n  \"currency_value\": \"1.00\",\n  \"products\": [\n    {\n      \"product_id\": \"101\",\n      \"name\": \"Sample Product\",\n      \"model\": \"SKU-001\",\n      \"quantity\": \"2\",\n      \"price\": \"250.00\",\n      \"total\": \"500.00\"\n    }\n  ]\n}",
               "options": {
-                "raw": { "language": "json" }
+                "raw": {
+                  "language": "json"
+                }
               }
             },
             "url": {
               "raw": "{{opencart_base_url}}/api/rest/sale",
-              "host": ["{{opencart_base_url}}"],
-              "path": ["api", "rest", "sale"]
+              "host": [
+                "{{opencart_base_url}}"
+              ],
+              "path": [
+                "api",
+                "rest",
+                "sale"
+              ]
             },
             "description": "Creates a new sales order in the Opencart store. Called during the sales integration flow to propagate VendHQ POS transactions into the online store."
           },
@@ -920,7 +1886,10 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": {\n    \"order_id\": \"2001\",\n    \"status\": \"Pending\"\n  }\n}"
             }
@@ -944,11 +1913,23 @@
             ],
             "url": {
               "raw": "{{opencart_base_url}}/api/rest/customer?page=1&limit=50",
-              "host": ["{{opencart_base_url}}"],
-              "path": ["api", "rest", "customer"],
+              "host": [
+                "{{opencart_base_url}}"
+              ],
+              "path": [
+                "api",
+                "rest",
+                "customer"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "50" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
               ]
             },
             "description": "Retrieves customers from the Opencart store. Used to match Opencart customer records with Oracle Fusion accounts and VendHQ customers during integration flows."
@@ -959,9 +1940,134 @@
               "status": "OK",
               "code": 200,
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"customer_id\": \"1\",\n      \"firstname\": \"John\",\n      \"lastname\": \"Doe\",\n      \"email\": \"john.doe@example.com\",\n      \"telephone\": \"+971-50-000-0000\",\n      \"status\": \"1\"\n    }\n  ],\n  \"total\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create / Update Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Oc-Restadmin-Id",
+                "value": "{{opencart_api_key}}",
+                "type": "text",
+                "description": "Opencart REST admin API key"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_description\": [\n    {\n      \"language_id\": \"1\",\n      \"name\": \"Pure Olive Oil 500ml\",\n      \"description\": \"Cold-pressed pure olive oil\",\n      \"meta_title\": \"Olive Oil\",\n      \"meta_description\": \"\",\n      \"meta_keyword\": \"\",\n      \"tag\": \"\"\n    }\n  ],\n  \"model\": \"OIL00001\",\n  \"sku\": \"SKU-OIL-001\",\n  \"price\": \"45.00\",\n  \"quantity\": \"10\",\n  \"status\": \"1\",\n  \"product_store\": [\n    \"0\"\n  ],\n  \"product_category\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{opencart_base_url}}/index.php?route=rest/product_admin/products",
+              "host": [
+                "{{opencart_base_url}}"
+              ],
+              "path": [
+                "index.php"
+              ],
+              "query": [
+                {
+                  "key": "route",
+                  "value": "rest/product_admin/products"
+                }
+              ]
+            },
+            "description": "Creates or updates a product in the Opencart store. Used by `OpencartItemService.insertVendHQItems()` to push Oracle Fusion items to the Opencart product catalog during the items sync job. The `X-Oc-Restadmin-Id` header must carry the Opencart REST admin API key."
+          },
+          "response": [
+            {
+              "name": "200 OK – Product created",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"product_id\": \"42\",\n  \"status\": \"success\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Oc-Restadmin-Id",
+                "value": "{{opencart_api_key}}",
+                "type": "text",
+                "description": "Opencart REST admin API key"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{opencart_base_url}}/index.php?route=rest/order_admin/listorderswithdetails&filter_date_added_from={{order_date_from}}&filter_date_added_to={{order_date_to}}",
+              "host": [
+                "{{opencart_base_url}}"
+              ],
+              "path": [
+                "index.php"
+              ],
+              "query": [
+                {
+                  "key": "route",
+                  "value": "rest/order_admin/listorderswithdetails"
+                },
+                {
+                  "key": "filter_date_added_from",
+                  "value": "{{order_date_from}}",
+                  "description": "ISO date – start of date range (YYYY-MM-DD)"
+                },
+                {
+                  "key": "filter_date_added_to",
+                  "value": "{{order_date_to}}",
+                  "description": "ISO date – end of date range (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Retrieves a list of Opencart orders with their line-item details, filtered by creation date range. Used by `OpencartSalesService.getOpencartSales(from, to)` to fetch e-commerce orders for synchronisation into Oracle Fusion AR as invoices and receipts. Set `order_date_from` and `order_date_to` environment variables before executing this request."
+          },
+          "response": [
+            {
+              "name": "200 OK – Orders list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"order_id\": \"1001\",\n      \"date_added\": \"2024-03-14 10:30:00\",\n      \"subtotal\": \"425.00\",\n      \"total\": \"446.25\",\n      \"currency_code\": \"AED\",\n      \"order_status\": \"Complete\",\n      \"products\": [\n        {\n          \"product_id\": \"42\",\n          \"name\": \"Pure Olive Oil 500ml\",\n          \"model\": \"OIL00001\",\n          \"quantity\": 2,\n          \"price\": \"212.50\"\n        }\n      ]\n    }\n  ]\n}"
             }
           ]
         }
