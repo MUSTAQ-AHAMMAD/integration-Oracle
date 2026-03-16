@@ -4,3 +4,4 @@
 *.war
 Model/classes/
 ViewController/classes/
+__pycache__/
