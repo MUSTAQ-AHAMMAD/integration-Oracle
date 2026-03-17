@@ -9,13 +9,23 @@
  *   odoo_sales       – Odoo sale order headers fetched from the Odoo API
  *   odoo_sale_lines  – Line items belonging to each Odoo sale order
  *   push_jobs        – Background push-to-Oracle job tracking
+ *   job_logs         – Per-entry job log rows (replaces the JSON-blob log column
+ *                      in push_jobs for O(1) appends at any data volume)
+ *   failed_records   – Individual sales that failed to push, queued for retry
  *
  * Uses better-sqlite3 (synchronous, zero-dependency SQLite3 bindings for Node).
  * Because better-sqlite3 calls are synchronous they MUST NOT be called from the
  * main HTTP request/response cycle directly; always wrap in setImmediate or run
- * inside background workers.  For small batches (< 10k rows) the latency is
+ * inside background workers.  For small batches (< 10 k rows) the latency is
  * negligible and Node's event-loop won't stall because SQLite I/O completes in
  * microseconds.
+ *
+ * Production-scale notes:
+ *   • WAL mode + 64 MB page cache + 256 MB mmap comfortably handles millions of rows.
+ *   • All multi-row writes use explicit transactions (one fsync per batch, not per row).
+ *   • job_logs uses an indexed table so appends stay O(1) regardless of log length.
+ *   • failed_records gives a durable, queryable retry queue – failures never block
+ *     the main job and are never silently discarded.
  */
 
 const path    = require('path');
@@ -35,9 +45,12 @@ let _db = null;
 function getDb() {
   if (_db) return _db;
   _db = new Database(DB_FILE);
-  _db.pragma('journal_mode = WAL');   // concurrent reads + single writer
+  _db.pragma('journal_mode = WAL');      // concurrent reads + single writer
   _db.pragma('foreign_keys = ON');
-  _db.pragma('synchronous = NORMAL'); // safe + fast
+  _db.pragma('synchronous = NORMAL');    // safe + fast (WAL makes this sufficient)
+  _db.pragma('cache_size = -65536');     // 64 MB page cache (negative = kibibytes)
+  _db.pragma('temp_store = MEMORY');     // temp tables / sort buffers in RAM
+  _db.pragma('mmap_size = 268435456');   // 256 MB memory-mapped I/O for reads
   applyMigrations(_db);
   logger.info('SQLite DB initialised', { file: DB_FILE });
   return _db;
@@ -93,13 +106,41 @@ function applyMigrations(db) {
       failed        INTEGER DEFAULT 0,
       started_at    TEXT,
       finished_at   TEXT,
-      log           TEXT,                        -- JSON array of log entries
+      log           TEXT    DEFAULT '[]',        -- kept for backward compat; new logs go to job_logs table
       created_at    TEXT    NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_odoo_sales_date  ON odoo_sales(date_order);
-    CREATE INDEX IF NOT EXISTS idx_odoo_sales_store ON odoo_sales(store_id);
-    CREATE INDEX IF NOT EXISTS idx_push_jobs_status ON push_jobs(status);
+    -- Structured per-entry log rows.  O(1) INSERT; no JSON blob rewriting.
+    CREATE TABLE IF NOT EXISTS job_logs (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id     TEXT    NOT NULL,
+      level      TEXT    NOT NULL DEFAULT 'info',   -- debug|info|warn|error
+      message    TEXT    NOT NULL,
+      meta_json  TEXT,                              -- optional JSON metadata
+      created_at TEXT    NOT NULL
+    );
+
+    -- Individual records that failed to push to Oracle.
+    -- They are never silently dropped; the main job continues unblocked.
+    CREATE TABLE IF NOT EXISTS failed_records (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id          TEXT    NOT NULL,
+      sale_name       TEXT,
+      odoo_id         INTEGER,
+      error_message   TEXT,
+      error_detail    TEXT,                          -- full stack / API response
+      retry_count     INTEGER NOT NULL DEFAULT 0,
+      status          TEXT    NOT NULL DEFAULT 'PENDING',  -- PENDING|RESOLVED|SKIPPED
+      created_at      TEXT    NOT NULL,
+      last_attempt_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_odoo_sales_date       ON odoo_sales(date_order);
+    CREATE INDEX IF NOT EXISTS idx_odoo_sales_store      ON odoo_sales(store_id);
+    CREATE INDEX IF NOT EXISTS idx_push_jobs_status      ON push_jobs(status);
+    CREATE INDEX IF NOT EXISTS idx_job_logs_job_id       ON job_logs(job_id);
+    CREATE INDEX IF NOT EXISTS idx_failed_records_job    ON failed_records(job_id);
+    CREATE INDEX IF NOT EXISTS idx_failed_records_status ON failed_records(status);
   `);
 }
 
@@ -242,7 +283,7 @@ function createJob(job) {
 
 function updateJob(jobId, fields) {
   const db = getDb();
-  const allowed = ['status', 'total', 'processed', 'failed', 'started_at', 'finished_at', 'log'];
+  const allowed = ['status', 'total', 'processed', 'failed', 'started_at', 'finished_at'];
   const sets = Object.keys(fields)
     .filter(k => allowed.includes(k))
     .map(k => `${k} = @${k}`)
@@ -252,26 +293,120 @@ function updateJob(jobId, fields) {
     .run({ ...fields, job_id: jobId });
 }
 
+/**
+ * Append a structured log entry to the job_logs table.
+ * O(1) per call regardless of how many entries already exist.
+ *
+ * @param {string} jobId
+ * @param {{ level: string, message: string, [key: string]: any }} entry
+ */
 function appendJobLog(jobId, entry) {
   const db = getDb();
-  const row = db.prepare('SELECT log FROM push_jobs WHERE job_id = ?').get(jobId);
-  if (!row) return;
-  const entries = JSON.parse(row.log || '[]');
-  entries.push({ ts: new Date().toISOString(), ...entry });
-  db.prepare('UPDATE push_jobs SET log = ? WHERE job_id = ?')
-    .run(JSON.stringify(entries), jobId);
+  const { level = 'info', message, ...rest } = entry;
+  const metaJson = Object.keys(rest).length ? JSON.stringify(rest) : null;
+  db.prepare(
+    'INSERT INTO job_logs (job_id, level, message, meta_json, created_at) VALUES (?, ?, ?, ?, ?)'
+  ).run(jobId, level, message, metaJson, new Date().toISOString());
+}
+
+/**
+ * Retrieve log entries for a job with cursor-based pagination.
+ *
+ * @param {string} jobId
+ * @param {object} opts
+ * @param {number} [opts.limit=100]
+ * @param {number} [opts.offset=0]
+ * @returns {{ rows: object[], total: number }}
+ */
+function getJobLogs(jobId, { limit = 100, offset = 0 } = {}) {
+  const db    = getDb();
+  const rows  = db.prepare(
+    'SELECT id, level, message, meta_json, created_at FROM job_logs WHERE job_id = ? ORDER BY id ASC LIMIT ? OFFSET ?'
+  ).all(jobId, limit, offset);
+  const total = db.prepare(
+    'SELECT COUNT(*) AS cnt FROM job_logs WHERE job_id = ?'
+  ).get(jobId).cnt;
+  return { rows, total };
 }
 
 function getJob(jobId) {
   const db = getDb();
-  return db.prepare('SELECT * FROM push_jobs WHERE job_id = ?').get(jobId) || null;
+  const job = db.prepare(
+    'SELECT id, job_id, mode, date_from, date_to, store_id, store_name, status, total, processed, failed, started_at, finished_at, created_at FROM push_jobs WHERE job_id = ?'
+  ).get(jobId);
+  return job || null;
 }
 
 function listJobs(limit = 50) {
   const db = getDb();
   return db.prepare(
-    'SELECT * FROM push_jobs ORDER BY created_at DESC LIMIT ?'
+    'SELECT id, job_id, mode, date_from, date_to, store_id, store_name, status, total, processed, failed, started_at, finished_at, created_at FROM push_jobs ORDER BY created_at DESC LIMIT ?'
   ).all(limit);
+}
+
+// ── Failed-record helpers ─────────────────────────────────────────────────────
+
+/**
+ * Insert a failed-record event.  The main job continues; this record is queued
+ * for manual review or automatic retry.
+ *
+ * @param {object} fields
+ * @param {string}  fields.jobId
+ * @param {string}  [fields.saleName]
+ * @param {number}  [fields.odooId]
+ * @param {string}  [fields.errorMessage]
+ * @param {string}  [fields.errorDetail]    full stack trace or API response body
+ */
+function insertFailedRecord({ jobId, saleName, odooId, errorMessage, errorDetail } = {}) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO failed_records (job_id, sale_name, odoo_id, error_message, error_detail, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(jobId, saleName || null, odooId || null, errorMessage || null, errorDetail || null, new Date().toISOString());
+}
+
+/**
+ * List failed records with optional filters.
+ *
+ * @param {object} opts
+ * @param {string}  [opts.jobId]
+ * @param {string}  [opts.status]   PENDING | RESOLVED | SKIPPED
+ * @param {number}  [opts.limit=100]
+ * @param {number}  [opts.offset=0]
+ * @returns {{ rows: object[], total: number }}
+ */
+function listFailedRecords({ jobId, status, limit = 100, offset = 0 } = {}) {
+  const db         = getDb();
+  const conditions = [];
+  const params     = [];
+
+  if (jobId)  { conditions.push('job_id = ?');  params.push(jobId);  }
+  if (status) { conditions.push('status = ?');  params.push(status); }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const rows = db.prepare(
+    `SELECT * FROM failed_records ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  ).all(...params, limit, offset);
+
+  const total = db.prepare(
+    `SELECT COUNT(*) AS cnt FROM failed_records ${where}`
+  ).get(...params).cnt;
+
+  return { rows, total };
+}
+
+/**
+ * Mark a failed record with a new status (RESOLVED or SKIPPED) and bump retry_count.
+ *
+ * @param {number} id  – failed_records.id
+ * @param {string} status  – 'RESOLVED' | 'SKIPPED'
+ */
+function updateFailedRecord(id, status) {
+  const db = getDb();
+  db.prepare(
+    'UPDATE failed_records SET status = ?, retry_count = retry_count + 1, last_attempt_at = ? WHERE id = ?'
+  ).run(status, new Date().toISOString(), id);
 }
 
 module.exports = {
@@ -284,6 +419,10 @@ module.exports = {
   createJob,
   updateJob,
   appendJobLog,
+  getJobLogs,
   getJob,
   listJobs,
+  insertFailedRecord,
+  listFailedRecords,
+  updateFailedRecord,
 };

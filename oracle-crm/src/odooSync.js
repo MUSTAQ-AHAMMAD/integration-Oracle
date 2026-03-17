@@ -17,11 +17,16 @@
  *   BY_STORE_DATE     – push a specific store, filter by date range
  *   ALL_STORES_DATE   – alias for BY_DATE (explicit "all stores")
  *
- * Performance considerations:
- *   • SQLite writes are batched in transactions (no per-row commits)
- *   • Oracle API calls are sequential per order (Fusion doesn't support bulk invoice POST)
- *   • The event-loop is never blocked; background work uses setImmediate scheduling
- *   • Rate limiting is handled by a simple token-bucket (configurable concurrency)
+ * Performance / production-scale notes:
+ *   • Odoo fetch is paginated (ODOO_FETCH_PAGE_SIZE, default 500).  No data is
+ *     missed even when millions of orders exist in a date range.
+ *   • SQLite push is paginated (PUSH_BATCH_SIZE, default 500).  Memory stays flat.
+ *   • Oracle API calls are sequential per order (Fusion doesn't support bulk POST).
+ *   • Failed individual records are written to the failed_records table and NEVER
+ *     halt the job – the job continues to the next record.  Failed records can be
+ *     retried via startRetryJob() or the /api/odoo/retry-failed endpoint.
+ *   • All DB writes are batched in transactions (no per-row fsync).
+ *   • The event-loop is never blocked; background work uses setImmediate scheduling.
  */
 
 const { randomUUID }  = require('crypto');
@@ -30,8 +35,12 @@ const OraclePushService = require('./pushOracle');
 const db              = require('./db');
 const logger          = require('./logger').child('OdooSync');
 
-// Max concurrent Oracle pushes per job (keep CRM responsive)
-const MAX_CONCURRENT = Number(process.env.ODOO_PUSH_CONCURRENCY) || 3;
+// Max concurrent Oracle pushes per job chunk (keep CRM responsive)
+const MAX_CONCURRENT    = Number(process.env.ODOO_PUSH_CONCURRENCY)  || 3;
+// How many orders to fetch from Odoo per page
+const FETCH_PAGE_SIZE   = Number(process.env.ODOO_FETCH_PAGE_SIZE)   || 500;
+// How many records to process per SQLite batch in push jobs
+const PUSH_BATCH_SIZE   = Number(process.env.PUSH_BATCH_SIZE)        || 500;
 
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
@@ -105,64 +114,105 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId }) {
     jobLog(jobId, 'info', 'Connecting to Odoo…');
     await odoo.authenticate();
 
-    jobLog(jobId, 'info', 'Fetching sales orders from Odoo…', { domain });
-    const orders = await odoo.searchSalesOrders(domain);
-    jobLog(jobId, 'info', `Fetched ${orders.length} sale orders from Odoo`);
-    db.updateJob(jobId, { total: orders.length });
+    // ── Paginated fetch from Odoo ─────────────────────────────────────────────
+    // Odoo may have millions of orders; we page through them to avoid loading
+    // everything into memory and to ensure no records are missed.
+    let offset       = 0;
+    let totalFetched = 0;
+    let allOrderIds  = [];
 
-    if (orders.length === 0) {
+    jobLog(jobId, 'info', 'Fetching sales orders from Odoo (paginated)…', {
+      pageSize: FETCH_PAGE_SIZE, domain,
+    });
+
+    while (true) {
+      const page = await odoo.searchSalesOrders(domain, null, {
+        limit : FETCH_PAGE_SIZE,
+        offset,
+      });
+
+      if (page.length === 0) break;
+
+      // ── Persist headers for this page ───────────────────────────────────
+      const now  = new Date().toISOString();
+      const rows = page.map(o => ({
+        odoo_id        : o.id,
+        name           : o.name,
+        store_id       : Array.isArray(o.warehouse_id) ? o.warehouse_id[0] : (o.warehouse_id || null),
+        store_name     : Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : null,
+        date_order     : (o.date_order || '').split(' ')[0],
+        partner_id     : Array.isArray(o.partner_id) ? o.partner_id[0] : null,
+        partner_name   : Array.isArray(o.partner_id) ? o.partner_id[1] : null,
+        currency       : Array.isArray(o.currency_id) ? o.currency_id[1] : 'AED',
+        amount_untaxed : Number(o.amount_untaxed) || 0,
+        amount_tax     : Number(o.amount_tax)     || 0,
+        amount_total   : Number(o.amount_total)   || 0,
+        state          : o.state || '',
+        fetched_at     : now,
+        raw_json       : JSON.stringify(o),
+      }));
+      db.upsertSales(rows);
+
+      const pageOrderIds = page.map(o => o.id);
+      allOrderIds = allOrderIds.concat(pageOrderIds);
+      totalFetched += page.length;
+      offset       += page.length;
+
+      jobLog(jobId, 'info', `Fetched & stored page of ${page.length} orders`, {
+        totalFetchedSoFar: totalFetched,
+      });
+      db.updateJob(jobId, { total: totalFetched });
+
+      // Yield to the event loop between pages to keep the server responsive
+      await new Promise(resolve => setImmediate(resolve));
+
+      if (page.length < FETCH_PAGE_SIZE) break; // last page
+    }
+
+    jobLog(jobId, 'info', `All ${totalFetched} sale headers stored in local DB`);
+
+    if (totalFetched === 0) {
       db.updateJob(jobId, { status: 'DONE', finished_at: new Date().toISOString() });
       jobLog(jobId, 'info', 'No orders found – job complete');
       return;
     }
 
-    // ── Persist headers ──────────────────────────────────────────────────────
-    const now   = new Date().toISOString();
-    const rows  = orders.map(o => ({
-      odoo_id        : o.id,
-      name           : o.name,
-      store_id       : Array.isArray(o.warehouse_id) ? o.warehouse_id[0] : (o.warehouse_id || null),
-      store_name     : Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : null,
-      date_order     : (o.date_order || '').split(' ')[0],
-      partner_id     : Array.isArray(o.partner_id) ? o.partner_id[0] : null,
-      partner_name   : Array.isArray(o.partner_id) ? o.partner_id[1] : null,
-      currency       : Array.isArray(o.currency_id) ? o.currency_id[1] : 'AED',
-      amount_untaxed : Number(o.amount_untaxed) || 0,
-      amount_tax     : Number(o.amount_tax)     || 0,
-      amount_total   : Number(o.amount_total)   || 0,
-      state          : o.state || '',
-      fetched_at     : now,
-      raw_json       : JSON.stringify(o),
-    }));
-    db.upsertSales(rows);
-    jobLog(jobId, 'info', `Stored ${rows.length} sale headers in local DB`);
+    // ── Fetch + persist lines (paginated by order IDs) ────────────────────────
+    jobLog(jobId, 'info', 'Fetching sale order lines…', { orderCount: allOrderIds.length });
 
-    // ── Fetch + persist lines ─────────────────────────────────────────────────
-    const orderIds = orders.map(o => o.id);
-    jobLog(jobId, 'info', 'Fetching sale order lines…');
-    const rawLines = await odoo.getSaleOrderLines(orderIds);
+    // Fetch lines in chunks to avoid Odoo's domain-length / payload limits
+    const LINE_FETCH_CHUNK = 200;
+    let totalLines = 0;
+    for (let i = 0; i < allOrderIds.length; i += LINE_FETCH_CHUNK) {
+      const idChunk  = allOrderIds.slice(i, i + LINE_FETCH_CHUNK);
+      const rawLines = await odoo.getSaleOrderLines(idChunk);
 
-    const lineRows = rawLines.map(l => {
-      const orderId = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id;
-      const saleInternalId = db.getSaleInternalId(orderId);
-      return {
-        sale_id        : saleInternalId,
-        odoo_line_id   : l.id,
-        product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
-        product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
-        qty_ordered    : Number(l.product_uom_qty) || 0,
-        qty_delivered  : Number(l.qty_delivered)   || 0,
-        price_unit     : Number(l.price_unit)       || 0,
-        price_subtotal : Number(l.price_subtotal)   || 0,
-        tax_ids        : JSON.stringify(l.tax_id    || []),
-      };
-    }).filter(l => l.sale_id !== null);
-    db.upsertSaleLines(lineRows);
-    jobLog(jobId, 'info', `Stored ${lineRows.length} sale lines in local DB`);
+      const lineRows = rawLines.map(l => {
+        const orderId = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id;
+        return {
+          sale_id        : db.getSaleInternalId(orderId),
+          odoo_line_id   : l.id,
+          product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
+          product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
+          qty_ordered    : Number(l.product_uom_qty) || 0,
+          qty_delivered  : Number(l.qty_delivered)   || 0,
+          price_unit     : Number(l.price_unit)       || 0,
+          price_subtotal : Number(l.price_subtotal)   || 0,
+          tax_ids        : JSON.stringify(l.tax_id    || []),
+        };
+      }).filter(l => l.sale_id !== null);
+
+      db.upsertSaleLines(lineRows);
+      totalLines += lineRows.length;
+
+      await new Promise(resolve => setImmediate(resolve));
+    }
+
+    jobLog(jobId, 'info', `Stored ${totalLines} sale lines in local DB`);
 
     db.updateJob(jobId, {
       status      : 'DONE',
-      processed   : rows.length,
+      processed   : totalFetched,
       finished_at : new Date().toISOString(),
     });
     jobLog(jobId, 'info', 'Fetch job completed successfully');
@@ -213,64 +263,103 @@ async function _runPushJob(jobId, options) {
   jobLog(jobId, 'info', 'Push job started', { mode, dateFrom, dateTo, storeId });
 
   try {
-    // ── Query local DB for sales to push ────────────────────────────────────
     const filters = { dateFrom, dateTo };
     if (mode === 'BY_STORE_DATE') filters.storeId = storeId;
 
-    const { rows: sales, total } = db.querySales({ ...filters, limit: 10000 });
+    // Resolve total first so progress can be tracked accurately
+    const { total } = db.querySales({ ...filters, limit: 1, offset: 0 });
     jobLog(jobId, 'info', `Found ${total} orders matching filters`, { filters });
     db.updateJob(jobId, { total });
 
-    if (sales.length === 0) {
+    if (total === 0) {
       db.updateJob(jobId, { status: 'DONE', finished_at: new Date().toISOString() });
       jobLog(jobId, 'info', 'No orders to push – job complete');
       return;
     }
 
-    const oracle = buildOracleService();
-    let processed = 0;
-    let failed    = 0;
+    const oracle    = buildOracleService();
+    let processed   = 0;
+    let failed      = 0;
+    let dbOffset    = 0;
 
-    // ── Process with limited concurrency ────────────────────────────────────
-    const chunks = chunkArray(sales, MAX_CONCURRENT);
+    // ── Paginated push – PUSH_BATCH_SIZE rows at a time ───────────────────────
+    // Memory stays flat at O(PUSH_BATCH_SIZE) regardless of total order count.
+    while (dbOffset < total) {
+      const { rows: batch } = db.querySales({
+        ...filters,
+        limit  : PUSH_BATCH_SIZE,
+        offset : dbOffset,
+      });
+      if (batch.length === 0) break;
 
-    for (const chunk of chunks) {
-      await Promise.all(chunk.map(async sale => {
-        try {
-          const saleWithLines = db.getSaleWithLines(sale.id);
-          const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
+      jobLog(jobId, 'info', `Processing batch of ${batch.length} orders`, {
+        offset: dbOffset, total,
+      });
 
-          jobLog(jobId, 'debug', `Pushing sale ${sale.name} (odoo_id=${sale.odoo_id})`, {
-            storeId: sale.store_id, storeName: sale.store_name,
-          });
+      // ── Limited-concurrency fan-out within the batch ──────────────────────
+      const chunks = chunkArray(batch, MAX_CONCURRENT);
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async sale => {
+          try {
+            const saleWithLines = db.getSaleWithLines(sale.id);
+            const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
 
-          const result = await oracle.pushSale(
-            salePayload.sale,
-            salePayload.metadata,
-            salePayload.outlet
-          );
-
-          if (result.success) {
-            processed++;
-            jobLog(jobId, 'info', `✓ Pushed sale ${sale.name}`, {
-              transactionNumber: result.transactionNumber,
-              steps: result.steps.length,
+            jobLog(jobId, 'debug', `Pushing sale ${sale.name} (odoo_id=${sale.odoo_id})`, {
+              storeId: sale.store_id, storeName: sale.store_name,
             });
-          } else {
+
+            const result = await oracle.pushSale(
+              salePayload.sale,
+              salePayload.metadata,
+              salePayload.outlet
+            );
+
+            if (result.success) {
+              processed++;
+              jobLog(jobId, 'info', `✓ Pushed sale ${sale.name}`, {
+                transactionNumber: result.transactionNumber,
+                steps: result.steps.length,
+              });
+            } else {
+              failed++;
+              const errMsg = (result.errors || []).join('; ');
+              jobLog(jobId, 'warn', `✗ Push failed for sale ${sale.name}`, {
+                errors: result.errors,
+              });
+              // Record the failure as a durable event for later review / retry
+              db.insertFailedRecord({
+                jobId,
+                saleName    : sale.name,
+                odooId      : sale.odoo_id,
+                errorMessage: errMsg,
+                errorDetail : JSON.stringify(result.errors),
+              });
+            }
+          } catch (err) {
             failed++;
-            jobLog(jobId, 'warn', `✗ Push failed for sale ${sale.name}`, {
-              errors: result.errors,
+            const detail = err.response
+              ? `HTTP ${err.response.status}: ${JSON.stringify(err.response.data)}`
+              : err.stack || err.message;
+            jobLog(jobId, 'error', `✗ Exception pushing sale ${sale.name}: ${err.message}`);
+            // Failure is durable – the job itself continues to the next record
+            db.insertFailedRecord({
+              jobId,
+              saleName    : sale.name,
+              odooId      : sale.odoo_id,
+              errorMessage: err.message,
+              errorDetail : detail,
             });
           }
-        } catch (err) {
-          failed++;
-          jobLog(jobId, 'error', `✗ Exception pushing sale ${sale.name}: ${err.message}`);
-        }
-        db.updateJob(jobId, { processed, failed });
-      }));
+          db.updateJob(jobId, { processed, failed });
+        }));
+      }
+
+      dbOffset += batch.length;
+      // Yield to the event loop between batches
+      await new Promise(resolve => setImmediate(resolve));
     }
 
-    const finalStatus = failed === 0 ? 'DONE' : (processed === 0 ? 'FAILED' : 'DONE');
+    const finalStatus = processed === 0 && failed > 0 ? 'FAILED' : 'DONE';
     db.updateJob(jobId, {
       status      : finalStatus,
       processed,
@@ -278,6 +367,9 @@ async function _runPushJob(jobId, options) {
       finished_at : new Date().toISOString(),
     });
     jobLog(jobId, 'info', `Push job finished – ${processed} pushed, ${failed} failed`);
+    if (failed > 0) {
+      jobLog(jobId, 'warn', `${failed} failed records saved for retry. Use GET /api/odoo/failed-records?jobId=${jobId} to view them.`);
+    }
 
   } catch (err) {
     logger.error('Push job failed', { jobId, err: err.message, stack: err.stack });
@@ -286,7 +378,136 @@ async function _runPushJob(jobId, options) {
   }
 }
 
-// ── Payload builder ───────────────────────────────────────────────────────────
+// ── 3. Retry failed records ───────────────────────────────────────────────────
+
+/**
+ * Start a background job that re-attempts all PENDING failed_records
+ * belonging to a previous push job.
+ *
+ * @param {object} options
+ * @param {string}  options.sourceJobId  – original push job whose failures to retry
+ * @param {object}  [options.metadata]   – Oracle Fusion metadata override
+ * @param {object}  [options.outlet]     – Oracle outlet config override
+ * @returns {string} jobId of the retry job
+ */
+function startRetryJob(options) {
+  const { sourceJobId } = options;
+  const jobId = randomUUID();
+
+  db.createJob({
+    jobId,
+    mode      : 'RETRY',
+    dateFrom  : null,
+    dateTo    : null,
+    storeId   : null,
+    storeName : null,
+  });
+  logger.info('Retry job created', { jobId, sourceJobId });
+
+  setImmediate(() => _runRetryJob(jobId, options));
+
+  return jobId;
+}
+
+async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
+  db.updateJob(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
+  jobLog(jobId, 'info', 'Retry job started', { sourceJobId });
+
+  try {
+    let frOffset  = 0;
+    let processed = 0;
+    let failed    = 0;
+    let totalPending = 0;
+
+    // Count first so we can report total accurately
+    const { total: initialTotal } = db.listFailedRecords({
+      jobId : sourceJobId,
+      status: 'PENDING',
+      limit : 1,
+    });
+    totalPending = initialTotal;
+    jobLog(jobId, 'info', `Found ${totalPending} PENDING failed records to retry`);
+    db.updateJob(jobId, { total: totalPending });
+
+    if (totalPending === 0) {
+      db.updateJob(jobId, { status: 'DONE', finished_at: new Date().toISOString() });
+      jobLog(jobId, 'info', 'No pending failures – retry job complete');
+      return;
+    }
+
+    const oracle = buildOracleService();
+
+    // Paginate to avoid loading all failures into memory at once
+    while (true) {
+      const { rows: pending } = db.listFailedRecords({
+        jobId : sourceJobId,
+        status: 'PENDING',
+        limit : PUSH_BATCH_SIZE,
+        offset: frOffset,
+      });
+      if (pending.length === 0) break;
+
+      for (const record of pending) {
+        try {
+          const internalId = db.getSaleInternalId(record.odoo_id);
+          if (!internalId) {
+            db.updateFailedRecord(record.id, 'SKIPPED');
+            jobLog(jobId, 'warn', `Skipping ${record.sale_name} – not found in local DB`);
+            failed++;
+            db.updateJob(jobId, { processed, failed });
+            continue;
+          }
+
+          const saleWithLines = db.getSaleWithLines(internalId);
+          const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
+
+          const result = await oracle.pushSale(
+            salePayload.sale,
+            salePayload.metadata,
+            salePayload.outlet
+          );
+
+          if (result.success) {
+            db.updateFailedRecord(record.id, 'RESOLVED');
+            processed++;
+            jobLog(jobId, 'info', `✓ Retry succeeded for ${record.sale_name}`, {
+              transactionNumber: result.transactionNumber,
+            });
+          } else {
+            db.updateFailedRecord(record.id, 'PENDING');
+            failed++;
+            jobLog(jobId, 'warn', `✗ Retry failed for ${record.sale_name}`, {
+              errors: result.errors,
+            });
+          }
+        } catch (err) {
+          db.updateFailedRecord(record.id, 'PENDING');
+          failed++;
+          jobLog(jobId, 'error', `✗ Exception retrying ${record.sale_name}: ${err.message}`);
+        }
+        db.updateJob(jobId, { processed, failed });
+        await new Promise(resolve => setImmediate(resolve));
+      }
+
+      frOffset += pending.length;
+      await new Promise(resolve => setImmediate(resolve));
+    }
+
+    const finalStatus = processed === 0 && failed > 0 ? 'FAILED' : 'DONE';
+    db.updateJob(jobId, {
+      status      : finalStatus,
+      processed,
+      failed,
+      finished_at : new Date().toISOString(),
+    });
+    jobLog(jobId, 'info', `Retry job finished – ${processed} resolved, ${failed} still failing`);
+
+  } catch (err) {
+    logger.error('Retry job failed', { jobId, err: err.message, stack: err.stack });
+    db.updateJob(jobId, { status: 'FAILED', finished_at: new Date().toISOString() });
+    jobLog(jobId, 'error', `Retry job failed: ${err.message}`);
+  }
+}
 
 /**
  * Map an Odoo sale (from SQLite) to the format expected by pushOracle.js.
@@ -361,5 +582,6 @@ async function getOdooStores() {
 module.exports = {
   startFetchJob,
   startPushJob,
+  startRetryJob,
   getOdooStores,
 };
