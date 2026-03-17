@@ -19,13 +19,26 @@
  *   Body: { mode, dateFrom, dateTo, storeId?, metadata?, outlet? }
  *   Returns: { jobId, status: 'QUEUED' }
  *
+ * POST /api/odoo/retry-failed
+ *   Re-attempt all PENDING failed_records for a given source job.
+ *   Body: { sourceJobId, metadata?, outlet? }
+ *   Returns: { jobId, status: 'QUEUED' }
+ *
  * GET /api/odoo/jobs/:jobId
- *   Poll job status + incremental log.
- *   Returns: push_jobs row with parsed log array.
+ *   Poll job status + recent log entries (last 100).
+ *   Returns: push_jobs row with recent_logs array.
+ *
+ * GET /api/odoo/jobs/:jobId/logs
+ *   Paginated job log entries.
+ *   Query: ?limit=100&offset=0
  *
  * GET /api/odoo/jobs
- *   List recent jobs.
+ *   List recent jobs (no inline logs).
  *   Query: ?limit=50
+ *
+ * GET /api/odoo/failed-records
+ *   List failed records with optional filters.
+ *   Query: ?jobId=&status=PENDING|RESOLVED|SKIPPED&limit=100&offset=0
  *
  * GET /api/odoo/sales
  *   List stored Odoo sales from SQLite.
@@ -40,7 +53,7 @@
 
 const express       = require('express');
 const router        = express.Router();
-const { startFetchJob, startPushJob, getOdooStores } = require('../odooSync');
+const { startFetchJob, startPushJob, startRetryJob, getOdooStores } = require('../odooSync');
 const db            = require('../db');
 const logger        = require('../logger').child('OdooRoutes');
 
@@ -118,23 +131,58 @@ router.post('/push', (req, res) => {
   }
 });
 
+// ── POST /api/odoo/retry-failed ───────────────────────────────────────────────
+router.post('/retry-failed', (req, res) => {
+  const { sourceJobId, metadata, outlet } = req.body || {};
+
+  if (!sourceJobId) return badRequest(res, 'sourceJobId is required');
+
+  const sourceJob = db.getJob(sourceJobId);
+  if (!sourceJob) return res.status(404).json({ error: 'Source job not found' });
+
+  try {
+    const jobId = startRetryJob({
+      sourceJobId,
+      metadata,
+      outlet,
+    });
+
+    logger.info('Retry job queued via API', { jobId, sourceJobId });
+    res.json({ jobId, status: 'QUEUED', message: 'Retry job started in background' });
+  } catch (err) {
+    logger.error('Failed to start retry job', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/odoo/jobs/:jobId ─────────────────────────────────────────────────
 router.get('/jobs/:jobId', (req, res) => {
   const job = db.getJob(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'Job not found' });
 
-  // Parse log JSON for the response
-  try { job.log = JSON.parse(job.log || '[]'); } catch (_) { job.log = []; }
+  // Include the most recent 100 log entries so a simple poll still works
+  const { rows: recentLogs, total: logTotal } = db.getJobLogs(job.job_id, { limit: 100, offset: 0 });
+  job.recent_logs = recentLogs;
+  job.log_total   = logTotal;
   res.json(job);
+});
+
+// ── GET /api/odoo/jobs/:jobId/logs ────────────────────────────────────────────
+router.get('/jobs/:jobId/logs', (req, res) => {
+  const job = db.getJob(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  const limit  = Math.min(Number(req.query.limit)  || 100, 1000);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const { rows, total } = db.getJobLogs(job.job_id, { limit, offset });
+  res.json({ jobId: job.job_id, logs: rows, total, limit, offset });
 });
 
 // ── GET /api/odoo/jobs ────────────────────────────────────────────────────────
 router.get('/jobs', (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 50, 200);
-  const jobs  = db.listJobs(limit).map(j => {
-    try { j.log = JSON.parse(j.log || '[]'); } catch (_) { j.log = []; }
-    return j;
-  });
+  const jobs  = db.listJobs(limit);
   res.json({ jobs, count: jobs.length });
 });
 
@@ -149,6 +197,26 @@ router.get('/sales', (req, res) => {
     offset   : Number(offset) || 0,
   });
   res.json({ sales: rows, total, count: rows.length });
+});
+
+// ── GET /api/odoo/failed-records ──────────────────────────────────────────────
+router.get('/failed-records', (req, res) => {
+  const { jobId, status } = req.query;
+  const limit  = Math.min(Number(req.query.limit)  || 100, 1000);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const validStatuses = ['PENDING', 'RESOLVED', 'SKIPPED'];
+  if (status && !validStatuses.includes(status)) {
+    return badRequest(res, `status must be one of: ${validStatuses.join(', ')}`);
+  }
+
+  const { rows, total } = db.listFailedRecords({
+    jobId : jobId  || undefined,
+    status: status || undefined,
+    limit,
+    offset,
+  });
+  res.json({ records: rows, total, count: rows.length, limit, offset });
 });
 
 // ── GET /api/odoo/stores ──────────────────────────────────────────────────────

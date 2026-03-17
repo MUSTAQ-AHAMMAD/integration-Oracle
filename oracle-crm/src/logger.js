@@ -57,8 +57,8 @@ const transports = [
     filename : path.join(LOGS_DIR, 'error.log'),
     level    : 'error',
     format   : fileFormat,
-    maxsize  : 5 * 1024 * 1024,   // 5 MB
-    maxFiles : 5,
+    maxsize  : 20 * 1024 * 1024,   // 20 MB per file
+    maxFiles : 10,
     tailable : true,
     handleExceptions: true,
   }),
@@ -66,8 +66,8 @@ const transports = [
     filename : path.join(LOGS_DIR, 'app.log'),
     level    : 'debug',
     format   : fileFormat,
-    maxsize  : 10 * 1024 * 1024,  // 10 MB
-    maxFiles : 10,
+    maxsize  : 50 * 1024 * 1024,   // 50 MB per file
+    maxFiles : 20,
     tailable : true,
   }),
 ];
