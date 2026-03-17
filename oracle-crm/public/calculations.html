@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Calculations Reference</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .formula-box{background:#1e2a38;color:#c8d8e8;border-radius:8px;padding:14px 16px;font-family:monospace;font-size:13px;white-space:pre-wrap;line-height:1.7;margin:10px 0}
+    .source-ref{font-size:11px;color:var(--muted);margin-top:4px}
+    .rule-number{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--primary);color:#fff;border-radius:50%;font-size:12px;font-weight:700;flex-shrink:0}
+    .rule-row{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #f0f0f0}
+    .rule-row:last-child{border-bottom:none}
+    .calc-demo{background:#f8f9fa;border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px}
+    .calc-demo input{width:100px;margin:0 6px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px}
+    .calc-demo .result{font-weight:700;color:var(--primary);font-size:16px}
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>VendHQ → Fusion Sync</small></div>
+  <div class="sidebar-nav">
+    <a href="/"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <a href="/new-sale.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>New Sale Push</a>
+    <a href="/sync-history.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Sync History</a>
+    <a href="/config.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Configuration</a>
+    <a href="/calculations.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Calculations Ref</a>
+  </div>
+  <div class="sidebar-status"><span class="dot" id="status-dot"></span><span id="status-label">Checking…</span></div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar"><h1>Calculations Reference</h1></div>
+  <div class="page-body">
+
+    <!-- Interactive Calc Demo -->
+    <div class="card">
+      <div class="card-header">⚡ Live Calculator</div>
+      <div class="card-body">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Try the key formulas interactively:</p>
+
+        <div class="calc-demo">
+          <strong>Unit Selling Price</strong><br>
+          totalPrice ÷ quantity (then take absolute value)<br><br>
+          Total Price: <input type="number" id="demo-price" value="1000" step="0.01">
+          Quantity: <input type="number" id="demo-qty" value="5" step="0.01">
+          → Unit Price = <span class="result" id="demo-usp">200.0000</span>
+        </div>
+
+        <div class="calc-demo mt-12">
+          <strong>Misc Charges (Bank Charges + Tax)</strong><br>
+          amount × bankRate × (tax + 1), capped at 10 if Debit Card in OM<br><br>
+          Amount: <input type="number" id="demo-amount" value="1000" step="0.01">
+          Bank Rate: <input type="number" id="demo-rate" value="0.02" step="0.001">
+          Tax: <input type="number" id="demo-tax" value="0.05" step="0.001">
+          → Misc Charges = <span class="result" id="demo-misc">21.00</span>
+          Net Receipt = <span class="result" id="demo-net">979.00</span>
+        </div>
+
+        <div class="calc-demo mt-12">
+          <strong>Timezone Offset</strong><br>
+          Apply decimal UTC offset (e.g. 3.5 = UTC+3:30) to a date<br><br>
+          UTC Date: <input type="datetime-local" id="demo-date" style="width:200px">
+          Offset: <input type="number" id="demo-tz" value="4" step="0.5" style="width:70px">
+          → Local: <span class="result" id="demo-local" style="font-size:14px">–</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- All calculations reference table -->
+    <div class="card">
+      <div class="card-header">All 16 Calculations (with source references)</div>
+      <div class="card-body">
+
+        <div class="section-title">1. Timezone & Date Calculations</div>
+
+        <div class="rule-row">
+          <span class="rule-number">1</span>
+          <div style="flex:1">
+            <strong>Extract whole hours from timezone offset</strong>
+            <div class="formula-box">hoursOffset = Math.trunc(timeZoneOffset)
+// Example: 3.5 → 3</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecIntBackup.java : line 84</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">2</span>
+          <div style="flex:1">
+            <strong>Extract fractional minutes from timezone offset</strong>
+            <div class="formula-box">minutesDecimal = Math.abs(timeZoneOffset)
+minutesOffset  = Math.trunc(((minutesDecimal * 100) % 100) * 60 / 100)
+// Example: 3.5 → 30 minutes</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecIntBackup.java : line 86</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">3</span>
+          <div style="flex:1">
+            <strong>Apply timezone offset to UTC date (GL Date)</strong>
+            <div class="formula-box">localDate = utcDate + (hoursOffset × 3,600,000 ms) + (minutesOffset × 60,000 ms)
+// Example: 2024-01-15 07:00 UTC + 4h = 2024-01-15 11:00 AET</div>
+            <div class="source-ref">Java: MappingUtils.java : lines 14–19</div>
+          </div>
+        </div>
+
+        <div class="section-title">2. Date Range Window</div>
+
+        <div class="rule-row">
+          <span class="rule-number">4</span>
+          <div style="flex:1">
+            <strong>Days since last processed sale</strong>
+            <div class="formula-box">diffDays = Math.trunc((currentTime - lastSaleTime) / 86,400,000)</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecIntBackup.java : lines 94–95</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">5</span>
+          <div style="flex:1">
+            <strong>Days to process (manual vs auto, capped at 7)</strong>
+            <div class="formula-box">daysToAdd        = isManual ? Math.max(dateRange, 1) : diffDays
+finalDaysAddition = daysToAdd &lt;= 7 ? daysToAdd - 1 : 7   // max 7 days</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecIntBackup.java : lines 97–98</div>
+          </div>
+        </div>
+
+        <div class="section-title">3. Invoice Calculations</div>
+
+        <div class="rule-row">
+          <span class="rule-number">6</span>
+          <div style="flex:1">
+            <strong>Invoice grouping key (one invoice per day per outlet per customer type)</strong>
+            <div class="formula-box">saleKey = `${day}-${month}-${year}${customerType}`
+// If any payment is "Credit On Cust": saleKey += "**Credit"
+// Note: month is 0-indexed (January = 0)</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecTransBackup.java : lines 101–110</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">7</span>
+          <div style="flex:1">
+            <strong>Unit Selling Price (per invoice line)</strong>
+            <div class="formula-box">unitSellingPrice = Math.abs(totalPrice / quantity)
+// abs() ensures positive value even for return/refund lines</div>
+            <div class="source-ref">Java: FusionInvoiceMapping.java : line 77</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">8</span>
+          <div style="flex:1">
+            <strong>Discount Item quantity override</strong>
+            <div class="formula-box">IF itemName === "Discount Item" AND totalPrice > 0:
+    effectiveQuantity = 1   // forced to 1 unit
+ELSE:
+    effectiveQuantity = quantity</div>
+            <div class="source-ref">Java: FusionInvoiceMapping.java : lines 64–65</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">9</span>
+          <div style="flex:1">
+            <strong>Conversion Rate Type</strong>
+            <div class="formula-box">conversionRateType = (rateIsCorporate === "1") ? "Corporate" : "User"</div>
+            <div class="source-ref">Java: FusionInvoiceMapping.java : line 50</div>
+          </div>
+        </div>
+
+        <div class="section-title">4. Inventory Transaction Calculations</div>
+
+        <div class="rule-row">
+          <span class="rule-number">10</span>
+          <div style="flex:1">
+            <strong>Inventory transaction quantity (always negative)</strong>
+            <div class="formula-box">transactionQuantity = quantity × -1
+// Oracle Inventory requires negative for outbound movements</div>
+            <div class="source-ref">Java: FusionInvTxnMapping.java : line 52</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">11</span>
+          <div style="flex:1">
+            <strong>Inventory transaction type (Sales Issue vs RMA)</strong>
+            <div class="formula-box">IF totalPrice === 0:
+    type = quantity > 0 ? "Vend Sales Issue" : "Vend RMA"
+ELSE IF totalPrice > 0:
+    type = "Vend Sales Issue"     // normal sale
+ELSE:
+    type = "Vend RMA"             // return / refund</div>
+            <div class="source-ref">Java: FusionInvTxnMapping.java : lines 53–58</div>
+          </div>
+        </div>
+
+        <div class="section-title">5. Receipt Calculations</div>
+
+        <div class="rule-row">
+          <span class="rule-number">12</span>
+          <div style="flex:1">
+            <strong>Cash account selection by region</strong>
+            <div class="formula-box">cashAccount = (region === "KW") ? "Cash KW" : "Cash"</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecTransBackup.java : lines 211, 213</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">13</span>
+          <div style="flex:1">
+            <strong>Miscellaneous receipt charge (bank charges + tax)</strong>
+            <div class="formula-box">IF paymentType === "Cash Rounding":
+    miscCharges = payment.amount         // direct rounding amount
+
+ELSE:
+    temp1       = payment.amount × bankChargeRate
+    temp2       = methodTax + 1
+    miscCharges = temp1 × temp2          // e.g. 1000 × 0.02 × 1.05 = 21
+
+    // Oman Debit Card cap:
+    IF paymentType === "Debit Card" AND region === "OM" AND miscCharges > 10:
+        miscCharges = 10
+
+netReceiptAmount = payment.amount - miscCharges</div>
+            <div class="source-ref">Java: VendHQSalesToFusionInvRecTransBackup.java : lines 238–247</div>
+          </div>
+        </div>
+
+        <div class="section-title">6. Journal Entry Calculations</div>
+
+        <div class="rule-row">
+          <span class="rule-number">14</span>
+          <div style="flex:1">
+            <strong>Journal entry charge (bank charge % or fixed freight)</strong>
+            <div class="formula-box">saleBankCharge = saleTotal × (bankChargeRate OR 0)
+
+IF isFixed:
+    finalCharge = fixedFreightCharge  (if configured)
+                  OR saleBankCharge   (fallback)
+ELSE:
+    finalCharge = saleBankCharge
+
+// Two lines always created: DEBIT + CREDIT of finalCharge
+// Journals only created for non-NORMAL customer types</div>
+            <div class="source-ref">Java: FusionJournalEntryMapping.java : lines 68–75, 109–115</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">15</span>
+          <div style="flex:1">
+            <strong>Accounting period name</strong>
+            <div class="formula-box">periodName = format(saleDate, "MMM-yy")
+// Example: 2024-01-15 → "Jan-24"</div>
+            <div class="source-ref">Java: FusionJournalEntryMapping.java : line 170</div>
+          </div>
+        </div>
+
+        <div class="rule-row">
+          <span class="rule-number">16</span>
+          <div style="flex:1">
+            <strong>Message truncation for DB column limit</strong>
+            <div class="formula-box">message = message.length >= 500 ? message.substring(0, 500) : message</div>
+            <div class="source-ref">Java: SalesFusionPersistence.java : lines 93, 115, 139, 165, 188, 207, 234</div>
+          </div>
+        </div>
+
+        <div class="section-title">Business Rules Summary</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Rule</th><th>Condition</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Credit On Customer</td><td>paymentType = "Credit On Cust"</td><td>Sale key gets "**Credit" suffix; separate invoice</td></tr>
+              <tr><td>2</td><td>Skip zero-quantity lines</td><td>quantity = 0</td><td>Line skipped entirely (not sent to Oracle)</td></tr>
+              <tr><td>3</td><td>Discount Item override</td><td>itemName = "Discount Item" AND price > 0</td><td>Quantity forced to 1</td></tr>
+              <tr><td>4</td><td>Cash Rounding receipt</td><td>paymentType = "Cash Rounding"</td><td>Skip standard receipt; misc receipt only</td></tr>
+              <tr><td>5</td><td>KW Cash account</td><td>region = "KW"</td><td>Use "Cash KW" instead of "Cash"</td></tr>
+              <tr><td>6</td><td>Oman Debit Card cap</td><td>region = "OM" AND paymentType = "Debit Card" AND charge > 10</td><td>Cap misc charge at 10 OMR</td></tr>
+              <tr><td>7</td><td>Journal entry</td><td>customerType ≠ "NORMAL"</td><td>Create DEBIT + CREDIT journal lines</td></tr>
+              <tr><td>8</td><td>Corporate rate</td><td>rateIsCorporate = "1"</td><td>conversionRateType = "Corporate"</td></tr>
+              <tr><td>9</td><td>Free item</td><td>totalPrice = 0 AND quantity > 0</td><td>type = "Vend Sales Issue" (not RMA)</td></tr>
+              <tr><td>10</td><td>Return / refund</td><td>totalPrice &lt; 0</td><td>type = "Vend RMA"</td></tr>
+              <tr><td>11</td><td>UOM code caching</td><td>Same UOM seen again</td><td>Reuse cached API result</td></tr>
+              <tr><td>12</td><td>Org name caching</td><td>Same outlet seen again</td><td>Reuse cached API result</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/calculations.js"></script>
+<script src="/js/app.js"></script>
+<script>
+// Init demo date
+const now = new Date(); now.setSeconds(0,0);
+document.getElementById('demo-date').value = now.toISOString().slice(0,16);
+
+function updateDemos() {
+  // Unit selling price
+  const price = parseFloat(document.getElementById('demo-price').value) || 0;
+  const qty   = parseFloat(document.getElementById('demo-qty').value) || 1;
+  document.getElementById('demo-usp').textContent = Math.abs(price / qty).toFixed(4);
+
+  // Misc charges
+  const amount = parseFloat(document.getElementById('demo-amount').value) || 0;
+  const rate   = parseFloat(document.getElementById('demo-rate').value) || 0;
+  const tax    = parseFloat(document.getElementById('demo-tax').value) || 0;
+  const misc   = amount * rate * (tax + 1);
+  document.getElementById('demo-misc').textContent = misc.toFixed(2);
+  document.getElementById('demo-net').textContent  = (amount - misc).toFixed(2);
+
+  // Timezone
+  const dateStr = document.getElementById('demo-date').value;
+  const tz      = parseFloat(document.getElementById('demo-tz').value) || 0;
+  if (dateStr) {
+    const local = Calc.applyTimezoneOffset(new Date(dateStr), tz);
+    document.getElementById('demo-local').textContent = local.toISOString().replace('T',' ').slice(0,16);
+  }
+}
+
+['demo-price','demo-qty','demo-amount','demo-rate','demo-tax','demo-date','demo-tz'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', updateDemos);
+  el.addEventListener('change', updateDemos);
+});
+updateDemos();
+</script>
+</body>
+</html>

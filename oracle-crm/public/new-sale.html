@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – New Sale Push</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .calc-preview-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:16px}
+    .calc-preview-item{background:#f8f9fa;border:1px solid var(--border);border-radius:8px;padding:12px}
+    .calc-preview-item .label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+    .calc-preview-item .value{font-size:17px;font-weight:700;color:var(--primary)}
+    .step-result{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
+    .step-result:last-child{border-bottom:none}
+    #push-result{display:none}
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>VendHQ → Fusion Sync</small></div>
+  <div class="sidebar-nav">
+    <a href="/"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <a href="/new-sale.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>New Sale Push</a>
+    <a href="/sync-history.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Sync History</a>
+    <a href="/config.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Configuration</a>
+    <a href="/calculations.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Calculations Ref</a>
+  </div>
+  <div class="sidebar-status"><span class="dot" id="status-dot"></span><span id="status-label">Checking…</span></div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>New Sale Push</h1>
+    <div class="d-flex gap-10">
+      <button class="btn btn-outline" id="btn-reset">Reset Form</button>
+      <button class="btn btn-secondary" id="btn-preview">Preview Calculations</button>
+      <button class="btn btn-primary" id="btn-push" disabled>
+        <span id="push-spinner" class="spinner" style="display:none"></span>
+        Push to Oracle Fusion
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div id="alert-area" class="alert hidden"></div>
+
+    <form id="sale-form" autocomplete="off">
+      <!-- Section A: Header -->
+      <div class="card">
+        <div class="card-header">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          A — Sale Header
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Invoice Number <span class="req">*</span></label>
+                <input class="form-control" id="invoiceNumber" name="invoiceNumber" required placeholder="e.g. AND001">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Sale Date (UTC) <span class="req">*</span></label>
+                <input type="datetime-local" class="form-control" id="saleDate" name="saleDate" required>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Timezone Offset <span class="req">*</span></label>
+                <input type="number" step="0.5" class="form-control" id="tzOffset" name="tzOffset" value="4" placeholder="e.g. 4 for UTC+4">
+                <div class="calc-note">Decimal offset (3.5 = UTC+3:30). Applied before GL date.</div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Outlet Name <span class="req">*</span></label>
+                <input class="form-control" id="outletName" name="outletName" required placeholder="e.g. Dubai Store">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Region <span class="req">*</span></label>
+                <select class="form-control form-select" id="region" name="region" required>
+                  <option value="">Select region…</option>
+                  <option value="AE">AE – UAE</option>
+                  <option value="KW">KW – Kuwait</option>
+                  <option value="OM">OM – Oman</option>
+                  <option value="SA">SA – Saudi Arabia</option>
+                  <option value="BH">BH – Bahrain</option>
+                  <option value="QA">QA – Qatar</option>
+                </select>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Currency <span class="req">*</span></label>
+                <input class="form-control" id="currency" name="currency" value="AED" placeholder="AED">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Customer Type <span class="req">*</span></label>
+                <select class="form-control form-select" id="customerType" name="customerType" required>
+                  <option value="NORMAL" selected>NORMAL</option>
+                  <option value="CREDIT">CREDIT</option>
+                  <option value="HUNGERSTATION">HUNGERSTATION</option>
+                  <option value="TALABAT">TALABAT</option>
+                  <option value="CAREEM">CAREEM</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Rate Is Corporate?</label>
+                <select class="form-control form-select" id="rateIsCorporate" name="rateIsCorporate">
+                  <option value="0">No – User rate</option>
+                  <option value="1">Yes – Corporate rate</option>
+                </select>
+                <div class="calc-note">"1" → ConversionRateType = "Corporate"</div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Register Name</label>
+                <input class="form-control" id="registerName" name="registerName" placeholder="e.g. Register 1">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Tax Code</label>
+                <input class="form-control" id="taxCode" name="taxCode" value="VAT5" placeholder="VAT5">
+              </div>
+            </div>
+          </div>
+
+          <!-- Calculated header fields -->
+          <div class="section-title">Calculated Values (from header)</div>
+          <div class="calc-preview-row">
+            <div class="calc-preview-item"><div class="label">Sale Key (invoice group)</div><div class="value" id="calc-salekey" style="font-size:13px">–</div></div>
+            <div class="calc-preview-item"><div class="label">Adjusted GL Date</div><div class="value" id="calc-gldate" style="font-size:13px">–</div></div>
+            <div class="calc-preview-item"><div class="label">Accounting Period</div><div class="value" id="calc-period">–</div></div>
+            <div class="calc-preview-item"><div class="label">Conversion Rate Type</div><div class="value" id="calc-ratetype" style="font-size:14px">–</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section B: Oracle Fusion Metadata -->
+      <div class="card">
+        <div class="card-header">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          B — Oracle Fusion Metadata (from FUSION_SALES_METADATA table)
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Bill To Customer Name <span class="req">*</span></label>
+                <input class="form-control" id="billToName" name="billToName" required placeholder="e.g. VendHQ UAE Customer">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Bill To Account Number <span class="req">*</span></label>
+                <input class="form-control" id="billToAccount" name="billToAccount" required placeholder="e.g. 10001">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Bill To Location (Site) <span class="req">*</span></label>
+                <input class="form-control" id="siteNumber" name="siteNumber" required placeholder="e.g. SITE-001">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Business Unit <span class="req">*</span></label>
+                <input class="form-control" id="businessUnit" name="businessUnit" required placeholder="e.g. UAE BU">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Transaction Source <span class="req">*</span></label>
+                <input class="form-control" id="txnSource" name="txnSource" required placeholder="e.g. VendHQ">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Transaction Type <span class="req">*</span></label>
+                <input class="form-control" id="txnType" name="txnType" required placeholder="e.g. Invoice">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label class="form-label">Cost Center Code</label>
+                <input class="form-control" id="costCenterCode" name="costCenterCode" placeholder="e.g. CC001">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section C: Line Items -->
+      <div class="card">
+        <div class="card-header">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          C — Sale Line Items
+        </div>
+        <div class="card-body">
+          <div id="line-items-container"></div>
+          <button type="button" class="btn btn-outline btn-sm btn-add" id="btn-add-line">+ Add Line Item</button>
+        </div>
+      </div>
+
+      <!-- Section D: Payments -->
+      <div class="card">
+        <div class="card-header">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          D — Payments
+        </div>
+        <div class="card-body">
+          <div id="payments-container"></div>
+          <button type="button" class="btn btn-outline btn-sm btn-add" id="btn-add-payment">+ Add Payment</button>
+        </div>
+      </div>
+
+      <!-- Preview + Results -->
+      <div class="card" id="preview-card" style="display:none">
+        <div class="card-header">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Calculations Preview
+        </div>
+        <div class="card-body">
+          <div id="preview-summary"></div>
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:13px;color:var(--muted)">View raw JSON</summary>
+            <div class="preview-box mt-12" id="preview-raw"></div>
+          </details>
+        </div>
+      </div>
+
+      <div class="card" id="push-result">
+        <div class="card-header" id="push-result-header">Push Result</div>
+        <div class="card-body">
+          <div id="push-result-body"></div>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script src="/js/calculations.js"></script>
+<script src="/js/app.js"></script>
+<script>
+// ── Default sale date = now ─────────────────────────────────────────────────
+(function() {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  document.getElementById('saleDate').value = now.toISOString().slice(0,16);
+})();
+
+// ── Line items repeater ──────────────────────────────────────────────────────
+let lineCount = 0;
+function addLineItem(defaults = {}) {
+  lineCount++;
+  const container = document.getElementById('line-items-container');
+  const div = document.createElement('div');
+  div.className = 'repeater-row line-items-row mb-0 mt-12';
+  div.dataset.lineId = lineCount;
+  div.innerHTML = `
+    <div class="form-group mb-0">
+      ${lineCount===1?'<label class="form-label">Item Number</label>':''}
+      <input class="form-control" name="itemNumber" placeholder="SKU-001" value="${defaults.itemNumber||''}">
+    </div>
+    <div class="form-group mb-0">
+      ${lineCount===1?'<label class="form-label">Item Name</label>':''}
+      <input class="form-control" name="itemName" placeholder="Product Name" value="${defaults.itemName||''}">
+    </div>
+    <div class="form-group mb-0">
+      ${lineCount===1?'<label class="form-label">Qty</label>':''}
+      <input type="number" step="0.01" class="form-control line-qty" name="quantity" placeholder="1" value="${defaults.quantity||''}">
+    </div>
+    <div class="form-group mb-0">
+      ${lineCount===1?'<label class="form-label">Total Price</label>':''}
+      <input type="number" step="0.01" class="form-control line-price" name="totalPrice" placeholder="0.00" value="${defaults.totalPrice||''}">
+    </div>
+    <div class="form-group mb-0">
+      ${lineCount===1?'<label class="form-label">Tax Name</label>':''}
+      <input class="form-control" name="taxName" placeholder="VAT5" value="${defaults.taxName||'VAT5'}">
+    </div>
+    <div class="form-group mb-0">
+      ${lineCount===1?'<label class="form-label" title="ABS(totalPrice/qty)">Unit Price <span style=\'color:#aaa;font-weight:400\'>auto</span></label>':''}
+      <input class="form-control calc-field" name="unitSellingPrice" readonly placeholder="–" value="">
+    </div>
+    <button type="button" class="btn-remove" title="Remove">×</button>
+  `;
+  div.querySelector('.btn-remove').onclick = () => { div.remove(); updateHeaderCalcs(); };
+  div.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { updateLineCalc(div); updateHeaderCalcs(); }));
+  container.appendChild(div);
+  updateLineCalc(div);
+}
+
+function updateLineCalc(div) {
+  const qty   = parseFloat(div.querySelector('[name=quantity]').value) || 0;
+  const price = parseFloat(div.querySelector('[name=totalPrice]').value) || 0;
+  const name  = div.querySelector('[name=itemName]').value;
+  const effQty = Calc.effectiveQty(name, price, qty);
+  const usp    = Calc.unitSellingPrice(price, effQty);
+  div.querySelector('[name=unitSellingPrice]').value = usp ? usp.toFixed(4) : '';
+}
+
+// ── Payments repeater ────────────────────────────────────────────────────────
+let payCount = 0;
+function addPayment(defaults = {}) {
+  payCount++;
+  const container = document.getElementById('payments-container');
+  const div = document.createElement('div');
+  div.className = 'repeater-row payments-row mb-0 mt-12';
+  div.innerHTML = `
+    <div class="form-group mb-0">
+      ${payCount===1?'<label class="form-label">Payment Type</label>':''}
+      <select class="form-control form-select" name="paymentType">
+        <option>Cash</option>
+        <option>Visa</option>
+        <option>Mastercard</option>
+        <option>Debit Card</option>
+        <option>Cash Rounding</option>
+        <option>Credit On Cust</option>
+        <option>Hunger Station</option>
+        <option>Talabat</option>
+      </select>
+    </div>
+    <div class="form-group mb-0">
+      ${payCount===1?'<label class="form-label">Amount</label>':''}
+      <input type="number" step="0.01" class="form-control" name="amount" placeholder="0.00" value="${defaults.amount||''}">
+    </div>
+    <button type="button" class="btn-remove" title="Remove">×</button>
+  `;
+  if (defaults.paymentType) div.querySelector('[name=paymentType]').value = defaults.paymentType;
+  div.querySelector('.btn-remove').onclick = () => { div.remove(); updateHeaderCalcs(); };
+  div.querySelectorAll('input,select').forEach(i => i.addEventListener('change', updateHeaderCalcs));
+  container.appendChild(div);
+}
+
+// ── Live header calculations ─────────────────────────────────────────────────
+function updateHeaderCalcs() {
+  const saleDate = document.getElementById('saleDate').value;
+  const tz       = parseFloat(document.getElementById('tzOffset').value) || 0;
+  const ct       = document.getElementById('customerType').value;
+  const corp     = document.getElementById('rateIsCorporate').value;
+
+  if (!saleDate) return;
+
+  const payments = collectPayments();
+  const hasCred  = payments.some(p => (p.paymentType||'').toLowerCase() === 'credit on cust');
+  const local    = Calc.applyTimezoneOffset(new Date(saleDate), tz);
+  const period   = Calc.periodName(local);
+
+  let key = `${local.getDate()}-${local.getMonth()}-${local.getFullYear()}${ct}`;
+  if (hasCred) key += '**Credit';
+
+  document.getElementById('calc-salekey').textContent = key;
+  document.getElementById('calc-gldate').textContent  = local.toISOString().replace('T',' ').slice(0,16);
+  document.getElementById('calc-period').textContent  = period;
+  document.getElementById('calc-ratetype').textContent = corp === '1' ? 'Corporate' : 'User';
+}
+
+// ── Collect form data ────────────────────────────────────────────────────────
+function collectLineItems() {
+  return [...document.querySelectorAll('#line-items-container .repeater-row')].map(row => ({
+    itemNumber : row.querySelector('[name=itemNumber]').value,
+    itemName   : row.querySelector('[name=itemName]').value,
+    quantity   : parseFloat(row.querySelector('[name=quantity]').value) || 0,
+    totalPrice : parseFloat(row.querySelector('[name=totalPrice]').value) || 0,
+    taxName    : row.querySelector('[name=taxName]').value,
+  }));
+}
+function collectPayments() {
+  return [...document.querySelectorAll('#payments-container .repeater-row')].map(row => ({
+    paymentType: row.querySelector('[name=paymentType]').value,
+    amount     : parseFloat(row.querySelector('[name=amount]').value) || 0,
+  }));
+}
+function buildSalePayload() {
+  return {
+    invoiceNumber   : document.getElementById('invoiceNumber').value,
+    saleDate        : new Date(document.getElementById('saleDate').value).toISOString(),
+    tzOffset        : parseFloat(document.getElementById('tzOffset').value) || 0,
+    region          : document.getElementById('region').value,
+    currency        : document.getElementById('currency').value,
+    customerType    : document.getElementById('customerType').value,
+    rateIsCorporate : document.getElementById('rateIsCorporate').value,
+    registerName    : document.getElementById('registerName').value,
+    taxCode         : document.getElementById('taxCode').value,
+    lineItems       : collectLineItems(),
+    payments        : collectPayments(),
+  };
+}
+function buildMetadata() {
+  return {
+    billToName     : document.getElementById('billToName').value,
+    billToAccount  : document.getElementById('billToAccount').value,
+    siteNumber     : document.getElementById('siteNumber').value,
+    businessUnit   : document.getElementById('businessUnit').value,
+    txnSource      : document.getElementById('txnSource').value,
+    txnType        : document.getElementById('txnType').value,
+    costCenterCode : document.getElementById('costCenterCode').value,
+    rateIsCorporate: document.getElementById('rateIsCorporate').value,
+  };
+}
+function buildOutlet() {
+  return {
+    outletName: document.getElementById('outletName').value,
+    region    : document.getElementById('region').value,
+    currency  : document.getElementById('currency').value,
+  };
+}
+
+// ── Preview button ───────────────────────────────────────────────────────────
+document.getElementById('btn-preview').addEventListener('click', () => {
+  hideAlert(document.getElementById('alert-area'));
+  const sale    = buildSalePayload();
+  const preview = Calc.computePreview(sale);
+  renderPreviewCard(preview, sale);
+  document.getElementById('btn-push').disabled = false;
+});
+
+function renderPreviewCard(p, sale) {
+  const card = document.getElementById('preview-card');
+  card.style.display = '';
+
+  let html = `
+    <div class="calc-preview-row" style="margin-bottom:20px">
+      <div class="calc-preview-item"><div class="label">Sale Key</div><div class="value" style="font-size:12px">${p.saleKey}</div></div>
+      <div class="calc-preview-item"><div class="label">GL Date</div><div class="value" style="font-size:13px">${p.adjustedDate.toISOString().split('T')[0]}</div></div>
+      <div class="calc-preview-item"><div class="label">Period</div><div class="value">${p.periodName}</div></div>
+    </div>
+  `;
+
+  // Lines table
+  html += `<div class="section-title">Invoice Lines (${p.lines.length})</div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>Item</th><th>Orig Qty</th><th>Eff Qty</th><th>Total Price</th><th>Unit Selling Price</th><th>Inv Txn Qty</th><th>Tax</th></tr></thead><tbody>`;
+  p.lines.forEach(l => {
+    html += `<tr>
+      <td>${l.no}</td>
+      <td>${l.itemName} <small style="color:var(--muted)">${l.itemNumber}</small></td>
+      <td>${l.originalQty}</td>
+      <td><strong>${l.effectiveQty}</strong>${l.originalQty !== l.effectiveQty ? ' <span class="badge badge-warning">overridden</span>' : ''}</td>
+      <td>${fmtMoney(l.totalPrice)}</td>
+      <td><strong style="color:var(--primary)">${fmtMoney(l.unitSellingPrice, 4)}</strong></td>
+      <td style="color:var(--danger)">${l.inventoryQty}</td>
+      <td>${l.taxName}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  // Receipts
+  html += `<div class="section-title mt-20">Receipt Calculations (${p.receipts.length} payments)</div>
+  <div class="table-wrap"><table><thead><tr><th>Payment Type</th><th>Gross Amount</th><th>Bank Charge Rate</th><th>Method Tax</th><th>Misc Charges</th><th>Net Receipt</th></tr></thead><tbody>`;
+  p.receipts.forEach(r => {
+    html += `<tr>
+      <td>${r.paymentType}</td>
+      <td>${fmtMoney(r.grossAmount)}</td>
+      <td>${r.bankChargeRate ? (r.bankChargeRate * 100).toFixed(2) + '%' : '–'}</td>
+      <td>${r.methodTax ? (r.methodTax * 100).toFixed(2) + '%' : '–'}</td>
+      <td style="color:var(--danger)">${fmtMoney(r.miscCharges)}</td>
+      <td><strong>${fmtMoney(r.netAmount)}</strong></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  // Journal (non-NORMAL)
+  if (p.journal) {
+    html += `<div class="section-title mt-20">Journal Entry (${sale.customerType} – non-NORMAL)</div>
+    <div class="calc-preview-row">
+      <div class="calc-preview-item"><div class="label">Sale Total</div><div class="value">${fmtMoney(p.journal.saleTotal)}</div></div>
+      <div class="calc-preview-item"><div class="label">Final Charge</div><div class="value" style="color:var(--primary)">${fmtMoney(p.journal.charge)}</div></div>
+      <div class="calc-preview-item"><div class="label">Period</div><div class="value">${p.journal.periodName}</div></div>
+      <div class="calc-preview-item"><div class="label">Batch Name</div><div class="value" style="font-size:12px">${p.journal.batchName}</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:8px">Two journal lines will be created: DEBIT + CREDIT of ${fmtMoney(p.journal.charge)}</p>`;
+  } else {
+    html += `<div class="alert alert-info mt-20" style="margin-bottom:0">Journal entry will NOT be created (NORMAL customer type)</div>`;
+  }
+
+  document.getElementById('preview-summary').innerHTML = html;
+  renderPreview(document.getElementById('preview-raw'), p);
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Push button ──────────────────────────────────────────────────────────────
+document.getElementById('btn-push').addEventListener('click', async () => {
+  const alertArea = document.getElementById('alert-area');
+  hideAlert(alertArea);
+
+  const btn     = document.getElementById('btn-push');
+  const spinner = document.getElementById('push-spinner');
+  btn.disabled  = true;
+  spinner.style.display = 'inline-block';
+  btn.childNodes[btn.childNodes.length - 1].textContent = ' Pushing…';
+
+  const payload = {
+    sale    : buildSalePayload(),
+    metadata: buildMetadata(),
+    outlet  : buildOutlet(),
+  };
+
+  try {
+    const res  = await fetch('/api/sales/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    renderPushResult(data);
+  } catch (err) {
+    showAlert(alertArea, 'danger', `Network error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btn.childNodes[btn.childNodes.length - 1].textContent = ' Push to Oracle Fusion';
+  }
+});
+
+function renderPushResult(data) {
+  const resultCard = document.getElementById('push-result');
+  const header     = document.getElementById('push-result-header');
+  const body       = document.getElementById('push-result-body');
+  resultCard.style.display = '';
+
+  if (data.success) {
+    header.innerHTML = '<span style="color:var(--success)">✓</span> Push Successful – Oracle Transaction #' + (data.transactionNumber || '');
+    header.style.color = 'var(--success)';
+  } else {
+    header.innerHTML = '<span style="color:var(--danger)">✗</span> Push Failed';
+    header.style.color = 'var(--danger)';
+  }
+
+  let html = '';
+  (data.steps || []).forEach(s => {
+    const icon = s.status === 'ok' ? '✓' : s.status === 'failed' ? '✗' : '○';
+    const cls  = s.status === 'ok' ? 'step-ok' : s.status === 'failed' ? 'step-fail' : 'step-pending';
+    html += `<div class="step-result">
+      <span class="${cls}" style="font-size:16px">${icon}</span>
+      <div style="flex:1">
+        <div class="step-name">${s.step}</div>
+        <div class="step-ts">${s.ts}</div>
+        ${s.data && Object.keys(s.data).length ? `<pre style="font-size:11px;color:var(--muted);margin-top:4px;white-space:pre-wrap">${JSON.stringify(s.data,null,2)}</pre>` : ''}
+      </div>
+    </div>`;
+  });
+
+  if (data.errors && data.errors.length) {
+    html += `<div class="alert alert-danger mt-12">${data.errors.join('<br>')}</div>`;
+  }
+
+  body.innerHTML = html;
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Reset ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', () => {
+  document.getElementById('sale-form').reset();
+  document.getElementById('line-items-container').innerHTML = '';
+  document.getElementById('payments-container').innerHTML = '';
+  lineCount = 0; payCount = 0;
+  document.getElementById('preview-card').style.display = 'none';
+  document.getElementById('push-result').style.display = 'none';
+  document.getElementById('btn-push').disabled = true;
+  addLineItem(); addPayment();
+});
+
+// ── Wire up add buttons + header recalc ─────────────────────────────────────
+document.getElementById('btn-add-line').addEventListener('click', () => addLineItem());
+document.getElementById('btn-add-payment').addEventListener('click', () => addPayment());
+['saleDate','tzOffset','customerType','rateIsCorporate'].forEach(id => {
+  document.getElementById(id).addEventListener('change', updateHeaderCalcs);
+  document.getElementById(id).addEventListener('input', updateHeaderCalcs);
+});
+
+// ── Init with one row each ───────────────────────────────────────────────────
+addLineItem({ itemNumber: '', itemName: '', quantity: 1, totalPrice: '', taxName: 'VAT5' });
+addPayment({ paymentType: 'Cash', amount: '' });
+updateHeaderCalcs();
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Sync History</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>VendHQ → Fusion Sync</small></div>
+  <div class="sidebar-nav">
+    <a href="/"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <a href="/new-sale.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>New Sale Push</a>
+    <a href="/sync-history.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Sync History</a>
+    <a href="/config.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Configuration</a>
+    <a href="/calculations.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Calculations Ref</a>
+  </div>
+  <div class="sidebar-status"><span class="dot" id="status-dot"></span><span id="status-label">Checking…</span></div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>Sync History</h1>
+    <a href="/new-sale.html" class="btn btn-primary">New Sale Push</a>
+  </div>
+  <div class="page-body">
+
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Session Push History
+        <span class="badge badge-muted ml-auto" id="history-count">0 records</span>
+      </div>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:13px;margin-bottom:16px">
+          Pushes made during this browser session are shown here.
+          The CRM does not persist history to a database — use Oracle Fusion directly to query transaction history.
+        </p>
+        <div class="table-wrap">
+          <table id="history-table">
+            <thead><tr><th>Time</th><th>Invoice #</th><th>Outlet</th><th>Customer Type</th><th>Oracle Txn #</th><th>Steps</th><th>Status</th></tr></thead>
+            <tbody id="history-body">
+              <tr><td colspan="7">
+                <div class="empty-state">
+                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <p>No pushes yet in this session</p>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Troubleshooting Data Sync Issues
+      </div>
+      <div class="card-body">
+        <p style="font-size:14px;margin-bottom:16px;color:var(--muted)">
+          Common reasons why data might not be syncing to Oracle Fusion, and how to fix them:
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Symptom</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Invoice not created</td>
+                <td>Missing Oracle credentials or wrong base URL</td>
+                <td>Go to <a href="/config.html">Configuration</a>, verify FUSION_BASE_URL and credentials</td>
+              </tr>
+              <tr>
+                <td>API error 401</td>
+                <td>Wrong username or password</td>
+                <td>Reset Oracle Fusion password, update .env file</td>
+              </tr>
+              <tr>
+                <td>API error 400 on invoice</td>
+                <td>Missing required fields (BillToName, TxnSource, TxnType)</td>
+                <td>Fill in Section B – Oracle Fusion Metadata on the push form</td>
+              </tr>
+              <tr>
+                <td>Duplicate invoice line error</td>
+                <td>Sale already pushed – duplicate detection triggered</td>
+                <td>Check Oracle Fusion for existing transaction number</td>
+              </tr>
+              <tr>
+                <td>Wrong GL date in Oracle</td>
+                <td>Timezone offset not configured</td>
+                <td>Set correct timezone offset in the form (e.g. 4 for UAE UTC+4)</td>
+              </tr>
+              <tr>
+                <td>Receipt not applied</td>
+                <td>ReceiptMethodId or BankAccountId not set</td>
+                <td>Configure receipt method metadata in the push form's Payment section</td>
+              </tr>
+              <tr>
+                <td>Inventory transaction fails</td>
+                <td>Organization not found in Oracle</td>
+                <td>Verify outletName matches Oracle Organization code</td>
+              </tr>
+              <tr>
+                <td>Journal not created</td>
+                <td>CustomerType = NORMAL (journals skipped by design)</td>
+                <td>Only non-NORMAL customer types create journal entries</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+// Restore session history from localStorage
+function loadHistory() {
+  const history = JSON.parse(localStorage.getItem('crm_push_history') || '[]');
+  const tbody   = document.getElementById('history-body');
+  document.getElementById('history-count').textContent = `${history.length} records`;
+
+  if (history.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <p>No pushes yet in this session</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = history.reverse().map(h => `
+    <tr>
+      <td style="white-space:nowrap">${new Date(h.ts).toLocaleString()}</td>
+      <td><strong>${h.invoiceNumber}</strong></td>
+      <td>${h.outlet}</td>
+      <td><span class="badge badge-muted">${h.customerType}</span></td>
+      <td>${h.transactionNumber ? `<strong style="color:var(--primary)">${h.transactionNumber}</strong>` : '–'}</td>
+      <td>${h.stepCount} steps</td>
+      <td><span class="badge badge-${h.success ? 'success' : 'danger'}">${h.success ? 'Success' : 'Failed'}</span></td>
+    </tr>
+  `).join('');
+}
+loadHistory();
+</script>
+</body>
+</html>
