@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Configuration</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>VendHQ → Fusion Sync</small></div>
+  <div class="sidebar-nav">
+    <a href="/"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <a href="/new-sale.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>New Sale Push</a>
+    <a href="/sync-history.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Sync History</a>
+    <a href="/config.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Configuration</a>
+    <a href="/calculations.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Calculations Ref</a>
+  </div>
+  <div class="sidebar-status"><span class="dot" id="status-dot"></span><span id="status-label">Checking…</span></div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar"><h1>Configuration</h1></div>
+  <div class="page-body">
+
+    <!-- Current status -->
+    <div class="card" id="status-card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Current Connection Status
+      </div>
+      <div class="card-body" id="status-body">
+        <p style="color:var(--muted);font-size:14px">Loading…</p>
+      </div>
+    </div>
+
+    <!-- Setup instructions -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        How to Configure Oracle Credentials
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning">
+          <strong>Security:</strong> Credentials are stored in a <code>.env</code> file on the server — never commit this file to Git.
+        </div>
+
+        <div class="section-title">Step 1 – Create the .env file</div>
+        <p style="font-size:14px;margin-bottom:10px">In the <code>oracle-crm/</code> directory, create a file named <code>.env</code>:</p>
+        <div class="preview-box" style="max-height:none">FUSION_BASE_URL=https://your-instance.fa.em2.oraclecloud.com
+FUSION_USERNAME=your.oracle.username
+FUSION_PASSWORD=your_oracle_password
+PORT=3000
+REGIONS=AE,KW,OM,SA,BH,QA</div>
+
+        <div class="section-title mt-20">Step 2 – Find your Oracle Fusion base URL</div>
+        <p style="font-size:14px;margin-bottom:10px">Your Oracle Fusion Cloud URL has this structure:</p>
+        <div class="preview-box" style="max-height:none">https://{hostname}.fa.{region}.oraclecloud.com
+
+Examples:
+  https://ehxk-test.fa.em2.oraclecloud.com   ← Europe Middle East 2
+  https://acme-prod.fa.us2.oraclecloud.com   ← US 2
+  https://myco.fa.uk2.oraclecloud.com        ← UK 2</div>
+
+        <div class="section-title mt-20">Step 3 – Start the CRM server</div>
+        <div class="preview-box" style="max-height:none">cd oracle-crm
+npm install
+npm start
+
+# Server will start on http://localhost:3000</div>
+
+        <div class="section-title mt-20">Step 4 – Verify the connection</div>
+        <p style="font-size:14px">After saving your .env and restarting the server, reload this page. The status above will show "Configured" if credentials are set.</p>
+
+        <div class="alert alert-info mt-20">
+          <strong>Note:</strong> The CRM validates credentials on each API call. An API test call to Oracle Fusion is only made when you perform a sale push — not on startup.
+        </div>
+      </div>
+    </div>
+
+    <!-- Business rule reference -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        Region Quick Reference
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Region</th><th>Currency</th><th>Timezone</th><th>Special Rules</th></tr></thead>
+            <tbody>
+              <tr><td><strong>AE</strong> – UAE</td><td>AED</td><td>UTC+4 (offset=4)</td><td>Standard</td></tr>
+              <tr><td><strong>KW</strong> – Kuwait</td><td>KWD</td><td>UTC+3 (offset=3)</td><td>Cash account = "Cash KW" (not "Cash")</td></tr>
+              <tr><td><strong>OM</strong> – Oman</td><td>OMR</td><td>UTC+4 (offset=4)</td><td>Debit Card misc charges capped at 10 OMR</td></tr>
+              <tr><td><strong>SA</strong> – Saudi Arabia</td><td>SAR</td><td>UTC+3 (offset=3)</td><td>Standard</td></tr>
+              <tr><td><strong>BH</strong> – Bahrain</td><td>BHD</td><td>UTC+3 (offset=3)</td><td>Standard</td></tr>
+              <tr><td><strong>QA</strong> – Qatar</td><td>QAR</td><td>UTC+3 (offset=3)</td><td>Standard</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+fetch('/api/config/status')
+  .then(r => r.json())
+  .then(d => {
+    const body = document.getElementById('status-body');
+    if (d.configured) {
+      body.innerHTML = `
+        <div class="alert alert-success" style="margin-bottom:16px">
+          ✓ Oracle Fusion credentials are configured and the server is ready to push data.
+        </div>
+        <div class="row">
+          <div class="col"><span class="text-muted" style="font-size:13px">Base URL</span><br><strong>${d.baseUrl}</strong></div>
+          <div class="col"><span class="text-muted" style="font-size:13px">Username</span><br><strong>${d.username}</strong></div>
+          <div class="col"><span class="text-muted" style="font-size:13px">Regions</span><br><strong>${(d.regions||[]).join(', ')}</strong></div>
+        </div>`;
+    } else {
+      body.innerHTML = `
+        <div class="alert alert-danger" style="margin-bottom:16px">
+          ✗ Oracle Fusion credentials are NOT configured. Follow the setup instructions below.
+        </div>
+        <p style="font-size:14px;color:var(--muted)">
+          Create a <code>.env</code> file in the <code>oracle-crm/</code> directory with your
+          FUSION_BASE_URL, FUSION_USERNAME, and FUSION_PASSWORD, then restart the server.
+        </p>`;
+    }
+  });
+</script>
+</body>
+</html>

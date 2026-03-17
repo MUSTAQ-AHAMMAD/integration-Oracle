@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .region-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#e9ecef;color:#495057;margin:2px}
+    .quick-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span>Oracle</span> CRM
+    <small>VendHQ → Fusion Sync</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/calculations.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Calculations Ref
+    </a>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>Dashboard</h1>
+    <div class="d-flex gap-10">
+      <a href="/new-sale.html" class="btn btn-primary">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+        New Sale Push
+      </a>
+    </div>
+  </div>
+  <div class="page-body">
+
+    <div id="alert-area" class="alert hidden"></div>
+
+    <!-- Quick actions -->
+    <div class="quick-actions">
+      <a href="/new-sale.html" class="btn btn-primary btn-lg">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+        Push Sale to Oracle
+      </a>
+      <a href="/calculations.html" class="btn btn-outline btn-lg">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2-2H7 2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        View Calculations
+      </a>
+      <a href="/config.html" class="btn btn-outline btn-lg">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Configure Credentials
+      </a>
+    </div>
+
+    <!-- Connection status card -->
+    <div class="card" id="conn-card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Oracle Fusion Connection
+      </div>
+      <div class="card-body" id="conn-body">
+        <div class="d-flex gap-10 flex-wrap">
+          <div><span class="text-muted" style="font-size:13px">Base URL</span><br><strong id="conn-url">–</strong></div>
+          <div><span class="text-muted" style="font-size:13px">Username</span><br><strong id="conn-user">–</strong></div>
+          <div><span class="text-muted" style="font-size:13px">Status</span><br><span id="conn-status" class="badge badge-muted">Unknown</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        How the Sync Works
+      </div>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">
+          Use the <strong>New Sale Push</strong> form to manually send a VendHQ sale to Oracle Fusion.
+          The CRM applies all calculations automatically and shows you a preview before pushing.
+        </p>
+        <ol style="font-size:14px;line-height:2;padding-left:20px;color:#333">
+          <li>Fill in the Sale header (invoice number, date, outlet, customer type)</li>
+          <li>Add line items (item, quantity, total price, tax)</li>
+          <li>Add payments (type, amount)</li>
+          <li>Click <strong>Preview Calculations</strong> to see all derived values</li>
+          <li>Click <strong>Push to Oracle Fusion</strong> to execute the 8-step API sequence</li>
+          <li>View the result steps and Oracle transaction numbers in the result panel</li>
+        </ol>
+
+        <div class="section-title mt-20">Oracle API sequence executed on every push</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>API Call</th><th>Purpose</th><th>Condition</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>GET /customers</td><td>Fetch CustomerId, OrgId</td><td>Always</td></tr>
+              <tr><td>2</td><td>GET /units</td><td>Resolve UOM codes</td><td>Per line item (cached)</td></tr>
+              <tr><td>3</td><td>POST /receivablesInvoices</td><td>Create AR Invoice</td><td>Always</td></tr>
+              <tr><td>4</td><td>POST /receivablesReceipts</td><td>Create standard receipt</td><td>Non-rounding payments</td></tr>
+              <tr><td>5</td><td>POST applyReceiptOnAccount</td><td>Link receipt → invoice</td><td>After step 4</td></tr>
+              <tr><td>6</td><td>POST /receivablesReceipts (misc)</td><td>Bank charges</td><td>When charges &gt; 0</td></tr>
+              <tr><td>7</td><td>POST /inventoryTransactions</td><td>Stock movement</td><td>Always</td></tr>
+              <tr><td>8</td><td>POST /journals</td><td>GL journal entry</td><td>Non-NORMAL customers only</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+fetch('/api/config/status')
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById('conn-url').textContent  = d.baseUrl  || '(not configured)';
+    document.getElementById('conn-user').textContent = d.username || '(not configured)';
+    const el = document.getElementById('conn-status');
+    if (d.configured) {
+      el.textContent = 'Configured'; el.className = 'badge badge-success';
+    } else {
+      el.textContent = 'Not configured'; el.className = 'badge badge-danger';
+      showAlert(document.getElementById('alert-area'), 'warning',
+        'Oracle Fusion credentials are not configured. Go to Configuration to set them up, or create a .env file.');
+    }
+  });
+</script>
+</body>
+</html>
