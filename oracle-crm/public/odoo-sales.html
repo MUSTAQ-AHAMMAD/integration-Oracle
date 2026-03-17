@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Odoo Sales</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Page-specific styles ─────────────────────────────────────────── */
+    .mode-tabs { display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
+    .mode-tab {
+      padding:7px 16px; border-radius:20px; font-size:13px; font-weight:600;
+      border:2px solid var(--border); cursor:pointer; background:var(--white);
+      color:var(--muted); transition:all .15s;
+    }
+    .mode-tab.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+
+    .pipeline-bar { height:6px; background:#e9ecef; border-radius:3px; margin:12px 0; overflow:hidden; }
+    .pipeline-fill {
+      height:100%; background:var(--primary); border-radius:3px;
+      transition:width .4s ease; width:0%;
+    }
+    .pipeline-fill.done    { background:var(--success); }
+    .pipeline-fill.failed  { background:var(--danger);  }
+    .pipeline-fill.running { background:var(--primary);
+      background: repeating-linear-gradient(
+        90deg, var(--primary) 0%, var(--primary) 40%,
+        var(--primary-d) 40%, var(--primary-d) 100%);
+      animation: slide 1.2s linear infinite; background-size:40px 100%;
+    }
+    @keyframes slide { from{background-position:0 0} to{background-position:40px 0} }
+
+    .log-panel {
+      background:#0d1117; color:#c9d1d9; border-radius:var(--radius);
+      padding:14px 16px; font-family:monospace; font-size:12px;
+      line-height:1.7; max-height:320px; overflow-y:auto;
+    }
+    .log-panel .log-info    { color:#58a6ff; }
+    .log-panel .log-debug   { color:#8b949e; }
+    .log-panel .log-warn    { color:#e3b341; }
+    .log-panel .log-error   { color:#f85149; }
+    .log-panel .log-ts      { color:#484f58; margin-right:6px; }
+
+    .sales-table-wrap { max-height:420px; overflow-y:auto; }
+    .stat-inline { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:12px; }
+    .stat-inline .si { text-align:center; }
+    .stat-inline .si-val { font-size:24px; font-weight:700; color:var(--primary); }
+    .stat-inline .si-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; }
+
+    .tag { display:inline-block; padding:2px 7px; border-radius:12px;
+           font-size:11px; font-weight:600; }
+    .tag-sale  { background:#d1e7dd; color:#0a3622; }
+    .tag-done  { background:#cff4fc; color:#055160; }
+    .tag-draft { background:#fff3cd; color:#664d03; }
+
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media(max-width:900px){ .two-col { grid-template-columns:1fr; } }
+
+    .section-divider { border:none; border-top:1px solid var(--border); margin:24px 0; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span>Oracle</span> CRM
+    <small>Odoo → Fusion Sync</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/odoo-sales.html" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+      Odoo Sales
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/calculations.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Calculations Ref
+    </a>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<!-- ── Main content ──────────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="topbar">
+    <h1>Odoo Sales Module</h1>
+    <div class="d-flex gap-10">
+      <span id="odoo-config-badge" class="badge badge-muted">Checking Odoo…</span>
+    </div>
+  </div>
+  <div class="page-body">
+
+    <div id="alert-area" class="alert hidden"></div>
+
+    <!-- ── Step 1: Fetch from Odoo ─────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Step 1 – Fetch Sales from Odoo
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Pull and store orders in local DB</span>
+      </div>
+      <div class="card-body">
+        <div class="two-col">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Date From <span class="req">*</span></label>
+              <input type="date" id="fetch-date-from" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date To <span class="req">*</span></label>
+              <input type="date" id="fetch-date-to" class="form-control">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label class="form-label">Store / Warehouse <span style="font-weight:400;color:var(--muted)">(optional – leave blank for all stores)</span></label>
+              <select id="fetch-store" class="form-control form-select">
+                <option value="">All Stores</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-top:28px">
+              <button id="btn-fetch" class="btn btn-primary btn-lg" style="width:100%">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Fetch from Odoo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fetch job progress -->
+        <div id="fetch-progress" class="hidden" style="margin-top:16px">
+          <div class="d-flex gap-10" style="align-items:center;margin-bottom:8px">
+            <strong id="fetch-status-label">Queued</strong>
+            <span class="badge badge-muted" id="fetch-job-id-label" style="font-size:11px"></span>
+            <span id="fetch-counter" class="text-muted" style="font-size:13px"></span>
+          </div>
+          <div class="pipeline-bar"><div class="pipeline-fill" id="fetch-fill"></div></div>
+          <div class="log-panel" id="fetch-log" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stored Sales ─────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        Stored Odoo Sales
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Orders in local database</span>
+      </div>
+      <div class="card-body">
+        <!-- Filter row -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
+          <div style="flex:1;min-width:130px">
+            <label class="form-label" style="font-size:12px">From</label>
+            <input type="date" id="view-date-from" class="form-control">
+          </div>
+          <div style="flex:1;min-width:130px">
+            <label class="form-label" style="font-size:12px">To</label>
+            <input type="date" id="view-date-to" class="form-control">
+          </div>
+          <div style="flex:1;min-width:130px">
+            <label class="form-label" style="font-size:12px">Store</label>
+            <select id="view-store" class="form-control form-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <button id="btn-load-sales" class="btn btn-outline" style="height:38px">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+            Filter
+          </button>
+          <button id="btn-refresh-sales" class="btn btn-outline" style="height:38px" title="Refresh table">⟳</button>
+        </div>
+
+        <div id="sales-stats" class="stat-inline hidden"></div>
+
+        <div class="sales-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Sale Order</th>
+                <th>Date</th>
+                <th>Store</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Fetched</th>
+              </tr>
+            </thead>
+            <tbody id="sales-tbody">
+              <tr><td colspan="9" class="text-muted" style="text-align:center;padding:24px">
+                Click Filter or Refresh to load stored sales.
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="sales-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <!-- ── Step 2: Push to Oracle ──────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Step 2 – Push Odoo Sales to Oracle Fusion
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Runs as a non-blocking background job</span>
+      </div>
+      <div class="card-body">
+
+        <!-- Push mode selector -->
+        <div class="form-group">
+          <label class="form-label">Push Mode</label>
+          <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="BY_DATE">
+              📅 By Date (All Stores)
+            </button>
+            <button class="mode-tab" data-mode="BY_STORE_DATE">
+              🏪 By Store + Date
+            </button>
+            <button class="mode-tab" data-mode="ALL_STORES_DATE">
+              🌐 All Stores · Date Range
+            </button>
+          </div>
+          <input type="hidden" id="push-mode" value="BY_DATE">
+        </div>
+
+        <div class="two-col">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Date From <span class="req">*</span></label>
+              <input type="date" id="push-date-from" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date To <span class="req">*</span></label>
+              <input type="date" id="push-date-to" class="form-control">
+            </div>
+          </div>
+          <div>
+            <div id="push-store-group" class="form-group hidden">
+              <label class="form-label">Store <span class="req">*</span></label>
+              <select id="push-store" class="form-control form-select">
+                <option value="">Select a store…</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-top:28px">
+              <button id="btn-push" class="btn btn-primary btn-lg" style="width:100%">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                Push to Oracle Fusion
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Push job progress -->
+        <div id="push-progress" class="hidden" style="margin-top:16px">
+          <div class="d-flex gap-10" style="align-items:center;margin-bottom:8px;flex-wrap:wrap">
+            <strong id="push-status-label">Queued</strong>
+            <span class="badge badge-muted" id="push-job-id-label" style="font-size:11px"></span>
+            <span id="push-counter" class="text-muted" style="font-size:13px"></span>
+            <span id="push-fail-counter" class="text-muted" style="font-size:13px"></span>
+          </div>
+          <div class="pipeline-bar"><div class="pipeline-fill" id="push-fill"></div></div>
+          <div class="log-panel" id="push-log" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Recent Jobs ─────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Recent Jobs
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Job ID</th><th>Type</th><th>Mode</th><th>Date Range</th><th>Store</th><th>Status</th><th>Progress</th><th>Started</th></tr>
+            </thead>
+            <tbody id="jobs-tbody">
+              <tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No jobs yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button id="btn-refresh-jobs" class="btn btn-outline btn-sm" style="margin-top:10px">⟳ Refresh Jobs</button>
+      </div>
+    </div>
+
+  </div><!-- /page-body -->
+</div><!-- /main-content -->
+
+<script src="/js/app.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Odoo Sales – Frontend Controller
+   ══════════════════════════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+
+// ── State ────────────────────────────────────────────────────────────
+let storeList      = [];
+let fetchPollTimer = null;
+let pushPollTimer  = null;
+let currentOffset  = 0;
+const PAGE_SIZE    = 50;
+
+// ── Bootstrap ────────────────────────────────────────────────────────
+(async function init() {
+  setDefaultDates();
+  await Promise.all([checkOdooConfig(), loadStores()]);
+  loadJobs();
+})();
+
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  ['fetch-date-from','push-date-from','view-date-from'].forEach(id => $(id).value = weekAgo);
+  ['fetch-date-to','push-date-to','view-date-to'].forEach(id => $(id).value = today);
+}
+
+async function checkOdooConfig() {
+  try {
+    const d = await api('/api/odoo/config');
+    const badge = $('odoo-config-badge');
+    if (d.configured) {
+      badge.textContent = `Odoo: ${d.url}`;
+      badge.className = 'badge badge-success';
+    } else {
+      badge.textContent = 'Odoo not configured';
+      badge.className = 'badge badge-danger';
+      showAlert($('alert-area'), 'warning',
+        'Odoo credentials are not configured. Add ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD to .env');
+    }
+  } catch(e) { /* ignore */ }
+}
+
+async function loadStores() {
+  try {
+    const d = await api('/api/odoo/stores');
+    storeList = d.stores || [];
+  } catch(_) { storeList = []; }
+
+  const opts = storeList.map(s =>
+    `<option value="${s.id}">${escHtml(s.name)}${s.code ? ' ('+escHtml(s.code)+')' : ''}</option>`
+  ).join('');
+
+  ['fetch-store','view-store','push-store'].forEach(id => {
+    const sel = $(id);
+    const prefix = id === 'push-store' ? '<option value="">Select a store…</option>' : '<option value="">All Stores</option>';
+    sel.innerHTML = prefix + opts;
+  });
+}
+
+// ── Fetch section ────────────────────────────────────────────────────
+$('btn-fetch').addEventListener('click', async () => {
+  const dateFrom  = $('fetch-date-from').value;
+  const dateTo    = $('fetch-date-to').value;
+  const storeId   = $('fetch-store').value || undefined;
+  const storeName = storeId
+    ? (storeList.find(s => String(s.id) === String(storeId)) || {}).name
+    : undefined;
+
+  if (!dateFrom || !dateTo) { showAlert($('alert-area'),'warning','Please select date range'); return; }
+
+  hideAlert($('alert-area'));
+  $('btn-fetch').disabled = true;
+
+  try {
+    const res = await api('/api/odoo/fetch', 'POST', { dateFrom, dateTo, storeId, storeName });
+    startFetchPoll(res.jobId);
+  } catch(e) {
+    showAlert($('alert-area'),'danger',e.message);
+    $('btn-fetch').disabled = false;
+  }
+});
+
+function startFetchPoll(jobId) {
+  $('fetch-progress').classList.remove('hidden');
+  $('fetch-job-id-label').textContent = 'Job: ' + jobId.slice(0,8) + '…';
+  setFetchStatus('QUEUED');
+  if (fetchPollTimer) clearInterval(fetchPollTimer);
+  fetchPollTimer = setInterval(() => pollJob(jobId, 'fetch'), 1500);
+}
+
+async function pollJob(jobId, kind) {
+  try {
+    const job = await api(`/api/odoo/jobs/${jobId}`);
+    const isDone = job.status === 'DONE' || job.status === 'FAILED';
+
+    if (kind === 'fetch') {
+      setFetchStatus(job.status);
+      renderLog($('fetch-log'), job.log);
+      const pct = job.total > 0 ? Math.round((job.processed / job.total) * 100) : (isDone ? 100 : 0);
+      setBar($('fetch-fill'), pct, job.status);
+      $('fetch-counter').textContent = job.total ? `${job.processed} / ${job.total}` : '';
+      if (isDone) {
+        clearInterval(fetchPollTimer);
+        $('btn-fetch').disabled = false;
+        if (job.status === 'DONE') loadSales();
+      }
+    } else {
+      setPushStatus(job.status);
+      renderLog($('push-log'), job.log);
+      const pct = job.total > 0 ? Math.round(((job.processed + job.failed) / job.total) * 100) : (isDone ? 100 : 0);
+      setBar($('push-fill'), pct, job.status);
+      $('push-counter').textContent  = job.total   ? `✓ ${job.processed} pushed` : '';
+      $('push-fail-counter').textContent = job.failed ? `✗ ${job.failed} failed`  : '';
+      if (isDone) {
+        clearInterval(pushPollTimer);
+        $('btn-push').disabled = false;
+      }
+    }
+    loadJobs(); // refresh job table
+  } catch(_) {}
+}
+
+function setFetchStatus(s) {
+  $('fetch-status-label').textContent = s;
+  $('fetch-status-label').style.color = statusColour(s);
+}
+function setPushStatus(s) {
+  $('push-status-label').textContent = s;
+  $('push-status-label').style.color = statusColour(s);
+}
+
+// ── Sales table ──────────────────────────────────────────────────────
+$('btn-load-sales').addEventListener('click', () => { currentOffset = 0; loadSales(); });
+$('btn-refresh-sales').addEventListener('click', () => loadSales());
+
+async function loadSales(offset) {
+  if (offset === undefined) offset = currentOffset;
+  const params = new URLSearchParams({
+    dateFrom : $('view-date-from').value || '',
+    dateTo   : $('view-date-to').value   || '',
+    storeId  : $('view-store').value     || '',
+    limit    : PAGE_SIZE,
+    offset,
+  });
+  // Remove empty params
+  for (const [k,v] of [...params]) if (!v) params.delete(k);
+
+  try {
+    const d = await api('/api/odoo/sales?' + params.toString());
+    renderSalesTable(d.sales, d.total, offset);
+    currentOffset = offset;
+  } catch(e) {
+    showAlert($('alert-area'),'danger','Failed to load sales: ' + e.message);
+  }
+}
+
+function renderSalesTable(rows, total, offset) {
+  const stats = $('sales-stats');
+  stats.classList.remove('hidden');
+  stats.innerHTML = `
+    <div class="si"><div class="si-val">${total.toLocaleString()}</div><div class="si-lbl">Total Orders</div></div>
+    <div class="si"><div class="si-val">${rows.length}</div><div class="si-lbl">Showing</div></div>
+  `;
+
+  const tbody = $('sales-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center;padding:24px">No sales found matching the filters.</td></tr>';
+    $('sales-pagination').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((s, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:12px">${offset + i + 1}</td>
+      <td><strong>${escHtml(s.name)}</strong></td>
+      <td>${escHtml(s.date_order)}</td>
+      <td>${escHtml(s.store_name || '–')}</td>
+      <td>${escHtml(s.partner_name || '–')}</td>
+      <td style="text-align:right">${fmtMoney(s.amount_total)}</td>
+      <td>${escHtml(s.currency || '–')}</td>
+      <td><span class="tag tag-${escHtml(s.state)}">${escHtml(s.state)}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${s.fetched_at ? s.fetched_at.replace('T',' ').slice(0,16) : '–'}</td>
+    </tr>
+  `).join('');
+
+  const from = offset + 1;
+  const to   = Math.min(offset + rows.length, total);
+  const pag  = $('sales-pagination');
+  pag.innerHTML = `Showing ${from}–${to} of ${total} &nbsp;`;
+  if (offset > 0) {
+    const prev = document.createElement('button');
+    prev.className = 'btn btn-outline btn-sm';
+    prev.textContent = '← Previous';
+    prev.onclick = () => loadSales(Math.max(0, offset - PAGE_SIZE));
+    pag.appendChild(prev);
+  }
+  if (to < total) {
+    const next = document.createElement('button');
+    next.className = 'btn btn-outline btn-sm';
+    next.style.marginLeft = '6px';
+    next.textContent = 'Next →';
+    next.onclick = () => loadSales(offset + PAGE_SIZE);
+    pag.appendChild(next);
+  }
+}
+
+// ── Push section ─────────────────────────────────────────────────────
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const mode = tab.dataset.mode;
+    $('push-mode').value = mode;
+    // Show/hide store selector
+    $('push-store-group').classList.toggle('hidden', mode !== 'BY_STORE_DATE');
+  });
+});
+
+$('btn-push').addEventListener('click', async () => {
+  const mode     = $('push-mode').value;
+  const dateFrom = $('push-date-from').value;
+  const dateTo   = $('push-date-to').value;
+  const storeId  = $('push-store').value || undefined;
+  const storeName = storeId
+    ? (storeList.find(s => String(s.id) === String(storeId)) || {}).name
+    : undefined;
+
+  if (!dateFrom || !dateTo) { showAlert($('alert-area'),'warning','Please select date range'); return; }
+  if (mode === 'BY_STORE_DATE' && !storeId) {
+    showAlert($('alert-area'),'warning','Please select a store for BY_STORE_DATE mode'); return;
+  }
+
+  hideAlert($('alert-area'));
+  $('btn-push').disabled = true;
+
+  try {
+    const res = await api('/api/odoo/push', 'POST', {
+      mode, dateFrom, dateTo, storeId, storeName,
+    });
+    startPushPoll(res.jobId);
+  } catch(e) {
+    showAlert($('alert-area'),'danger',e.message);
+    $('btn-push').disabled = false;
+  }
+});
+
+function startPushPoll(jobId) {
+  $('push-progress').classList.remove('hidden');
+  $('push-job-id-label').textContent = 'Job: ' + jobId.slice(0,8) + '…';
+  setPushStatus('QUEUED');
+  if (pushPollTimer) clearInterval(pushPollTimer);
+  pushPollTimer = setInterval(() => pollJob(jobId, 'push'), 2000);
+}
+
+// ── Jobs table ───────────────────────────────────────────────────────
+$('btn-refresh-jobs').addEventListener('click', loadJobs);
+
+async function loadJobs() {
+  try {
+    const d = await api('/api/odoo/jobs?limit=20');
+    renderJobsTable(d.jobs);
+  } catch(_) {}
+}
+
+function renderJobsTable(jobs) {
+  const tbody = $('jobs-tbody');
+  if (!jobs || jobs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No jobs yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = jobs.map(j => {
+    const pct   = j.total > 0 ? Math.round(((j.processed + j.failed) / j.total) * 100) : (j.status === 'DONE' ? 100 : 0);
+    const type  = j.mode && j.mode.includes('STORE') ? 'Push' : (j.status === 'DONE' && j.processed > 0 ? 'Fetch/Push' : 'Fetch');
+    const dr    = [j.date_from, j.date_to].filter(Boolean).join(' → ') || '–';
+    return `<tr>
+      <td style="font-size:11px;color:var(--muted)">${escHtml(j.job_id.slice(0,8))}…</td>
+      <td>${type}</td>
+      <td><span style="font-size:12px">${escHtml(j.mode)}</span></td>
+      <td style="font-size:12px">${escHtml(dr)}</td>
+      <td style="font-size:12px">${escHtml(j.store_name || '–')}</td>
+      <td><span class="badge ${badgeClass(j.status)}">${j.status}</span></td>
+      <td style="font-size:12px">${j.total ? pct+'% ('+j.processed+'/'+j.total+')' : '–'}</td>
+      <td style="font-size:11px;color:var(--muted)">${j.started_at ? j.started_at.replace('T',' ').slice(0,16) : '–'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Utilities ────────────────────────────────────────────────────────
+async function api(url, method = 'GET', body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function renderLog(el, entries) {
+  if (!entries || entries.length === 0) return;
+  el.innerHTML = entries.map(e => {
+    const lvl = (e.level || 'info').toLowerCase();
+    const ts  = (e.ts || '').replace('T',' ').slice(11,19);
+    const msg = escHtml(e.message || '');
+    const meta = Object.entries(e)
+      .filter(([k]) => !['level','message','ts','module'].includes(k))
+      .map(([k,v]) => `<span style="color:#8b949e"> ${escHtml(k)}=</span><span style="color:#ffa657">${escHtml(JSON.stringify(v))}</span>`)
+      .join('');
+    return `<div><span class="log-ts">${ts}</span><span class="log-${lvl}">[${lvl.toUpperCase()}]</span> ${msg}${meta}</div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function setBar(el, pct, status) {
+  el.style.width = pct + '%';
+  el.className = 'pipeline-fill';
+  if (status === 'RUNNING') el.classList.add('running');
+  else if (status === 'DONE') el.classList.add('done');
+  else if (status === 'FAILED') el.classList.add('failed');
+}
+
+function statusColour(s) {
+  if (s === 'DONE')    return 'var(--success)';
+  if (s === 'FAILED')  return 'var(--danger)';
+  if (s === 'RUNNING') return 'var(--primary)';
+  return 'var(--muted)';
+}
+
+function badgeClass(s) {
+  if (s === 'DONE')    return 'badge-success';
+  if (s === 'FAILED')  return 'badge-danger';
+  if (s === 'RUNNING') return 'badge-warning';
+  return 'badge-muted';
+}
+
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Defined locally so this page is self-contained (also available from app.js)
+function fmtMoney(n, decimals = 2) {
+  return Number(n).toLocaleString('en', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  });
+}
+function showAlert(el, type, msg) {
+  if (!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideAlert(el) { if (el) el.classList.add('hidden'); }
+</script>
+</body>
+</html>
