@@ -98,6 +98,7 @@ router.post('/push', (req, res) => {
     dateFrom, dateTo,
     storeId, storeName,
     metadata, outlet,
+    skipAlreadyPushed,
   } = req.body || {};
 
   const validModes = ['BY_DATE', 'BY_STORE_DATE', 'ALL_STORES_DATE'];
@@ -121,6 +122,9 @@ router.post('/push', (req, res) => {
       storeName: storeName || undefined,
       metadata : metadata  || undefined,
       outlet   : outlet    || undefined,
+      // skipAlreadyPushed defaults to true inside startPushJob; the caller can
+      // explicitly pass false to re-push orders that were already synced.
+      skipAlreadyPushed: skipAlreadyPushed !== undefined ? !!skipAlreadyPushed : undefined,
     });
 
     logger.info('Push job queued via API', { jobId, mode, dateFrom, dateTo, storeId });
@@ -188,13 +192,14 @@ router.get('/jobs', (req, res) => {
 
 // ── GET /api/odoo/sales ───────────────────────────────────────────────────────
 router.get('/sales', (req, res) => {
-  const { dateFrom, dateTo, storeId, limit = 100, offset = 0 } = req.query;
+  const { dateFrom, dateTo, storeId, unpushedOnly, limit = 100, offset = 0 } = req.query;
   const { rows, total } = db.querySales({
-    dateFrom : dateFrom || undefined,
-    dateTo   : dateTo   || undefined,
-    storeId  : storeId  ? Number(storeId) : undefined,
-    limit    : Math.min(Number(limit)  || 100, 500),
-    offset   : Number(offset) || 0,
+    dateFrom     : dateFrom     || undefined,
+    dateTo       : dateTo       || undefined,
+    storeId      : storeId      ? Number(storeId) : undefined,
+    unpushedOnly : unpushedOnly === 'true' || unpushedOnly === '1',
+    limit        : Math.min(Number(limit)  || 100, 500),
+    offset       : Number(offset) || 0,
   });
   res.json({ sales: rows, total, count: rows.length });
 });
@@ -228,6 +233,20 @@ router.get('/stores', async (req, res) => {
     logger.error('Failed to fetch Odoo stores', { err: err.message });
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── GET /api/odoo/push-stats ──────────────────────────────────────────────────
+// Returns counts of pushed vs pending sales for a given date range.
+router.get('/push-stats', (req, res) => {
+  const { dateFrom, dateTo, storeId } = req.query;
+  const baseFilters = {
+    dateFrom: dateFrom || undefined,
+    dateTo  : dateTo   || undefined,
+    storeId : storeId  ? Number(storeId) : undefined,
+  };
+  const { total }           = db.querySales({ ...baseFilters, limit: 1, offset: 0 });
+  const { total: unpushed } = db.querySales({ ...baseFilters, unpushedOnly: true, limit: 1, offset: 0 });
+  res.json({ total, pushed: total - unpushed, pending: unpushed });
 });
 
 // ── GET /api/odoo/config ──────────────────────────────────────────────────────

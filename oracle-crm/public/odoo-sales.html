@@ -182,6 +182,13 @@
               <option value="">All</option>
             </select>
           </div>
+          <div style="flex:1;min-width:130px">
+            <label class="form-label" style="font-size:12px">Push Status</label>
+            <select id="view-pushed-filter" class="form-control form-select">
+              <option value="">All</option>
+              <option value="unpushed">Pending push</option>
+            </select>
+          </div>
           <button id="btn-load-sales" class="btn btn-outline" style="height:38px">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
             Filter
@@ -202,12 +209,13 @@
                 <th>Customer</th>
                 <th>Total</th>
                 <th>Currency</th>
-                <th>Status</th>
+                <th>State</th>
+                <th>Oracle Txn</th>
                 <th>Fetched</th>
               </tr>
             </thead>
             <tbody id="sales-tbody">
-              <tr><td colspan="9" class="text-muted" style="text-align:center;padding:24px">
+              <tr><td colspan="10" class="text-muted" style="text-align:center;padding:24px">
                 Click Filter or Refresh to load stored sales.
               </td></tr>
             </tbody>
@@ -269,6 +277,78 @@
             </div>
           </div>
         </div>
+
+        <!-- ── Calculation & Receipt Configuration ──────────────────────── -->
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--primary);padding:6px 0;user-select:none">
+            ⚙ Calculation &amp; Receipt Configuration
+            <span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:6px">
+              (applies all middleware calculations identically to VendHQ path)
+            </span>
+          </summary>
+          <div class="two-col" style="margin-top:14px">
+            <div>
+              <div class="form-group">
+                <label class="form-label">Default Payment Type</label>
+                <input type="text" id="push-payment-type" class="form-control" value="Cash" placeholder="Cash">
+                <small class="text-muted">When Odoo has no payment breakdown, <code>amount_total</code> is sent as one payment of this type. All bank-charge and receipt calculations then run exactly as in the VendHQ middleware.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bank Charge Rate (%)</label>
+                <input type="number" id="push-bank-charge" class="form-control" value="0" min="0" max="100" step="0.01" placeholder="0">
+                <small class="text-muted">calculateMiscCharges: amount × (rate/100) × (1 + methodTax)</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Method Tax Rate (%)</label>
+                <input type="number" id="push-method-tax" class="form-control" value="0" min="0" max="100" step="0.01" placeholder="0">
+                <small class="text-muted">Applied on top of the bank charge (e.g. 5 for 5% VAT on charges)</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tax Classification Code</label>
+                <input type="text" id="push-tax-name" class="form-control" placeholder="e.g. STANDARD">
+                <small class="text-muted">Oracle AR TaxClassificationCode for all invoice lines</small>
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label class="form-label">Customer Type</label>
+                <select id="push-customer-type" class="form-control form-select">
+                  <option value="NORMAL">NORMAL</option>
+                  <option value="HUNGERSTATION">HUNGERSTATION</option>
+                  <option value="CAREEM">CAREEM</option>
+                  <option value="TALABAT">TALABAT</option>
+                  <option value="JAHEZ">JAHEZ</option>
+                  <option value="NOON">NOON</option>
+                </select>
+                <small class="text-muted">Non-NORMAL types trigger journal entry creation</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Region</label>
+                <select id="push-region" class="form-control form-select">
+                  <option value="AE">AE – UAE</option>
+                  <option value="KW">KW – Kuwait</option>
+                  <option value="OM">OM – Oman</option>
+                  <option value="SA">SA – Saudi Arabia</option>
+                  <option value="BH">BH – Bahrain</option>
+                  <option value="QA">QA – Qatar</option>
+                </select>
+                <small class="text-muted">Determines cashAccountName and Oman Debit Card cap logic</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Timezone Offset</label>
+                <input type="number" id="push-tz-offset" class="form-control" value="4" step="0.5" min="-12" max="14">
+                <small class="text-muted">Adjusts sale date before GL date calculation.<br>e.g. 4 = UAE (UTC+4), 3.5 = Iran (UTC+3:30), 3 = KSA</small>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="push-skip-pushed" checked>
+                  <span>Skip orders already pushed to Oracle</span>
+                </label>
+                <small class="text-muted">Uncheck to force re-push of all orders in the date range</small>
+              </div>
+            </div>
+          </div>
+        </details>
 
         <!-- Push job progress -->
         <div id="push-progress" class="hidden" style="margin-top:16px">
@@ -408,7 +488,7 @@ async function pollJob(jobId, kind) {
 
     if (kind === 'fetch') {
       setFetchStatus(job.status);
-      renderLog($('fetch-log'), job.log);
+      renderLog($('fetch-log'), job.recent_logs);
       const pct = job.total > 0 ? Math.round((job.processed / job.total) * 100) : (isDone ? 100 : 0);
       setBar($('fetch-fill'), pct, job.status);
       $('fetch-counter').textContent = job.total ? `${job.processed} / ${job.total}` : '';
@@ -419,14 +499,15 @@ async function pollJob(jobId, kind) {
       }
     } else {
       setPushStatus(job.status);
-      renderLog($('push-log'), job.log);
+      renderLog($('push-log'), job.recent_logs);
       const pct = job.total > 0 ? Math.round(((job.processed + job.failed) / job.total) * 100) : (isDone ? 100 : 0);
       setBar($('push-fill'), pct, job.status);
-      $('push-counter').textContent  = job.total   ? `✓ ${job.processed} pushed` : '';
-      $('push-fail-counter').textContent = job.failed ? `✗ ${job.failed} failed`  : '';
+      $('push-counter').textContent      = job.total  ? `✓ ${job.processed} pushed` : '';
+      $('push-fail-counter').textContent = job.failed ? `✗ ${job.failed} failed`    : '';
       if (isDone) {
         clearInterval(pushPollTimer);
         $('btn-push').disabled = false;
+        if (job.status === 'DONE') loadSales(); // refresh table to show oracle_txn_id
       }
     }
     loadJobs(); // refresh job table
@@ -448,11 +529,13 @@ $('btn-refresh-sales').addEventListener('click', () => loadSales());
 
 async function loadSales(offset) {
   if (offset === undefined) offset = currentOffset;
+  const unpushedOnly = $('view-pushed-filter').value === 'unpushed';
   const params = new URLSearchParams({
-    dateFrom : $('view-date-from').value || '',
-    dateTo   : $('view-date-to').value   || '',
-    storeId  : $('view-store').value     || '',
-    limit    : PAGE_SIZE,
+    dateFrom     : $('view-date-from').value || '',
+    dateTo       : $('view-date-to').value   || '',
+    storeId      : $('view-store').value     || '',
+    unpushedOnly : unpushedOnly ? '1' : '',
+    limit        : PAGE_SIZE,
     offset,
   });
   // Remove empty params
@@ -470,20 +553,34 @@ async function loadSales(offset) {
 function renderSalesTable(rows, total, offset) {
   const stats = $('sales-stats');
   stats.classList.remove('hidden');
-  stats.innerHTML = `
-    <div class="si"><div class="si-val">${total.toLocaleString()}</div><div class="si-lbl">Total Orders</div></div>
-    <div class="si"><div class="si-val">${rows.length}</div><div class="si-lbl">Showing</div></div>
-  `;
+
+  // Fetch push-stats asynchronously to show pushed/pending counts
+  api('/api/odoo/push-stats?' + new URLSearchParams({
+    dateFrom: $('view-date-from').value || '',
+    dateTo  : $('view-date-to').value   || '',
+    storeId : $('view-store').value     || '',
+  }).toString()).then(s => {
+    stats.innerHTML = `
+      <div class="si"><div class="si-val">${s.total.toLocaleString()}</div><div class="si-lbl">Total Orders</div></div>
+      <div class="si"><div class="si-val" style="color:var(--success)">${s.pushed.toLocaleString()}</div><div class="si-lbl">Pushed ✓</div></div>
+      <div class="si"><div class="si-val" style="color:var(--muted)">${s.pending.toLocaleString()}</div><div class="si-lbl">Pending</div></div>
+    `;
+  }).catch(() => {
+    stats.innerHTML = `<div class="si"><div class="si-val">${total.toLocaleString()}</div><div class="si-lbl">Total Orders</div></div>`;
+  });
 
   const tbody = $('sales-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center;padding:24px">No sales found matching the filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="text-muted" style="text-align:center;padding:24px">No sales found matching the filters.</td></tr>';
     $('sales-pagination').textContent = '';
     return;
   }
 
-  tbody.innerHTML = rows.map((s, i) => `
-    <tr>
+  tbody.innerHTML = rows.map((s, i) => {
+    const pushCell = s.oracle_txn_id
+      ? `<td><span class="tag" style="background:#d1e7dd;color:#0a3622" title="Pushed at ${escHtml(s.pushed_at||'')}">✓ ${escHtml(s.oracle_txn_id)}</span></td>`
+      : `<td><span class="tag" style="background:#fff3cd;color:#664d03">Pending</span></td>`;
+    return `<tr>
       <td style="color:var(--muted);font-size:12px">${offset + i + 1}</td>
       <td><strong>${escHtml(s.name)}</strong></td>
       <td>${escHtml(s.date_order)}</td>
@@ -492,9 +589,10 @@ function renderSalesTable(rows, total, offset) {
       <td style="text-align:right">${fmtMoney(s.amount_total)}</td>
       <td>${escHtml(s.currency || '–')}</td>
       <td><span class="tag tag-${escHtml(s.state)}">${escHtml(s.state)}</span></td>
+      ${pushCell}
       <td style="font-size:11px;color:var(--muted)">${s.fetched_at ? s.fetched_at.replace('T',' ').slice(0,16) : '–'}</td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 
   const from = offset + 1;
   const to   = Math.min(offset + rows.length, total);
@@ -543,12 +641,49 @@ $('btn-push').addEventListener('click', async () => {
     showAlert($('alert-area'),'warning','Please select a store for BY_STORE_DATE mode'); return;
   }
 
+  // ── Gather calculation configuration ────────────────────────────────
+  const paymentType   = ($('push-payment-type').value || 'Cash').trim();
+  const bankChargeRaw = parseFloat($('push-bank-charge').value) || 0;
+  const methodTaxRaw  = parseFloat($('push-method-tax').value)  || 0;
+  const taxName       = ($('push-tax-name').value || '').trim() || null;
+  const customerType  = $('push-customer-type').value || 'NORMAL';
+  const region        = $('push-region').value || 'AE';
+  const tzOffset      = parseFloat($('push-tz-offset').value) || 0;
+  const skipPushed    = $('push-skip-pushed').checked;
+
+  // receiptMethodMeta maps the payment type to bank charge rates so that
+  // calculateMiscCharges() and netReceiptAmount() run with the correct rates
+  // (identical to the VendHQ middleware path).
+  const receiptMethodMeta = {};
+  if (paymentType) {
+    receiptMethodMeta[paymentType] = {
+      bankChargeRate: bankChargeRaw / 100,
+      methodTax     : methodTaxRaw  / 100,
+    };
+  }
+
+  const metadata = {
+    // Calculation settings (used by buildOracleSalePayload → computeSalePreview)
+    defaultPaymentType : paymentType,
+    receiptMethodMeta,
+    customerType,
+    region,
+    tzOffset,
+    taxName,
+    // Oracle invoice fields (defaults – override via API body if needed)
+    businessUnit : 'DEFAULT_BU',
+    txnSource    : 'ODOO_SALES',
+    txnType      : 'Invoice',
+  };
+
   hideAlert($('alert-area'));
   $('btn-push').disabled = true;
 
   try {
     const res = await api('/api/odoo/push', 'POST', {
       mode, dateFrom, dateTo, storeId, storeName,
+      metadata,
+      skipAlreadyPushed: skipPushed,
     });
     startPushPoll(res.jobId);
   } catch(e) {
@@ -614,14 +749,27 @@ async function api(url, method = 'GET', body) {
 function renderLog(el, entries) {
   if (!entries || entries.length === 0) return;
   el.innerHTML = entries.map(e => {
-    const lvl = (e.level || 'info').toLowerCase();
-    const ts  = (e.ts || '').replace('T',' ').slice(11,19);
-    const msg = escHtml(e.message || '');
-    const meta = Object.entries(e)
-      .filter(([k]) => !['level','message','ts','module'].includes(k))
-      .map(([k,v]) => `<span style="color:#8b949e"> ${escHtml(k)}=</span><span style="color:#ffa657">${escHtml(JSON.stringify(v))}</span>`)
-      .join('');
-    return `<div><span class="log-ts">${ts}</span><span class="log-${lvl}">[${lvl.toUpperCase()}]</span> ${msg}${meta}</div>`;
+    const lvl  = (e.level || 'info').toLowerCase();
+    // Structured job_logs use created_at; legacy JSON-blob entries used ts
+    const ts   = ((e.created_at || e.ts || '')).replace('T',' ').slice(11,19);
+    const msg  = escHtml(e.message || '');
+    // meta_json is a JSON string in the structured table; parse it for display
+    let metaStr = '';
+    if (e.meta_json) {
+      try {
+        const m = JSON.parse(e.meta_json);
+        metaStr = Object.entries(m)
+          .map(([k,v]) => `<span style="color:#8b949e"> ${escHtml(k)}=</span><span style="color:#ffa657">${escHtml(JSON.stringify(v))}</span>`)
+          .join('');
+      } catch(_) {}
+    } else {
+      // legacy format: extra keys are inline on the entry object
+      metaStr = Object.entries(e)
+        .filter(([k]) => !['level','message','ts','module','created_at','id','job_id','meta_json'].includes(k))
+        .map(([k,v]) => `<span style="color:#8b949e"> ${escHtml(k)}=</span><span style="color:#ffa657">${escHtml(JSON.stringify(v))}</span>`)
+        .join('');
+    }
+    return `<div><span class="log-ts">${ts}</span><span class="log-${lvl}">[${lvl.toUpperCase()}]</span> ${msg}${metaStr}</div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
 }
