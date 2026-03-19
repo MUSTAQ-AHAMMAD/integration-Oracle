@@ -36,11 +36,13 @@ const db              = require('./db');
 const logger          = require('./logger').child('OdooSync');
 
 // Max concurrent Oracle pushes per job chunk (keep CRM responsive)
-const MAX_CONCURRENT    = Number(process.env.ODOO_PUSH_CONCURRENCY)  || 3;
+const MAX_CONCURRENT    = Number(process.env.ODOO_PUSH_CONCURRENCY)  || 10;
 // How many orders to fetch from Odoo per page
 const FETCH_PAGE_SIZE   = Number(process.env.ODOO_FETCH_PAGE_SIZE)   || 500;
 // How many records to process per SQLite batch in push jobs
 const PUSH_BATCH_SIZE   = Number(process.env.PUSH_BATCH_SIZE)        || 500;
+// Max concurrent Odoo line-chunk fetches (paginated in parallel)
+const LINE_FETCH_CONCURRENCY = Number(process.env.ODOO_LINE_FETCH_CONCURRENCY) || 5;
 
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
@@ -177,33 +179,48 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId }) {
       return;
     }
 
-    // ── Fetch + persist lines (paginated by order IDs) ────────────────────────
+    // ── Fetch + persist lines (parallel chunks, bulk ID lookup) ──────────────
     jobLog(jobId, 'info', 'Fetching sale order lines…', { orderCount: allOrderIds.length });
 
-    // Fetch lines in chunks to avoid Odoo's domain-length / payload limits
+    // Split all order IDs into chunks for Odoo calls.
     const LINE_FETCH_CHUNK = 200;
-    let totalLines = 0;
+    const idChunks = [];
     for (let i = 0; i < allOrderIds.length; i += LINE_FETCH_CHUNK) {
-      const idChunk  = allOrderIds.slice(i, i + LINE_FETCH_CHUNK);
-      const rawLines = await odoo.getSaleOrderLines(idChunk);
+      idChunks.push(allOrderIds.slice(i, i + LINE_FETCH_CHUNK));
+    }
 
-      const lineRows = rawLines.map(l => {
-        const orderId = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id;
-        return {
-          sale_id        : db.getSaleInternalId(orderId),
-          odoo_line_id   : l.id,
-          product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
-          product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
-          qty_ordered    : Number(l.product_uom_qty) || 0,
-          qty_delivered  : Number(l.qty_delivered)   || 0,
-          price_unit     : Number(l.price_unit)       || 0,
-          price_subtotal : Number(l.price_subtotal)   || 0,
-          tax_ids        : JSON.stringify(l.tax_id    || []),
-        };
-      }).filter(l => l.sale_id !== null);
+    // Fetch lines for all chunks with bounded concurrency, then do a single
+    // bulk internal-ID map lookup per chunk (no N+1 queries).
+    let totalLines = 0;
+    const fetchBatches = chunkArray(idChunks, LINE_FETCH_CONCURRENCY);
+    for (const group of fetchBatches) {
+      const chunkResults = await Promise.all(group.map(idChunk => odoo.getSaleOrderLines(idChunk)));
 
-      db.upsertSaleLines(lineRows);
-      totalLines += lineRows.length;
+      for (let g = 0; g < group.length; g++) {
+        const idChunk  = group[g];
+        const rawLines = chunkResults[g];
+
+        // One bulk query instead of one SELECT per line
+        const internalIdMap = db.getSaleInternalIdMap(idChunk);
+
+        const lineRows = rawLines.map(l => {
+          const orderId = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id;
+          return {
+            sale_id        : internalIdMap.get(orderId) || null,
+            odoo_line_id   : l.id,
+            product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
+            product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
+            qty_ordered    : Number(l.product_uom_qty) || 0,
+            qty_delivered  : Number(l.qty_delivered)   || 0,
+            price_unit     : Number(l.price_unit)       || 0,
+            price_subtotal : Number(l.price_subtotal)   || 0,
+            tax_ids        : JSON.stringify(l.tax_id    || []),
+          };
+        }).filter(l => l.sale_id !== null);
+
+        db.upsertSaleLines(lineRows);
+        totalLines += lineRows.length;
+      }
 
       await new Promise(resolve => setImmediate(resolve));
     }
@@ -350,8 +367,10 @@ async function _runPushJob(jobId, options) {
               errorDetail : detail,
             });
           }
-          db.updateJob(jobId, { processed, failed });
         }));
+        // Update progress once per concurrent chunk, not once per order,
+        // to avoid redundant SQLite writes under high concurrency.
+        db.updateJob(jobId, { processed, failed });
       }
 
       dbOffset += batch.length;
@@ -447,44 +466,48 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
       });
       if (pending.length === 0) break;
 
-      for (const record of pending) {
-        try {
-          const internalId = db.getSaleInternalId(record.odoo_id);
-          if (!internalId) {
-            db.updateFailedRecord(record.id, 'SKIPPED');
-            jobLog(jobId, 'warn', `Skipping ${record.sale_name} – not found in local DB`);
-            failed++;
-            db.updateJob(jobId, { processed, failed });
-            continue;
-          }
+      // Process pending records with the same bounded concurrency as the main push job.
+      const chunks = chunkArray(pending, MAX_CONCURRENT);
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async record => {
+          try {
+            const internalId = db.getSaleInternalId(record.odoo_id);
+            if (!internalId) {
+              db.updateFailedRecord(record.id, 'SKIPPED');
+              jobLog(jobId, 'warn', `Skipping ${record.sale_name} – not found in local DB`);
+              failed++;
+              return;
+            }
 
-          const saleWithLines = db.getSaleWithLines(internalId);
-          const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
+            const saleWithLines = db.getSaleWithLines(internalId);
+            const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
 
-          const result = await oracle.pushSale(
-            salePayload.sale,
-            salePayload.metadata,
-            salePayload.outlet
-          );
+            const result = await oracle.pushSale(
+              salePayload.sale,
+              salePayload.metadata,
+              salePayload.outlet
+            );
 
-          if (result.success) {
-            db.updateFailedRecord(record.id, 'RESOLVED');
-            processed++;
-            jobLog(jobId, 'info', `✓ Retry succeeded for ${record.sale_name}`, {
-              transactionNumber: result.transactionNumber,
-            });
-          } else {
+            if (result.success) {
+              db.updateFailedRecord(record.id, 'RESOLVED');
+              processed++;
+              jobLog(jobId, 'info', `✓ Retry succeeded for ${record.sale_name}`, {
+                transactionNumber: result.transactionNumber,
+              });
+            } else {
+              db.updateFailedRecord(record.id, 'PENDING');
+              failed++;
+              jobLog(jobId, 'warn', `✗ Retry failed for ${record.sale_name}`, {
+                errors: result.errors,
+              });
+            }
+          } catch (err) {
             db.updateFailedRecord(record.id, 'PENDING');
             failed++;
-            jobLog(jobId, 'warn', `✗ Retry failed for ${record.sale_name}`, {
-              errors: result.errors,
-            });
+            jobLog(jobId, 'error', `✗ Exception retrying ${record.sale_name}: ${err.message}`);
           }
-        } catch (err) {
-          db.updateFailedRecord(record.id, 'PENDING');
-          failed++;
-          jobLog(jobId, 'error', `✗ Exception retrying ${record.sale_name}: ${err.message}`);
-        }
+        }));
+        // Update progress once per concurrent chunk
         db.updateJob(jobId, { processed, failed });
         await new Promise(resolve => setImmediate(resolve));
       }

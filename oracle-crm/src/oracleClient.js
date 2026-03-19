@@ -17,7 +17,15 @@
  * Auth: HTTP Basic (username + password from .env)
  */
 
+const http  = require('http');
+const https = require('https');
 const axios = require('axios');
+
+// Reuse TCP connections across all Oracle API calls (avoid per-request TLS handshake).
+// maxSockets limits concurrency at the transport layer; set generously so the
+// application-level ODOO_PUSH_CONCURRENCY env-var remains the effective ceiling.
+const _httpAgent  = new http.Agent ({ keepAlive: true, maxSockets: 64 });
+const _httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64 });
 
 class OracleClient {
   constructor(baseUrl, username, password) {
@@ -29,6 +37,8 @@ class OracleClient {
         'Accept': 'application/json',
       },
       timeout: 60000,
+      httpAgent : _httpAgent,
+      httpsAgent: _httpsAgent,
     });
   }
 

@@ -263,6 +263,31 @@ function getSaleInternalId(odooId) {
   return row ? row.id : null;
 }
 
+/**
+ * Bulk-fetch internal DB ids for an array of Odoo IDs.
+ * Returns a Map<odooId, internalId> for all IDs that exist in the DB.
+ * Much more efficient than calling getSaleInternalId() per line.
+ *
+ * @param {number[]} odooIds
+ * @returns {Map<number, number>}
+ */
+function getSaleInternalIdMap(odooIds) {
+  if (!odooIds || odooIds.length === 0) return new Map();
+  const db  = getDb();
+  // SQLite supports up to 32 766 bind parameters; chunk defensively.
+  const CHUNK = 500;
+  const map   = new Map();
+  for (let i = 0; i < odooIds.length; i += CHUNK) {
+    const slice       = odooIds.slice(i, i + CHUNK);
+    const placeholders = slice.map(() => '?').join(',');
+    const rows = db.prepare(
+      `SELECT id, odoo_id FROM odoo_sales WHERE odoo_id IN (${placeholders})`
+    ).all(...slice);
+    for (const row of rows) map.set(row.odoo_id, row.id);
+  }
+  return map;
+}
+
 // ── Push job helpers ──────────────────────────────────────────────────────────
 
 function createJob(job) {
@@ -416,6 +441,7 @@ module.exports = {
   querySales,
   getSaleWithLines,
   getSaleInternalId,
+  getSaleInternalIdMap,
   createJob,
   updateJob,
   appendJobLog,
