@@ -20,6 +20,8 @@ npm start
 # Open http://localhost:3000
 ```
 
+> **Windows users:** See the step-by-step [Windows Installation Guide](../WINDOWS_INSTALL.md) for full instructions including Node.js setup, environment configuration, and troubleshooting.
+
 ## Pages
 
 | Page | URL | Purpose |
