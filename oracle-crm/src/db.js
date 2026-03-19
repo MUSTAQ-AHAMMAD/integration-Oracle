@@ -142,6 +142,24 @@ function applyMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_failed_records_job    ON failed_records(job_id);
     CREATE INDEX IF NOT EXISTS idx_failed_records_status ON failed_records(status);
   `);
+
+  // Additive migrations – safe to run on an existing DB.
+  // SQLite's ALTER TABLE ADD COLUMN fails with "duplicate column name" when the
+  // column already exists; we catch only that specific error so genuine schema
+  // problems (table missing, disk full, etc.) still bubble up.
+  const alterSafely = (sql) => {
+    try {
+      db.exec(sql);
+    } catch (err) {
+      if (!err.message || !err.message.includes('duplicate column name')) throw err;
+    }
+  };
+  alterSafely('ALTER TABLE odoo_sales ADD COLUMN oracle_txn_id TEXT');
+  alterSafely('ALTER TABLE odoo_sales ADD COLUMN pushed_at     TEXT');
+  alterSafely('ALTER TABLE odoo_sales ADD COLUMN push_job_id   TEXT');
+  try {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_txn ON odoo_sales(oracle_txn_id)');
+  } catch (_) { /* already exists */ }
 }
 
 // ── Odoo Sales helpers ────────────────────────────────────────────────────────
@@ -209,15 +227,30 @@ function upsertSaleLines(lines) {
 }
 
 /**
+ * Mark a sale as successfully pushed to Oracle.
+ *
+ * @param {number} id            – odoo_sales.id (internal)
+ * @param {string} oracleTxnId  – Oracle TransactionNumber returned by createInvoice
+ * @param {string} [jobId]      – push_job that performed the push
+ */
+function updateSalePushStatus(id, oracleTxnId, jobId) {
+  const db = getDb();
+  db.prepare(
+    'UPDATE odoo_sales SET oracle_txn_id = ?, pushed_at = ?, push_job_id = ? WHERE id = ?'
+  ).run(oracleTxnId, new Date().toISOString(), jobId || null, id);
+}
+
+/**
  * Query stored sales with optional filters.
  * @param {object} filters
- * @param {string}  [filters.dateFrom]  YYYY-MM-DD
- * @param {string}  [filters.dateTo]    YYYY-MM-DD
+ * @param {string}  [filters.dateFrom]       YYYY-MM-DD
+ * @param {string}  [filters.dateTo]         YYYY-MM-DD
  * @param {number}  [filters.storeId]
- * @param {number}  [filters.limit]     default 500
- * @param {number}  [filters.offset]    default 0
+ * @param {boolean} [filters.unpushedOnly]   When true, only return sales without oracle_txn_id
+ * @param {number}  [filters.limit]          default 500
+ * @param {number}  [filters.offset]         default 0
  */
-function querySales({ dateFrom, dateTo, storeId, limit = 500, offset = 0 } = {}) {
+function querySales({ dateFrom, dateTo, storeId, unpushedOnly, limit = 500, offset = 0 } = {}) {
   const db = getDb();
   const conditions = [];
   const params     = {};
@@ -225,6 +258,7 @@ function querySales({ dateFrom, dateTo, storeId, limit = 500, offset = 0 } = {})
   if (dateFrom) { conditions.push('date_order >= @dateFrom'); params.dateFrom = dateFrom; }
   if (dateTo)   { conditions.push('date_order <= @dateTo');   params.dateTo   = dateTo;   }
   if (storeId)  { conditions.push('store_id = @storeId');     params.storeId  = storeId;  }
+  if (unpushedOnly) { conditions.push('oracle_txn_id IS NULL'); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   params.limit  = limit;
@@ -442,6 +476,7 @@ module.exports = {
   getSaleWithLines,
   getSaleInternalId,
   getSaleInternalIdMap,
+  updateSalePushStatus,
   createJob,
   updateJob,
   appendJobLog,

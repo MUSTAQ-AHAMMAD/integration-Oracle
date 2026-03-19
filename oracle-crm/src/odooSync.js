@@ -252,13 +252,28 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId }) {
  *   ALL_STORES_DATE – all stores (same as BY_DATE)
  *
  * @param {object} options
- * @param {string}  options.mode       'BY_DATE' | 'BY_STORE_DATE' | 'ALL_STORES_DATE'
- * @param {string}  options.dateFrom   YYYY-MM-DD
- * @param {string}  options.dateTo     YYYY-MM-DD
- * @param {number}  [options.storeId]  required for BY_STORE_DATE
+ * @param {string}  options.mode              'BY_DATE' | 'BY_STORE_DATE' | 'ALL_STORES_DATE'
+ * @param {string}  options.dateFrom          YYYY-MM-DD
+ * @param {string}  options.dateTo            YYYY-MM-DD
+ * @param {number}  [options.storeId]         required for BY_STORE_DATE
  * @param {string}  [options.storeName]
- * @param {object}  [options.metadata] Oracle Fusion metadata (businessUnit, etc.)
- * @param {object}  [options.outlet]   Oracle outlet config
+ * @param {object}  [options.metadata]        Oracle Fusion metadata (businessUnit, billToName…)
+ *                                            Also carries calculation settings:
+ *                                              defaultPaymentType  – payment type name when Odoo has no
+ *                                                                    explicit payment breakdown (default 'Cash')
+ *                                              receiptMethodMeta   – map of paymentType → {receiptMethodId,
+ *                                                                    bankAccountId, bankChargeRate, methodTax}
+ *                                              journalMeta         – journal entry config (required for
+ *                                                                    non-NORMAL customers)
+ *                                              customerType        – 'NORMAL' | 'HUNGERSTATION' | etc.
+ *                                              region              – 'AE' | 'KW' | 'OM' | …
+ *                                              tzOffset            – decimal timezone offset (e.g. 4 for UAE)
+ *                                              rateIsCorporate     – '1' for Corporate rate, else 'User'
+ *                                              taxName             – default tax classification code
+ *                                              uomCodeMap          – { [itemNumber]: 'Ea' } overrides
+ * @param {object}  [options.outlet]          Oracle outlet config
+ * @param {boolean} [options.skipAlreadyPushed=true]  Skip orders that already have oracle_txn_id set.
+ *                                            Set to false to force re-push of all orders in range.
  * @returns {string} jobId
  */
 function startPushJob(options) {
@@ -275,17 +290,20 @@ function startPushJob(options) {
 
 async function _runPushJob(jobId, options) {
   const { mode, dateFrom, dateTo, storeId, metadata, outlet } = options;
+  // Default: skip orders already successfully pushed (idempotent re-runs).
+  const skipAlreadyPushed = options.skipAlreadyPushed !== false;
 
   db.updateJob(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
-  jobLog(jobId, 'info', 'Push job started', { mode, dateFrom, dateTo, storeId });
+  jobLog(jobId, 'info', 'Push job started', { mode, dateFrom, dateTo, storeId, skipAlreadyPushed });
 
   try {
     const filters = { dateFrom, dateTo };
     if (mode === 'BY_STORE_DATE') filters.storeId = storeId;
+    if (skipAlreadyPushed) filters.unpushedOnly = true;
 
     // Resolve total first so progress can be tracked accurately
     const { total } = db.querySales({ ...filters, limit: 1, offset: 0 });
-    jobLog(jobId, 'info', `Found ${total} orders matching filters`, { filters });
+    jobLog(jobId, 'info', `Found ${total} orders matching filters${skipAlreadyPushed ? ' (unpushed only)' : ''}`, { filters });
     db.updateJob(jobId, { total });
 
     if (total === 0) {
@@ -333,6 +351,9 @@ async function _runPushJob(jobId, options) {
 
             if (result.success) {
               processed++;
+              // Record the Oracle transaction number so this order is skipped
+              // on future push jobs (idempotent re-runs).
+              db.updateSalePushStatus(sale.id, result.transactionNumber, jobId);
               jobLog(jobId, 'info', `✓ Pushed sale ${sale.name}`, {
                 transactionNumber: result.transactionNumber,
                 steps: result.steps.length,
@@ -490,6 +511,8 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
 
             if (result.success) {
               db.updateFailedRecord(record.id, 'RESOLVED');
+              // Also stamp the oracle_txn_id on the sale so future push jobs skip it.
+              db.updateSalePushStatus(internalId, result.transactionNumber, jobId);
               processed++;
               jobLog(jobId, 'info', `✓ Retry succeeded for ${record.sale_name}`, {
                 transactionNumber: result.transactionNumber,
@@ -534,47 +557,105 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
 
 /**
  * Map an Odoo sale (from SQLite) to the format expected by pushOracle.js.
- * When metadata/outlet are not provided as job options, reasonable defaults
- * are derived from the Odoo record.
+ *
+ * Every calculation in calculations.js (timezone adjustment, invoice lines,
+ * receipt amounts, bank charges, misc charges, journal entries) is driven by
+ * the sale payload built here.  The function applies the same business rules
+ * as the original Java VendHQ middleware so Oracle Fusion receives identical
+ * derived values regardless of whether the source is VendHQ or Odoo.
+ *
+ * Calculation settings are passed in via jobMeta (the "metadata" field of the
+ * push job body), in addition to the standard Oracle invoice fields:
+ *
+ *   jobMeta.defaultPaymentType   {string}  Payment type name when Odoo has no
+ *                                          payment breakdown (default: 'Cash').
+ *                                          amount_total is used as the payment
+ *                                          amount so that all receipt / bank-
+ *                                          charge calculations still execute.
+ *   jobMeta.payments             {Array}   Explicit [{paymentType, amount}] list.
+ *                                          Overrides defaultPaymentType when set.
+ *   jobMeta.receiptMethodMeta    {object}  { [paymentType]: { receiptMethodId,
+ *                                            bankAccountId, bankChargeRate,
+ *                                            methodTax } }
+ *   jobMeta.journalMeta          {object}  Journal-entry config (ledgerId,
+ *                                          chartOfAccountsId, jeSource, …).
+ *                                          Required for non-NORMAL customers.
+ *   jobMeta.customerType         {string}  'NORMAL' | 'HUNGERSTATION' | …
+ *   jobMeta.region               {string}  'AE' | 'KW' | 'OM' | …
+ *   jobMeta.tzOffset             {number}  Decimal timezone offset (e.g. 4 for UAE)
+ *   jobMeta.rateIsCorporate      {string}  '1' → Corporate rate, else User
+ *   jobMeta.taxName              {string}  Default TaxClassificationCode for lines
+ *   jobMeta.uomCodeMap           {object}  { [itemNumber]: 'Ea' } UOM overrides
  */
 function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
   const lines = (sale.lines || []).map((l, idx) => ({
-    lineNumber    : idx + 1,
-    itemNumber    : String(l.product_id || `PROD-${l.odoo_line_id}`),
-    itemName      : l.product_name || 'Odoo Product',
-    originalQty   : l.qty_ordered,
-    totalPrice    : l.price_subtotal,
-    taxName       : null,
+    lineNumber  : idx + 1,
+    itemNumber  : String(l.product_id || `PROD-${l.odoo_line_id}`),
+    itemName    : l.product_name || 'Odoo Product',
+    // computeSalePreview (calculations.js) reads `quantity`, not `originalQty`.
+    // qty_ordered is the confirmed ordered quantity on the Odoo sale.order line.
+    quantity    : l.qty_ordered,
+    totalPrice  : l.price_subtotal,
+    taxName     : (jobMeta && jobMeta.taxName) || null,
   }));
 
+  // ── Payments ───────────────────────────────────────────────────────────────
+  // Odoo sale.order records aggregate all payment methods into amount_total.
+  // When the push job provides an explicit payments list (e.g. retrieved from
+  // Odoo's account.payment records), use it directly.  Otherwise fall back to
+  // a single payment entry using amount_total so that all receipt, bank-charge
+  // and miscellaneous-charge calculations (calculateMiscCharges,
+  // netReceiptAmount) execute identically to the VendHQ middleware path.
+  const explicitPayments = (jobMeta && Array.isArray(jobMeta.payments) && jobMeta.payments.length > 0)
+    ? jobMeta.payments
+    : null;
+
+  const payments = explicitPayments || [{
+    paymentType : (jobMeta && jobMeta.defaultPaymentType) || 'Cash',
+    amount      : sale.amount_total || 0,
+  }];
+
   const saleObj = {
-    invoiceNumber  : sale.name,
-    saleDate       : sale.date_order,
-    customerType   : (jobMeta && jobMeta.customerType) || 'NORMAL',
-    region         : (jobMeta && jobMeta.region)        || 'AE',
-    tzOffset       : (jobMeta && jobMeta.tzOffset)      || 0,
-    lineItems      : lines,
-    payments       : [],
-    receiptMethodMeta: {},
-    rateIsCorporate: false,
-    uomCodeMap     : {},
+    invoiceNumber    : sale.name,
+    saleDate         : sale.date_order,
+    customerType     : (jobMeta && jobMeta.customerType)     || 'NORMAL',
+    region           : (jobMeta && jobMeta.region)           || 'AE',
+    tzOffset         : (jobMeta && jobMeta.tzOffset != null)
+                         ? Number(jobMeta.tzOffset) : 0,
+    lineItems        : lines,
+    payments,
+    receiptMethodMeta: (jobMeta && jobMeta.receiptMethodMeta) || {},
+    rateIsCorporate  : (jobMeta && jobMeta.rateIsCorporate)  || '0',
+    uomCodeMap       : (jobMeta && jobMeta.uomCodeMap)       || {},
+    journalMeta      : (jobMeta && jobMeta.journalMeta)      || undefined,
   };
 
-  const metaObj = jobMeta || {
-    billToName    : sale.partner_name || 'Odoo Customer',
-    siteNumber    : null,
-    billToAccount : 1000,
-    businessUnit  : 'DEFAULT_BU',
-    txnSource     : 'ODOO_SALES',
-    txnType       : 'Invoice',
-    region        : 'AE',
-    customerType  : 'NORMAL',
+  const metaObj = (jobMeta && jobMeta.billToName) ? {
+    billToName   : jobMeta.billToName,
+    siteNumber   : jobMeta.siteNumber   || null,
+    billToAccount: jobMeta.billToAccount || 1000,
+    businessUnit : jobMeta.businessUnit || 'DEFAULT_BU',
+    txnSource    : jobMeta.txnSource    || 'ODOO_SALES',
+    txnType      : jobMeta.txnType      || 'Invoice',
+    region       : (jobMeta && jobMeta.region) || 'AE',
+    customerType : (jobMeta && jobMeta.customerType) || 'NORMAL',
+    costCenterCode: jobMeta.costCenterCode || null,
+  } : {
+    billToName   : sale.partner_name || 'Odoo Customer',
+    siteNumber   : null,
+    billToAccount: 1000,
+    businessUnit : 'DEFAULT_BU',
+    txnSource    : 'ODOO_SALES',
+    txnType      : 'Invoice',
+    region       : (jobMeta && jobMeta.region) || 'AE',
+    customerType : (jobMeta && jobMeta.customerType) || 'NORMAL',
+    costCenterCode: null,
   };
 
   const outletObj = jobOutlet || {
-    currency         : sale.currency || 'AED',
-    outletName       : sale.store_name || 'Odoo Store',
-    organizationName : sale.store_name || 'Odoo Store',
+    currency        : sale.currency       || 'AED',
+    outletName      : sale.store_name     || 'Odoo Store',
+    organizationName: sale.store_name     || 'Odoo Store',
   };
 
   return { sale: saleObj, metadata: metaObj, outlet: outletObj };
