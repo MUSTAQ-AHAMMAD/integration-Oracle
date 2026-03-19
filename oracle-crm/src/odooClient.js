@@ -22,10 +22,18 @@
  *   ODOO_PASSWORD  – password or API key
  */
 
+const http   = require('http');
+const https  = require('https');
 const axios  = require('axios');
 const logger = require('./logger').child('OdooClient');
 
 const JSONRPC_PATH = '/jsonrpc';
+
+// Persistent connections to Odoo – avoids repeated TLS negotiation during
+// paginated fetches.  maxSockets is set generously; Odoo's thread pool is the
+// real bottleneck, not the number of sockets on the client.
+const _httpAgent  = new http.Agent ({ keepAlive: true, maxSockets: 16 });
+const _httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 16 });
 
 class OdooClient {
   /**
@@ -42,12 +50,14 @@ class OdooClient {
     this.uid      = null;
 
     this.http = axios.create({
-      baseURL : this.url,
-      timeout : 60_000,
-      headers : {
+      baseURL    : this.url,
+      timeout    : 60_000,
+      headers    : {
         'Content-Type': 'application/json',
         'Accept'      : 'application/json',
       },
+      httpAgent  : _httpAgent,
+      httpsAgent : _httpsAgent,
     });
   }
 
