@@ -4,10 +4,39 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Oracle CRM – Configuration</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media(max-width:900px){ .two-col { grid-template-columns:1fr; } }
+    .conn-panel { border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+    .conn-panel.ok   { border-color:#198754; background:#f0faf4; }
+    .conn-panel.fail { border-color:#dc3545; background:#fff5f5; }
+    .conn-panel.unknown { border-color:var(--border); }
+    .conn-title { font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .conn-badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+    .conn-badge.ok   { background:#d1e7dd; color:#0a3622; }
+    .conn-badge.fail { background:#f8d7da; color:#842029; }
+    .conn-badge.unknown { background:#e2e3e5; color:#41464b; }
+    .conn-meta { font-size:13px; color:var(--text); margin-bottom:12px; }
+    .conn-meta span { color:var(--muted); }
+    .test-btn { font-size:12px; padding:5px 12px; }
+    .test-result { font-size:12px; margin-top:8px; padding:6px 10px; border-radius:4px; }
+    .test-result.ok   { background:#d1e7dd; color:#0a3622; }
+    .test-result.fail { background:#f8d7da; color:#842029; }
+    .endpoint-table { width:100%; font-size:12px; border-collapse:collapse; }
+    .endpoint-table th { background:#f6f8fa; padding:7px 10px; text-align:left; border-bottom:1px solid var(--border); font-weight:600; }
+    .endpoint-table td { padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .endpoint-table tr:last-child td { border-bottom:none; }
+    .method-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; }
+    .method-get  { background:#cfe2ff; color:#084298; }
+    .method-post { background:#d1e7dd; color:#0a3622; }
+    .endpoint-path { font-family:monospace; font-size:11px; color:var(--muted); }
+    .java-ref { font-size:10px; color:#6c757d; font-style:italic; }
+    details summary { cursor:pointer; font-weight:600; font-size:13px; color:var(--primary); padding:5px 0; user-select:none; }
+  </style>
 </head>
 <body>
 <nav class="sidebar">
-  <div class="sidebar-logo"><span>Oracle</span> CRM<small>VendHQ → Fusion Sync</small></div>
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>Odoo → Fusion Sync</small></div>
   <div class="sidebar-nav">
     <a href="/"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
     <a href="/new-sale.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>New Sale Push</a>
@@ -26,22 +55,107 @@
   <div class="topbar"><h1>Configuration</h1></div>
   <div class="page-body">
 
-    <!-- Current status -->
-    <div class="card" id="status-card">
+    <!-- ── Connection Status Panels ──────────────────────────────────── -->
+    <div class="card">
       <div class="card-header">
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        Current Connection Status
+        Connection Status
       </div>
-      <div class="card-body" id="status-body">
-        <p style="color:var(--muted);font-size:14px">Loading…</p>
+      <div class="card-body">
+        <div class="two-col" id="conn-panels">
+          <div class="conn-panel unknown" id="oracle-panel">
+            <div class="conn-title">
+              🔵 Oracle Fusion Cloud
+              <span class="conn-badge unknown" id="oracle-badge">Loading…</span>
+            </div>
+            <div class="conn-meta" id="oracle-meta">Checking…</div>
+            <button class="btn btn-outline test-btn" id="btn-test-oracle" onclick="testConnection('oracle')">
+              ⚡ Test Oracle Connection
+            </button>
+            <div class="test-result hidden" id="oracle-test-result"></div>
+          </div>
+          <div class="conn-panel unknown" id="odoo-panel">
+            <div class="conn-title">
+              🟣 Odoo ERP
+              <span class="conn-badge unknown" id="odoo-badge">Loading…</span>
+            </div>
+            <div class="conn-meta" id="odoo-meta">Checking…</div>
+            <button class="btn btn-outline test-btn" id="btn-test-odoo" onclick="testConnection('odoo')">
+              ⚡ Test Odoo Connection
+            </button>
+            <div class="test-result hidden" id="odoo-test-result"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Setup instructions -->
+    <!-- ── Oracle Fusion Endpoints ─────────────────────────────────── -->
+    <div class="card" id="oracle-endpoints-card" style="display:none">
+      <div class="card-header">
+        🔵 Oracle Fusion REST API Endpoints
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+          Derived from middleware Java classes (FusionInvoiceClient, FusionReceiptClient, FusionInvTxnService, FusionJournalClient…)
+        </span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;margin-bottom:12px">
+          All requests use <strong>HTTP Basic Auth</strong> with <code>FUSION_USERNAME</code> and <code>FUSION_PASSWORD</code>.
+          Base URL: <code id="oracle-base-url-display">–</code> &nbsp;·&nbsp;
+          API version: <code id="oracle-api-version">11.13.18.05</code>
+        </p>
+        <div class="table-wrap">
+          <table class="endpoint-table" id="oracle-endpoint-table">
+            <thead>
+              <tr>
+                <th style="width:180px">Name</th>
+                <th style="width:60px">Method</th>
+                <th>Path</th>
+                <th>Description</th>
+                <th>Java Source</th>
+              </tr>
+            </thead>
+            <tbody id="oracle-endpoint-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Odoo JSONRPC Endpoints ──────────────────────────────────── -->
+    <div class="card" id="odoo-endpoints-card" style="display:none">
+      <div class="card-header">
+        🟣 Odoo JSONRPC Endpoints
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+          All Odoo calls share a single HTTP path (<code>/jsonrpc</code>); the service, method, and model encode the operation.
+        </span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;margin-bottom:12px">
+          Odoo URL: <code id="odoo-url-display">–</code> &nbsp;·&nbsp;
+          Database: <code id="odoo-db-display">–</code> &nbsp;·&nbsp;
+          Username: <code id="odoo-username-display">–</code>
+        </p>
+        <div class="table-wrap">
+          <table class="endpoint-table" id="odoo-endpoint-table">
+            <thead>
+              <tr>
+                <th style="width:180px">Name</th>
+                <th style="width:70px">Service</th>
+                <th style="width:120px">Model</th>
+                <th style="width:100px">Odoo Method</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="odoo-endpoint-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Setup Instructions ─────────────────────────────────────── -->
     <div class="card">
       <div class="card-header">
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        How to Configure Oracle Credentials
+        How to Configure Credentials
       </div>
       <div class="card-body">
         <div class="alert alert-warning">
@@ -50,38 +164,63 @@
 
         <div class="section-title">Step 1 – Create the .env file</div>
         <p style="font-size:14px;margin-bottom:10px">In the <code>oracle-crm/</code> directory, create a file named <code>.env</code>:</p>
-        <div class="preview-box" style="max-height:none">FUSION_BASE_URL=https://your-instance.fa.em2.oraclecloud.com
+        <div class="preview-box" style="max-height:none"># ── Oracle Fusion Cloud ──────────────────────────────────────────────
+# URL pattern:  https://{hostname}.fa.{region}.oraclecloud.com
+# Example:      https://ehxk-test.fa.em2.oraclecloud.com
+FUSION_BASE_URL=https://your-instance.fa.em2.oraclecloud.com
 FUSION_USERNAME=your.oracle.username
 FUSION_PASSWORD=your_oracle_password
-PORT=3000
-REGIONS=AE,KW,OM,SA,BH,QA</div>
 
-        <div class="section-title mt-20">Step 2 – Find your Oracle Fusion base URL</div>
-        <p style="font-size:14px;margin-bottom:10px">Your Oracle Fusion Cloud URL has this structure:</p>
+# ── Odoo ERP Connection ───────────────────────────────────────────────
+# All Odoo data is fetched via JSON-RPC at {ODOO_URL}/jsonrpc
+ODOO_URL=https://your-odoo-instance.odoo.com
+ODOO_DB=your-odoo-database-name
+ODOO_USERNAME=your-odoo-username
+ODOO_PASSWORD=your-odoo-password-or-api-key
+
+# ── Optional settings ─────────────────────────────────────────────────
+PORT=3000
+REGIONS=AE,KW,OM,SA,BH,QA
+LOG_LEVEL=info</div>
+
+        <div class="section-title mt-20">Step 2 – Oracle Fusion URL structure</div>
         <div class="preview-box" style="max-height:none">https://{hostname}.fa.{region}.oraclecloud.com
 
 Examples:
-  https://ehxk-test.fa.em2.oraclecloud.com   ← Europe Middle East 2
-  https://acme-prod.fa.us2.oraclecloud.com   ← US 2
-  https://myco.fa.uk2.oraclecloud.com        ← UK 2</div>
+  https://ehxk-test.fa.em2.oraclecloud.com   ← Europe Middle East 2 (em2)
+  https://acme-prod.fa.us2.oraclecloud.com   ← US West (us2)
+  https://myco.fa.uk2.oraclecloud.com        ← UK (uk2)
 
-        <div class="section-title mt-20">Step 3 – Start the CRM server</div>
+The REST API path appended to this base URL is:
+  /fscmRestApi/resources/11.13.18.05/{endpoint}</div>
+
+        <div class="section-title mt-20">Step 3 – Odoo connection</div>
+        <div class="preview-box" style="max-height:none"># All Odoo operations use a single JSON-RPC endpoint:
+#   POST {ODOO_URL}/jsonrpc
+#
+# The service/method/model in the request body selects the operation:
+#   common.authenticate  – get uid (called once per job)
+#   object.execute_kw    – search_read on sale.order, sale.order.line, stock.warehouse
+#
+# The Odoo username must have access to:
+#   - sale.order        (Sales / read)
+#   - sale.order.line   (Sales / read)
+#   - stock.warehouse   (Inventory / read)</div>
+
+        <div class="section-title mt-20">Step 4 – Restart and verify</div>
         <div class="preview-box" style="max-height:none">cd oracle-crm
 npm install
 npm start
-
-# Server will start on http://localhost:3000</div>
-
-        <div class="section-title mt-20">Step 4 – Verify the connection</div>
-        <p style="font-size:14px">After saving your .env and restarting the server, reload this page. The status above will show "Configured" if credentials are set.</p>
+# Open http://localhost:3000/config.html
+# Use the "Test Connection" buttons to verify both systems</div>
 
         <div class="alert alert-info mt-20">
-          <strong>Note:</strong> The CRM validates credentials on each API call. An API test call to Oracle Fusion is only made when you perform a sale push — not on startup.
+          <strong>Credentials are validated live</strong> by the "Test Connection" buttons above and again on each push job — not at server startup.
         </div>
       </div>
     </div>
 
-    <!-- Business rule reference -->
+    <!-- ── Region Quick Reference ─────────────────────────────────── -->
     <div class="card">
       <div class="card-header">
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
@@ -90,14 +229,51 @@ npm start
       <div class="card-body">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Region</th><th>Currency</th><th>Timezone</th><th>Special Rules</th></tr></thead>
+            <thead><tr><th>Region</th><th>Currency</th><th>Timezone</th><th>Special Rules (from middleware)</th></tr></thead>
             <tbody>
-              <tr><td><strong>AE</strong> – UAE</td><td>AED</td><td>UTC+4 (offset=4)</td><td>Standard</td></tr>
-              <tr><td><strong>KW</strong> – Kuwait</td><td>KWD</td><td>UTC+3 (offset=3)</td><td>Cash account = "Cash KW" (not "Cash")</td></tr>
-              <tr><td><strong>OM</strong> – Oman</td><td>OMR</td><td>UTC+4 (offset=4)</td><td>Debit Card misc charges capped at 10 OMR</td></tr>
+              <tr><td><strong>AE</strong> – UAE</td><td>AED</td><td>UTC+4 (offset=4)</td><td>Standard – cashAccountName()="Cash"</td></tr>
+              <tr><td><strong>KW</strong> – Kuwait</td><td>KWD</td><td>UTC+3 (offset=3)</td><td>cashAccountName()="Cash KW" (FusionMiscReceiptMapping line 39)</td></tr>
+              <tr><td><strong>OM</strong> – Oman</td><td>OMR</td><td>UTC+4 (offset=4)</td><td>Debit Card miscCharges capped at 10 OMR (calculations.js:193)</td></tr>
               <tr><td><strong>SA</strong> – Saudi Arabia</td><td>SAR</td><td>UTC+3 (offset=3)</td><td>Standard</td></tr>
               <tr><td><strong>BH</strong> – Bahrain</td><td>BHD</td><td>UTC+3 (offset=3)</td><td>Standard</td></tr>
               <tr><td><strong>QA</strong> – Qatar</td><td>QAR</td><td>UTC+3 (offset=3)</td><td>Standard</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Calculation Pipeline Reference ────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Middleware Calculation Pipeline (preserved in calculations.js)
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Every calculation from the Java middleware
+          (<code>VendHQSalesToFusionInvRecTransBackup.java</code>, <code>FusionInvoiceMapping.java</code>,
+          <code>FusionInvTxnMapping.java</code>, <code>FusionJournalEntryMapping.java</code>,
+          <code>FusionMiscReceiptMapping.java</code>, <code>MappingUtils.java</code>)
+          is ported line-for-line to <code>src/calculations.js</code> and called by <code>pushOracle.js</code>
+          before every Oracle API call.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Function</th><th>Java Source</th><th>What it computes</th></tr></thead>
+            <tbody>
+              <tr><td><code>applyTimezoneOffset()</code></td><td>MappingUtils.getTimeZoneOffsetDate()</td><td>Shift UTC sale date to regional local time for GL date</td></tr>
+              <tr><td><code>buildSaleKey()</code></td><td>VendHQSalesToFusionInvRecTransBackup lines 101-110</td><td>Group-key for aggregating sales into daily invoices</td></tr>
+              <tr><td><code>unitSellingPrice()</code></td><td>FusionInvoiceMapping line 77-78</td><td>totalPrice / quantity (always positive)</td></tr>
+              <tr><td><code>effectiveQuantity()</code></td><td>FusionInvoiceMapping lines 66-67</td><td>Force qty=1 for "Discount Item" when totalPrice &gt; 0</td></tr>
+              <tr><td><code>conversionRateType()</code></td><td>FusionInvoiceMapping line 52</td><td>"Corporate" if rateIsCorporate="1", else "User"</td></tr>
+              <tr><td><code>inventoryTransactionQty()</code></td><td>FusionInvTxnMapping line 53</td><td>quantity × −1 (deduct stock)</td></tr>
+              <tr><td><code>inventoryTransactionType()</code></td><td>FusionInvTxnMapping lines 54-58</td><td>"Vend Sales Issue" / "Vend RMA" based on sign</td></tr>
+              <tr><td><code>calculateMiscCharges()</code></td><td>VendHQSalesToFusionInvRecTransBackup lines 238-245</td><td>amount × bankChargeRate × (1 + methodTax); Oman Debit cap 10</td></tr>
+              <tr><td><code>netReceiptAmount()</code></td><td>VendHQSalesToFusionInvRecTransBackup line 247</td><td>grossAmount − miscCharges</td></tr>
+              <tr><td><code>calculateJournalCharge()</code></td><td>FusionJournalEntryMapping lines 68-72</td><td>saleTotal × bankChargeRate or fixedFreightCharge</td></tr>
+              <tr><td><code>accountingPeriodName()</code></td><td>FusionJournalEntryMapping.getPeriodName() (SimpleDateFormat "MMM-yy")</td><td>"Jan-24", "Feb-24" … accounting period string</td></tr>
+              <tr><td><code>journalBatchName()</code></td><td>FusionJournalEntryMapping.populateJournalHeader() line 153</td><td>periodName + ": " + serviceProvider</td></tr>
             </tbody>
           </table>
         </div>
@@ -109,31 +285,133 @@ npm start
 
 <script src="/js/app.js"></script>
 <script>
-fetch('/api/config/status')
+/* ══════════════════════════════════════════════════════════
+   Config page – load full config and populate panels
+   ══════════════════════════════════════════════════════════ */
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Load full config on page load ────────────────────────
+fetch('/api/config/full')
   .then(r => r.json())
   .then(d => {
-    const body = document.getElementById('status-body');
-    if (d.configured) {
-      body.innerHTML = `
-        <div class="alert alert-success" style="margin-bottom:16px">
-          ✓ Oracle Fusion credentials are configured and the server is ready to push data.
-        </div>
-        <div class="row">
-          <div class="col"><span class="text-muted" style="font-size:13px">Base URL</span><br><strong>${d.baseUrl}</strong></div>
-          <div class="col"><span class="text-muted" style="font-size:13px">Username</span><br><strong>${d.username}</strong></div>
-          <div class="col"><span class="text-muted" style="font-size:13px">Regions</span><br><strong>${(d.regions||[]).join(', ')}</strong></div>
-        </div>`;
-    } else {
-      body.innerHTML = `
-        <div class="alert alert-danger" style="margin-bottom:16px">
-          ✗ Oracle Fusion credentials are NOT configured. Follow the setup instructions below.
-        </div>
-        <p style="font-size:14px;color:var(--muted)">
-          Create a <code>.env</code> file in the <code>oracle-crm/</code> directory with your
-          FUSION_BASE_URL, FUSION_USERNAME, and FUSION_PASSWORD, then restart the server.
-        </p>`;
-    }
+    renderOraclePanel(d.oracle);
+    renderOdooPanel(d.odoo);
+    if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+    if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
+  })
+  .catch(err => {
+    document.getElementById('oracle-meta').textContent = 'Failed to load config: ' + err.message;
   });
+
+function renderOraclePanel(o) {
+  const panel  = document.getElementById('oracle-panel');
+  const badge  = document.getElementById('oracle-badge');
+  const meta   = document.getElementById('oracle-meta');
+
+  if (o.configured) {
+    panel.className = 'conn-panel ok';
+    badge.className = 'conn-badge ok';
+    badge.textContent = '✓ Configured';
+    meta.innerHTML =
+      `<span>Base URL:</span> <strong>${esc(o.baseUrl)}</strong><br>` +
+      `<span>Username:</span> <strong>${esc(o.username)}</strong><br>` +
+      `<span>API Version:</span> <strong>${esc(o.apiVersion)}</strong>`;
+    document.getElementById('oracle-base-url-display').textContent = o.baseUrl || '–';
+    document.getElementById('oracle-api-version').textContent = o.apiVersion || '11.13.18.05';
+    document.getElementById('oracle-endpoints-card').style.display = '';
+  } else {
+    panel.className = 'conn-panel fail';
+    badge.className = 'conn-badge fail';
+    badge.textContent = '✗ Not configured';
+    meta.innerHTML =
+      'Set <code>FUSION_BASE_URL</code>, <code>FUSION_USERNAME</code>, <code>FUSION_PASSWORD</code> in <code>.env</code>';
+  }
+}
+
+function renderOdooPanel(o) {
+  const panel  = document.getElementById('odoo-panel');
+  const badge  = document.getElementById('odoo-badge');
+  const meta   = document.getElementById('odoo-meta');
+
+  if (o.configured) {
+    panel.className = 'conn-panel ok';
+    badge.className = 'conn-badge ok';
+    badge.textContent = '✓ Configured';
+    meta.innerHTML =
+      `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
+      `<span>Database:</span> <strong>${esc(o.db)}</strong><br>` +
+      `<span>Username:</span> <strong>${esc(o.username)}</strong><br>` +
+      `<span>JSON-RPC path:</span> <strong>${esc(o.url)}${esc(o.jsonrpcPath)}</strong>`;
+    document.getElementById('odoo-url-display').textContent = o.url || '–';
+    document.getElementById('odoo-db-display').textContent  = o.db  || '–';
+    document.getElementById('odoo-username-display').textContent = o.username || '–';
+    document.getElementById('odoo-endpoints-card').style.display = '';
+  } else {
+    panel.className = 'conn-panel fail';
+    badge.className = 'conn-badge fail';
+    badge.textContent = '✗ Not configured';
+    meta.innerHTML =
+      'Set <code>ODOO_URL</code>, <code>ODOO_DB</code>, <code>ODOO_USERNAME</code>, <code>ODOO_PASSWORD</code> in <code>.env</code>';
+  }
+}
+
+function renderOracleEndpoints(oracle) {
+  const tbody = document.getElementById('oracle-endpoint-tbody');
+  tbody.innerHTML = oracle.endpoints.map(ep => `
+    <tr>
+      <td><strong>${esc(ep.name)}</strong></td>
+      <td><span class="method-badge method-${ep.method.toLowerCase()}">${esc(ep.method)}</span></td>
+      <td class="endpoint-path">${esc(ep.path)}</td>
+      <td style="font-size:12px">${esc(ep.description)}</td>
+      <td class="java-ref">${esc(ep.javaSource)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderOdooEndpoints(odoo) {
+  const tbody = document.getElementById('odoo-endpoint-tbody');
+  tbody.innerHTML = odoo.endpoints.map(ep => `
+    <tr>
+      <td><strong>${esc(ep.name)}</strong></td>
+      <td><code style="font-size:11px">${esc(ep.service)}</code></td>
+      <td><code style="font-size:11px">${esc(ep.model || '–')}</code></td>
+      <td><code style="font-size:11px">${esc(ep.odooMethod || '–')}</code></td>
+      <td style="font-size:12px">${esc(ep.description)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Connection test handlers ──────────────────────────────
+async function testConnection(system) {
+  const btn    = document.getElementById(`btn-test-${system}`);
+  const result = document.getElementById(`${system}-test-result`);
+  btn.disabled = true;
+  btn.textContent = 'Testing…';
+  result.className = 'test-result';
+  result.classList.remove('hidden');
+  result.textContent = 'Connecting…';
+
+  try {
+    const res  = await fetch(`/api/config/test-${system}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      result.className = 'test-result ok';
+      result.textContent = '✓ ' + data.message;
+    } else {
+      result.className = 'test-result fail';
+      result.textContent = '✗ ' + (data.error || 'Connection failed');
+    }
+  } catch (err) {
+    result.className = 'test-result fail';
+    result.textContent = '✗ Request failed: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = `⚡ Test ${system === 'oracle' ? 'Oracle' : 'Odoo'} Connection`;
+  }
+}
 </script>
 </body>
 </html>
