@@ -350,6 +350,197 @@
           </div>
         </details>
 
+        <!-- ── Oracle Invoice &amp; Outlet Configuration ──────────────────── -->
+        <details style="margin-top:6px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--primary);padding:6px 0;user-select:none">
+            🧾 Oracle Invoice &amp; Outlet Settings
+            <span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:6px">
+              (FusionInvoiceMapping / VendhqOutletsDB fields)
+            </span>
+          </summary>
+          <div class="two-col" style="margin-top:14px">
+            <div>
+              <div class="form-group">
+                <label class="form-label">Bill-To Customer Name</label>
+                <input type="text" id="push-bill-to-name" class="form-control" placeholder="e.g. Tamer Group">
+                <small class="text-muted">FusionSalesMetadata.getBillToName() — AR invoice header BillToCustomerName</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bill-To Account Number</label>
+                <input type="text" id="push-bill-to-account" class="form-control" placeholder="e.g. ACC-001">
+                <small class="text-muted">FusionSalesMetadata.getBillToAccount() — used to look up CustomerAccountId</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Site Number</label>
+                <input type="text" id="push-site-number" class="form-control" placeholder="e.g. SITE-001">
+                <small class="text-muted">FusionSalesMetadata.getSiteNumber() — BillToLocation on invoice header</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Business Unit</label>
+                <input type="text" id="push-business-unit" class="form-control" placeholder="e.g. AE Business Unit">
+                <small class="text-muted">FusionSalesMetadata.getBusinessUnit() — BusinessUnit on invoice header</small>
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label class="form-label">Transaction Source</label>
+                <input type="text" id="push-txn-source" class="form-control" value="ODOO_SALES" placeholder="ODOO_SALES">
+                <small class="text-muted">FusionSalesMetadata.getTxnSource() — TransactionSource on invoice header</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Transaction Type</label>
+                <input type="text" id="push-txn-type" class="form-control" value="Invoice" placeholder="Invoice">
+                <small class="text-muted">FusionSalesMetadata.getTxnType() — TransactionType on invoice header</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cost Center Code</label>
+                <input type="text" id="push-cost-center" class="form-control" placeholder="e.g. CC-001">
+                <small class="text-muted">Segment 4 in journal entry lines (FusionJournalEntryMapping line 100)</small>
+              </div>
+              <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+              <div class="form-group">
+                <label class="form-label">Outlet / Subinventory Name</label>
+                <input type="text" id="push-outlet-name" class="form-control" placeholder="e.g. Dubai Mall">
+                <small class="text-muted">VendhqOutletsDB.getOutletName() — Subinventory for inventory transactions</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Organization Name</label>
+                <input type="text" id="push-org-name" class="form-control" placeholder="e.g. AE Inventory Org">
+                <small class="text-muted">FusionSubinventoryService.getOrganizationName() — OrganizationName in inventory transaction</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Currency</label>
+                <select id="push-currency" class="form-control form-select">
+                  <option value="">Auto (from Odoo order)</option>
+                  <option value="AED">AED – UAE Dirham</option>
+                  <option value="KWD">KWD – Kuwaiti Dinar</option>
+                  <option value="OMR">OMR – Omani Rial</option>
+                  <option value="SAR">SAR – Saudi Riyal</option>
+                  <option value="BHD">BHD – Bahraini Dinar</option>
+                  <option value="QAR">QAR – Qatari Riyal</option>
+                </select>
+                <small class="text-muted">VendhqOutletsDB.getCurrency() — overrides Odoo order currency when set</small>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- ── Receipt Method IDs ──────────────────────────────────────── -->
+        <details style="margin-top:6px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--primary);padding:6px 0;user-select:none">
+            🏦 Receipt Method &amp; Bank Account IDs
+            <span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:6px">
+              (FusionReceiptMethod / VendhqRegisters fields)
+            </span>
+          </summary>
+          <div style="margin-top:12px">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+              Used by <code>FusionStdReceiptMapping</code> and <code>FusionMiscReceiptMapping</code> in the middleware.
+              The <em>Receipt Method ID</em> is the Oracle AR receipt method; the <em>Bank Account ID</em>
+              is the remittance bank account (<code>getCashAccountId()</code> / <code>getBankAccountId()</code>).
+            </p>
+            <div class="two-col">
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Receipt Method ID</label>
+                  <input type="number" id="push-receipt-method-id" class="form-control" placeholder="e.g. 10001">
+                  <small class="text-muted">FusionReceiptMethod.getReceiptMethodId() — applies to the default payment type above</small>
+                </div>
+              </div>
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Remittance Bank Account ID</label>
+                  <input type="number" id="push-bank-account-id" class="form-control" placeholder="e.g. 20001">
+                  <small class="text-muted">VendhqRegisters.getBankAccountId() — RemittanceBankAccountId on standard receipt</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- ── Journal Entry Configuration ────────────────────────────── -->
+        <details style="margin-top:6px" id="journal-config-section">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--primary);padding:6px 0;user-select:none">
+            📒 Journal Entry Configuration
+            <span style="font-weight:400;color:var(--muted);font-size:12px;margin-left:6px">
+              (required for non-NORMAL customers — FusionJournalEntryMapping)
+            </span>
+          </summary>
+          <div class="two-col" style="margin-top:14px">
+            <div>
+              <div class="form-group">
+                <label class="form-label">Ledger ID</label>
+                <input type="number" id="push-journal-ledger-id" class="form-control" placeholder="e.g. 300000002564040">
+                <small class="text-muted">ServiceProviderJournalMapping.getLedgerId() — LedgerId on journal header and lines</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Chart of Accounts ID</label>
+                <input type="number" id="push-journal-coa-id" class="form-control" placeholder="e.g. 300000001984026">
+                <small class="text-muted">ServiceProviderJournalMapping.getChartOfAccountsId()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">JE Source Name</label>
+                <input type="text" id="push-journal-source" class="form-control" placeholder="e.g. Receivables">
+                <small class="text-muted">ServiceProviderJournalMapping.getJeSource() — JeSourceName / UserSourceName</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">JE Category Name</label>
+                <input type="text" id="push-journal-category" class="form-control" placeholder="e.g. Sales">
+                <small class="text-muted">ServiceProviderJournalMapping.getJeCategory() — JeCategoryName / UserCategoryName</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bank Charge Rate for Journal (%)</label>
+                <input type="number" id="push-journal-bank-rate" class="form-control" value="0" min="0" max="100" step="0.01">
+                <small class="text-muted">calculateJournalCharge: saleTotal × (rate/100) or fixedFreightCharge</small>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="push-journal-fixed">
+                  <span>Fixed Freight Charge</span>
+                </label>
+                <small class="text-muted">When checked, fixedFreightCharge is used instead of bank-charge % (FusionJournalEntryMapping line 70)</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fixed Freight Charge Amount</label>
+                <input type="number" id="push-journal-fixed-amount" class="form-control" value="0" min="0" step="0.01">
+                <small class="text-muted">debitJournalMapping.getFixedFreightCharge() — only used when "Fixed Freight Charge" is checked</small>
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label class="form-label">Company (Segment 1)</label>
+                <input type="text" id="push-journal-company" class="form-control" placeholder="e.g. 1000">
+                <small class="text-muted">ServiceProviderJournalMapping.getCompany()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Credit Account (Segment 2)</label>
+                <input type="text" id="push-journal-account" class="form-control" placeholder="e.g. 40001">
+                <small class="text-muted">ServiceProviderJournalMapping (CREDIT).getAccount()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Debit Account (Segment 2 – Debit)</label>
+                <input type="text" id="push-journal-debit-account" class="form-control" placeholder="e.g. 10001">
+                <small class="text-muted">ServiceProviderJournalMapping (DEBIT).getAccount()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Department (Segment 3)</label>
+                <input type="text" id="push-journal-department" class="form-control" placeholder="e.g. 0000">
+                <small class="text-muted">ServiceProviderJournalMapping.getDepartment()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Inter-Company (Segment 6)</label>
+                <input type="text" id="push-journal-inter-company" class="form-control" placeholder="e.g. 000">
+                <small class="text-muted">ServiceProviderJournalMapping.getInterCompany()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Future Use (Segment 7)</label>
+                <input type="text" id="push-journal-fut-used" class="form-control" placeholder="e.g. 0000">
+                <small class="text-muted">ServiceProviderJournalMapping.getFutUsed()</small>
+              </div>
+            </div>
+          </div>
+        </details>
+
         <!-- Push job progress -->
         <div id="push-progress" class="hidden" style="margin-top:16px">
           <div class="d-flex gap-10" style="align-items:center;margin-bottom:8px;flex-wrap:wrap">
@@ -656,24 +847,85 @@ $('btn-push').addEventListener('click', async () => {
   // (identical to the VendHQ middleware path).
   const receiptMethodMeta = {};
   if (paymentType) {
+    const receiptMethodId = parseInt($('push-receipt-method-id').value) || undefined;
+    const bankAccountId   = parseInt($('push-bank-account-id').value)   || undefined;
     receiptMethodMeta[paymentType] = {
-      bankChargeRate: bankChargeRaw / 100,
-      methodTax     : methodTaxRaw  / 100,
+      bankChargeRate  : bankChargeRaw / 100,
+      methodTax       : methodTaxRaw  / 100,
+      receiptMethodId,
+      bankAccountId,
     };
   }
 
+  // ── Oracle invoice metadata (FusionSalesMetadata / FusionInvoiceMapping) ──
+  const billToName    = ($('push-bill-to-name').value    || '').trim() || null;
+  const billToAccount = ($('push-bill-to-account').value || '').trim() || null;
+  const siteNumber    = ($('push-site-number').value     || '').trim() || null;
+  const businessUnit  = ($('push-business-unit').value   || 'DEFAULT_BU').trim();
+  const txnSource     = ($('push-txn-source').value      || 'ODOO_SALES').trim();
+  const txnType       = ($('push-txn-type').value        || 'Invoice').trim();
+  const costCenterCode= ($('push-cost-center').value     || '').trim() || null;
+
+  // ── Journal entry configuration (FusionJournalEntryMapping) ──────────
+  const journalLedgerId   = parseInt($('push-journal-ledger-id').value)    || undefined;
+  const journalCoaId      = parseInt($('push-journal-coa-id').value)       || undefined;
+  const journalSource     = ($('push-journal-source').value   || '').trim() || undefined;
+  const journalCategory   = ($('push-journal-category').value || '').trim() || undefined;
+  const journalBankRate   = parseFloat($('push-journal-bank-rate').value)  || 0;
+  const journalIsFixed    = $('push-journal-fixed').checked;
+  const journalFixedAmt   = parseFloat($('push-journal-fixed-amount').value) || null;
+  const journalCompany    = ($('push-journal-company').value       || '').trim() || undefined;
+  const journalAccount    = ($('push-journal-account').value       || '').trim() || undefined;
+  const journalDebitAcct  = ($('push-journal-debit-account').value || '').trim() || undefined;
+  const journalDept       = ($('push-journal-department').value    || '').trim() || undefined;
+  const journalInterCo    = ($('push-journal-inter-company').value || '').trim() || undefined;
+  const journalFutUsed    = ($('push-journal-fut-used').value      || '').trim() || undefined;
+
+  const journalMeta = (customerType !== 'NORMAL') ? {
+    ledgerId          : journalLedgerId,
+    chartOfAccountsId : journalCoaId,
+    jeSource          : journalSource,
+    jeCategory        : journalCategory,
+    bankChargeRate    : journalBankRate / 100,
+    isFixed           : journalIsFixed,
+    fixedFreightCharge: journalFixedAmt,
+    company           : journalCompany,
+    account           : journalAccount,
+    debitAccount      : journalDebitAcct,
+    department        : journalDept,
+    interCompany      : journalInterCo,
+    futUsed           : journalFutUsed,
+    costCenterCode,
+  } : undefined;
+
+  // ── Outlet configuration (VendhqOutletsDB) ────────────────────────────
+  const outletName  = ($('push-outlet-name').value || '').trim() || null;
+  const orgName     = ($('push-org-name').value    || '').trim() || null;
+  const currencyVal = ($('push-currency').value    || '').trim() || null;
+
+  const outlet = (outletName || orgName || currencyVal) ? {
+    outletName      : outletName || undefined,
+    organizationName: orgName    || undefined,
+    currency        : currencyVal|| undefined,
+  } : undefined;
+
   const metadata = {
-    // Calculation settings (used by buildOracleSalePayload → computeSalePreview)
+    // ── Calculation settings (used by buildOracleSalePayload → computeSalePreview) ──
     defaultPaymentType : paymentType,
     receiptMethodMeta,
     customerType,
     region,
     tzOffset,
     taxName,
-    // Oracle invoice fields (defaults – override via API body if needed)
-    businessUnit : 'DEFAULT_BU',
-    txnSource    : 'ODOO_SALES',
-    txnType      : 'Invoice',
+    journalMeta,
+    // ── Oracle invoice header fields (FusionInvoiceMapping) ───────────────
+    ...(billToName    && { billToName }),
+    ...(billToAccount && { billToAccount }),
+    ...(siteNumber    && { siteNumber }),
+    businessUnit,
+    txnSource,
+    txnType,
+    ...(costCenterCode && { costCenterCode }),
   };
 
   hideAlert($('alert-area'));
@@ -683,6 +935,7 @@ $('btn-push').addEventListener('click', async () => {
     const res = await api('/api/odoo/push', 'POST', {
       mode, dateFrom, dateTo, storeId, storeName,
       metadata,
+      outlet,
       skipAlreadyPushed: skipPushed,
     });
     startPushPoll(res.jobId);
