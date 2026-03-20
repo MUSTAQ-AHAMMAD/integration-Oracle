@@ -93,6 +93,26 @@ function applyMigrations(db) {
       UNIQUE(odoo_line_id)
     );
 
+    CREATE TABLE IF NOT EXISTS odoo_sale_payments (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id          INTEGER REFERENCES odoo_sales(id) ON DELETE CASCADE,
+      invoice_number   TEXT    NOT NULL,          -- sale order name (e.g. S00123)
+      odoo_payment_id  INTEGER NOT NULL,           -- account.payment id
+      payment_type     TEXT,                       -- journal/payment method name (Cash, Visa, etc.)
+      amount           REAL    DEFAULT 0,          -- payment amount
+      currency         TEXT    DEFAULT 'AED',
+      payment_date     TEXT,                       -- ISO date YYYY-MM-DD
+      outlet_name      TEXT,                       -- warehouse/store name
+      register_name    TEXT,                       -- sales team name
+      region           TEXT,                       -- ISO-2 country code
+      fetched_at       TEXT    NOT NULL,
+      UNIQUE(odoo_payment_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_odoo_sale_payments_sale   ON odoo_sale_payments(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_odoo_sale_payments_inv    ON odoo_sale_payments(invoice_number);
+    CREATE INDEX IF NOT EXISTS idx_odoo_sale_payments_date   ON odoo_sale_payments(payment_date);
+
     CREATE TABLE IF NOT EXISTS push_jobs (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       job_id        TEXT    NOT NULL UNIQUE,     -- UUID
@@ -161,6 +181,12 @@ function applyMigrations(db) {
   alterSafely('ALTER TABLE odoo_sales ADD COLUMN push_job_id   TEXT');
   alterSafely('ALTER TABLE odoo_sales ADD COLUMN country       TEXT');
   alterSafely("ALTER TABLE push_jobs  ADD COLUMN job_type TEXT NOT NULL DEFAULT 'PUSH'");
+  alterSafely('ALTER TABLE odoo_sales ADD COLUMN customer_type TEXT');
+  alterSafely('ALTER TABLE odoo_sales ADD COLUMN register_name TEXT');
+  alterSafely('ALTER TABLE odoo_sale_lines ADD COLUMN item_number TEXT');
+  alterSafely('ALTER TABLE odoo_sale_lines ADD COLUMN tax_name TEXT');
+  alterSafely('ALTER TABLE odoo_sale_lines ADD COLUMN line_number INTEGER');
+  alterSafely('ALTER TABLE odoo_sale_lines ADD COLUMN total_discount REAL DEFAULT 0');
   try {
     db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_txn      ON odoo_sales(oracle_txn_id)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_country  ON odoo_sales(country)');
@@ -222,10 +248,10 @@ function upsertSales(sales) {
   const stmt = db.prepare(`
     INSERT INTO odoo_sales
       (odoo_id, name, store_id, store_name, country, date_order, partner_id, partner_name,
-       currency, amount_untaxed, amount_tax, amount_total, state, fetched_at, raw_json)
+       currency, amount_untaxed, amount_tax, amount_total, state, customer_type, register_name, fetched_at, raw_json)
     VALUES
       (@odoo_id, @name, @store_id, @store_name, @country, @date_order, @partner_id, @partner_name,
-       @currency, @amount_untaxed, @amount_tax, @amount_total, @state, @fetched_at, @raw_json)
+       @currency, @amount_untaxed, @amount_tax, @amount_total, @state, @customer_type, @register_name, @fetched_at, @raw_json)
     ON CONFLICT(odoo_id) DO UPDATE SET
       name           = excluded.name,
       store_id       = excluded.store_id,
@@ -239,6 +265,8 @@ function upsertSales(sales) {
       amount_tax     = excluded.amount_tax,
       amount_total   = excluded.amount_total,
       state          = excluded.state,
+      customer_type  = excluded.customer_type,
+      register_name  = excluded.register_name,
       fetched_at     = excluded.fetched_at,
       raw_json       = excluded.raw_json
   `);
@@ -256,18 +284,22 @@ function upsertSaleLines(lines) {
   const db = getDb();
   const stmt = db.prepare(`
     INSERT INTO odoo_sale_lines
-      (sale_id, odoo_line_id, product_id, product_name,
-       qty_ordered, qty_delivered, price_unit, price_subtotal, tax_ids)
+      (sale_id, odoo_line_id, product_id, product_name, item_number, tax_name, line_number,
+       qty_ordered, qty_delivered, price_unit, price_subtotal, total_discount, tax_ids)
     VALUES
-      (@sale_id, @odoo_line_id, @product_id, @product_name,
-       @qty_ordered, @qty_delivered, @price_unit, @price_subtotal, @tax_ids)
+      (@sale_id, @odoo_line_id, @product_id, @product_name, @item_number, @tax_name, @line_number,
+       @qty_ordered, @qty_delivered, @price_unit, @price_subtotal, @total_discount, @tax_ids)
     ON CONFLICT(odoo_line_id) DO UPDATE SET
       product_id     = excluded.product_id,
       product_name   = excluded.product_name,
+      item_number    = excluded.item_number,
+      tax_name       = excluded.tax_name,
+      line_number    = excluded.line_number,
       qty_ordered    = excluded.qty_ordered,
       qty_delivered  = excluded.qty_delivered,
       price_unit     = excluded.price_unit,
       price_subtotal = excluded.price_subtotal,
+      total_discount = excluded.total_discount,
       tax_ids        = excluded.tax_ids
   `);
 
@@ -277,7 +309,75 @@ function upsertSaleLines(lines) {
 }
 
 /**
- * Mark a sale as successfully pushed to Oracle.
+ * Upsert a batch of sale payment records.
+ * Mirrors middleware BackupVendhqPayments.
+ * @param {object[]} payments
+ */
+function upsertSalePayments(payments) {
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO odoo_sale_payments
+      (sale_id, invoice_number, odoo_payment_id, payment_type, amount, currency,
+       payment_date, outlet_name, register_name, region, fetched_at)
+    VALUES
+      (@sale_id, @invoice_number, @odoo_payment_id, @payment_type, @amount, @currency,
+       @payment_date, @outlet_name, @register_name, @region, @fetched_at)
+    ON CONFLICT(odoo_payment_id) DO UPDATE SET
+      sale_id        = excluded.sale_id,
+      invoice_number = excluded.invoice_number,
+      payment_type   = excluded.payment_type,
+      amount         = excluded.amount,
+      currency       = excluded.currency,
+      payment_date   = excluded.payment_date,
+      outlet_name    = excluded.outlet_name,
+      register_name  = excluded.register_name,
+      region         = excluded.region,
+      fetched_at     = excluded.fetched_at
+  `);
+
+  const run = db.transaction(rows => rows.forEach(r => stmt.run(r)));
+  run(payments);
+  logger.debug('Upserted odoo_sale_payments', { count: payments.length });
+}
+
+/**
+ * Query stored sale payments with optional filters.
+ * @param {object} filters
+ * @param {string}  [filters.invoiceNumber]
+ * @param {string}  [filters.dateFrom]
+ * @param {string}  [filters.dateTo]
+ * @param {string}  [filters.region]
+ * @param {number}  [filters.saleId]
+ * @param {number}  [filters.limit=500]
+ * @param {number}  [filters.offset=0]
+ */
+function querySalePayments({ invoiceNumber, dateFrom, dateTo, region, saleId, limit = 500, offset = 0 } = {}) {
+  const db         = getDb();
+  const conditions = [];
+  const params     = {};
+
+  if (invoiceNumber) { conditions.push('invoice_number = @invoiceNumber'); params.invoiceNumber = invoiceNumber; }
+  if (dateFrom)      { conditions.push('payment_date >= @dateFrom');        params.dateFrom      = dateFrom; }
+  if (dateTo)        { conditions.push('payment_date <= @dateTo');          params.dateTo        = dateTo;   }
+  if (region)        { conditions.push('region = @region');                 params.region        = region;   }
+  if (saleId)        { conditions.push('sale_id = @saleId');               params.saleId        = saleId;   }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  params.limit  = limit;
+  params.offset = offset;
+
+  const rows = db.prepare(
+    `SELECT * FROM odoo_sale_payments ${where} ORDER BY payment_date DESC, id DESC LIMIT @limit OFFSET @offset`
+  ).all(params);
+
+  const total = db.prepare(
+    `SELECT COUNT(*) AS cnt FROM odoo_sale_payments ${where}`
+  ).get(params).cnt;
+
+  return { rows, total };
+}
+
+/**
  *
  * @param {number} id            – odoo_sales.id (internal)
  * @param {string} oracleTxnId  – Oracle TransactionNumber returned by createInvoice
@@ -335,7 +435,8 @@ function getSaleWithLines(id) {
   const db   = getDb();
   const sale = db.prepare('SELECT * FROM odoo_sales WHERE id = ?').get(id);
   if (!sale) return null;
-  sale.lines = db.prepare('SELECT * FROM odoo_sale_lines WHERE sale_id = ?').all(id);
+  sale.lines    = db.prepare('SELECT * FROM odoo_sale_lines WHERE sale_id = ?').all(id);
+  sale.payments = db.prepare('SELECT * FROM odoo_sale_payments WHERE sale_id = ?').all(id);
   return sale;
 }
 
@@ -873,6 +974,8 @@ module.exports = {
   getDb,
   upsertSales,
   upsertSaleLines,
+  upsertSalePayments,
+  querySalePayments,
   querySales,
   getSaleWithLines,
   getSaleInternalId,

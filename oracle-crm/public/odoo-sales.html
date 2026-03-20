@@ -160,6 +160,60 @@
         <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Pull and store orders in local DB</span>
       </div>
       <div class="card-body">
+
+        <!-- 3-Endpoint pipeline diagram -->
+        <div style="background:#f6f8fa;border:1px solid var(--border);border-radius:6px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">
+            Odoo API → Local DB Mapping (3 Endpoints)
+          </div>
+          <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:12px">
+            <!-- Endpoint 1 -->
+            <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+              <div style="font-weight:700;color:#1a56db">① sale.order</div>
+              <div style="color:#374151;margin-top:3px">Invoice # · Date</div>
+              <div style="color:#374151">Store · Customer</div>
+              <div style="color:#374151">Totals · Currency</div>
+            </div>
+            <div style="color:var(--muted);font-size:16px;padding:0 6px">+</div>
+            <!-- Endpoint 2 -->
+            <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+              <div style="font-weight:700;color:#1a56db">② sale.order.line</div>
+              <div style="color:#374151;margin-top:3px">Item # (SKU) · Qty</div>
+              <div style="color:#374151">Price · Tax Name</div>
+              <div style="color:#374151">Discount</div>
+            </div>
+            <div style="color:var(--muted);font-size:16px;padding:0 6px">+</div>
+            <!-- Endpoint 3 -->
+            <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+              <div style="font-weight:700;color:#1a56db">③ account.payment</div>
+              <div style="color:#374151;margin-top:3px">Payment Type · Amount</div>
+              <div style="color:#374151">Currency · Date</div>
+              <div style="color:#374151">Outlet · Register</div>
+            </div>
+            <!-- Arrow -->
+            <div style="color:var(--primary);font-size:20px;font-weight:700;padding:0 10px">→</div>
+            <!-- Local DB -->
+            <div style="background:#d1e7dd;border:1px solid #a3cfbb;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+              <div style="font-weight:700;color:#0a3622">Local SQLite DB</div>
+              <div style="color:#374151;margin-top:3px">odoo_sales</div>
+              <div style="color:#374151">odoo_sale_lines</div>
+              <div style="color:#374151">odoo_sale_payments</div>
+            </div>
+            <!-- Arrow -->
+            <div style="color:var(--primary);font-size:20px;font-weight:700;padding:0 10px">→</div>
+            <!-- Oracle -->
+            <div style="background:#fff3cd;border:1px solid #ffd95e;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+              <div style="font-weight:700;color:#664d03">Oracle Fusion</div>
+              <div style="color:#374151;margin-top:3px">Invoice · Receipt</div>
+              <div style="color:#374151">Apply Receipt</div>
+              <div style="color:#374151">Journal Entry</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px">
+            All data is fetched via Odoo JSONRPC API endpoints — no direct database access required.
+            The mapping mirrors the middleware's BackupVendhqSales / BackupVendhqLineItems / BackupVendhqPayments tables.
+          </div>
+        </div>
         <div class="two-col">
           <div>
             <div class="form-group">
@@ -212,7 +266,7 @@
       </div>
     </div>
 
-    <!-- ── Stored Sales ─────────────────────────────────────────────────── -->
+    <!-- ── Stored Sales + Payments ─────────────────────────────────────── -->
     <div class="card">
       <div class="card-header">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -220,6 +274,20 @@
         <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Orders in local database</span>
       </div>
       <div class="card-body">
+        <!-- Sub-tabs: Sales / Payments -->
+        <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">
+          <button id="tab-btn-sales" onclick="switchDataTab('sales')"
+            style="padding:7px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--primary);color:var(--primary)">
+            Sales Orders
+          </button>
+          <button id="tab-btn-payments" onclick="switchDataTab('payments')"
+            style="padding:7px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">
+            Payments
+          </button>
+        </div>
+
+        <!-- ── Sales tab ───────────────────────────────────────────────── -->
+        <div id="tab-sales">
         <!-- Filter row -->
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
           <div style="flex:1;min-width:130px">
@@ -231,7 +299,7 @@
             <input type="date" id="view-date-to" class="form-control">
           </div>
           <div style="flex:1;min-width:130px">
-            <label class="form-label" style="font-size:12px">Store</label>
+            <label class="form-label" style="font-size:12px">Store / Outlet</label>
             <select id="view-store" class="form-control form-select">
               <option value="">All</option>
             </select>
@@ -269,26 +337,88 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Sale Order</th>
-                <th>Date</th>
-                <th>Store</th>
+                <th>Invoice No.</th>
+                <th>Sale Date</th>
+                <th>Outlet / Store</th>
+                <th>Register</th>
                 <th>Country</th>
                 <th>Customer</th>
-                <th>Total</th>
+                <th>Cust. Type</th>
+                <th>Total (excl. Tax)</th>
+                <th>Total Tax</th>
+                <th>Total (incl. Tax)</th>
                 <th>Currency</th>
-                <th>State</th>
                 <th>Oracle Txn</th>
-                <th>Fetched</th>
               </tr>
             </thead>
             <tbody id="sales-tbody">
-              <tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px">
+              <tr><td colspan="13" class="text-muted" style="text-align:center;padding:24px">
                 Click Filter or Refresh to load stored sales.
               </td></tr>
             </tbody>
           </table>
         </div>
         <div id="sales-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div><!-- end #tab-sales -->
+
+        <!-- ── Payments tab ─────────────────────────────────────────────── -->
+        <div id="tab-payments" style="display:none">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
+            <div style="flex:1;min-width:130px">
+              <label class="form-label" style="font-size:12px">From</label>
+              <input type="date" id="pay-date-from" class="form-control">
+            </div>
+            <div style="flex:1;min-width:130px">
+              <label class="form-label" style="font-size:12px">To</label>
+              <input type="date" id="pay-date-to" class="form-control">
+            </div>
+            <div style="flex:1;min-width:120px">
+              <label class="form-label" style="font-size:12px">Country</label>
+              <select id="pay-country" class="form-control form-select">
+                <option value="">All</option>
+                <option value="AE">🇦🇪 AE</option>
+                <option value="KW">🇰🇼 KW</option>
+                <option value="OM">🇴🇲 OM</option>
+                <option value="SA">🇸🇦 SA</option>
+                <option value="BH">🇧🇭 BH</option>
+                <option value="QA">🇶🇦 QA</option>
+              </select>
+            </div>
+            <button id="btn-load-payments" class="btn btn-outline" style="height:38px">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+              Filter
+            </button>
+            <button id="btn-refresh-payments" class="btn btn-outline" style="height:38px" title="Refresh payments">⟳</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+            Payments fetched from Odoo <code>account.payment</code> (3rd API endpoint). Mirrors middleware
+            <code>BackupVendhqPayments</code> table: one row per payment method per sale.
+          </p>
+          <div class="sales-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Invoice No.</th>
+                  <th>Payment Type</th>
+                  <th>Amount</th>
+                  <th>Currency</th>
+                  <th>Payment Date</th>
+                  <th>Outlet / Store</th>
+                  <th>Register</th>
+                  <th>Region</th>
+                </tr>
+              </thead>
+              <tbody id="payments-tbody">
+                <tr><td colspan="9" class="text-muted" style="text-align:center;padding:24px">
+                  Click Filter or Refresh to load stored payments.
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="payments-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div><!-- end #tab-payments -->
+
       </div>
     </div>
 
@@ -816,6 +946,8 @@ function setPushStatus(s) {
 // ── Sales table ──────────────────────────────────────────────────────
 $('btn-load-sales').addEventListener('click', () => { currentOffset = 0; loadSales(); });
 $('btn-refresh-sales').addEventListener('click', () => loadSales());
+$('btn-load-payments').addEventListener('click', () => { currentPaymentOffset = 0; loadPayments(); });
+$('btn-refresh-payments').addEventListener('click', () => loadPayments(currentPaymentOffset));
 
 async function loadSales(offset) {
   if (offset === undefined) offset = currentOffset;
@@ -863,7 +995,7 @@ function renderSalesTable(rows, total, offset) {
 
   const tbody = $('sales-tbody');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px">No sales found matching the filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="text-muted" style="text-align:center;padding:24px">No sales found matching the filters.</td></tr>';
     $('sales-pagination').textContent = '';
     return;
   }
@@ -877,13 +1009,15 @@ function renderSalesTable(rows, total, offset) {
       <td><strong>${escHtml(s.name)}</strong></td>
       <td>${escHtml(s.date_order)}</td>
       <td>${escHtml(s.store_name || '–')}</td>
+      <td style="font-size:12px">${escHtml(s.register_name || '–')}</td>
       <td>${escHtml(s.country || '–')}</td>
       <td>${escHtml(s.partner_name || '–')}</td>
-      <td style="text-align:right">${fmtMoney(s.amount_total)}</td>
+      <td><span class="tag" style="background:#e0e7ff;color:#3730a3;font-size:10px">${escHtml(s.customer_type || 'NORMAL')}</span></td>
+      <td style="text-align:right">${fmtMoney(s.amount_untaxed)}</td>
+      <td style="text-align:right">${fmtMoney(s.amount_tax)}</td>
+      <td style="text-align:right;font-weight:600">${fmtMoney(s.amount_total)}</td>
       <td>${escHtml(s.currency || '–')}</td>
-      <td><span class="tag tag-${escHtml(s.state)}">${escHtml(s.state)}</span></td>
       ${pushCell}
-      <td style="font-size:11px;color:var(--muted)">${s.fetched_at ? s.fetched_at.replace('T',' ').slice(0,16) : '–'}</td>
     </tr>`;
   }).join('');
 
@@ -904,6 +1038,83 @@ function renderSalesTable(rows, total, offset) {
     next.style.marginLeft = '6px';
     next.textContent = 'Next →';
     next.onclick = () => loadSales(offset + PAGE_SIZE);
+    pag.appendChild(next);
+  }
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchDataTab(tab) {
+  const isPayments = tab === 'payments';
+  $('tab-sales').style.display     = isPayments ? 'none' : '';
+  $('tab-payments').style.display  = isPayments ? ''     : 'none';
+
+  const salesBtn    = $('tab-btn-sales');
+  const paymentsBtn = $('tab-btn-payments');
+  salesBtn.style.borderBottomColor    = isPayments ? 'transparent' : 'var(--primary)';
+  salesBtn.style.color                = isPayments ? 'var(--muted)' : 'var(--primary)';
+  paymentsBtn.style.borderBottomColor = isPayments ? 'var(--primary)' : 'transparent';
+  paymentsBtn.style.color             = isPayments ? 'var(--primary)' : 'var(--muted)';
+
+  if (isPayments) loadPayments();
+}
+
+// ── Payments table ─────────────────────────────────────────────────────────────
+let currentPaymentOffset = 0;
+
+async function loadPayments(offset = 0) {
+  currentPaymentOffset = offset;
+  const params = new URLSearchParams({
+    dateFrom: $('pay-date-from').value || '',
+    dateTo  : $('pay-date-to').value   || '',
+    region  : $('pay-country').value   || '',
+    limit   : PAGE_SIZE,
+    offset,
+  });
+  try {
+    const data = await api(`/api/odoo/payments?${params}`);
+    renderPaymentsTable(data.payments || [], data.total || 0, offset);
+  } catch (err) {
+    $('payments-tbody').innerHTML = `<tr><td colspan="9" style="color:var(--danger);padding:16px">Error: ${escHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderPaymentsTable(rows, total, offset) {
+  const tbody = $('payments-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center;padding:24px">No payments found. Run a Fetch job to pull payment data from Odoo.</td></tr>';
+    $('payments-pagination').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((p, i) => `<tr>
+    <td style="color:var(--muted);font-size:12px">${offset + i + 1}</td>
+    <td><strong>${escHtml(p.invoice_number || '–')}</strong></td>
+    <td>${escHtml(p.payment_type || '–')}</td>
+    <td style="text-align:right;font-weight:600">${fmtMoney(p.amount)}</td>
+    <td>${escHtml(p.currency || '–')}</td>
+    <td>${escHtml(p.payment_date || '–')}</td>
+    <td>${escHtml(p.outlet_name || '–')}</td>
+    <td style="font-size:12px">${escHtml(p.register_name || '–')}</td>
+    <td>${escHtml(p.region || '–')}</td>
+  </tr>`).join('');
+
+  const from = offset + 1;
+  const to   = Math.min(offset + rows.length, total);
+  const pag  = $('payments-pagination');
+  pag.innerHTML = `Showing ${from}–${to} of ${total} &nbsp;`;
+  if (offset > 0) {
+    const prev = document.createElement('button');
+    prev.className = 'btn btn-outline btn-sm';
+    prev.textContent = '← Previous';
+    prev.addEventListener('click', () => loadPayments(Math.max(0, offset - PAGE_SIZE)));
+    pag.appendChild(prev);
+  }
+  if (to < total) {
+    const next = document.createElement('button');
+    next.className = 'btn btn-outline btn-sm';
+    next.style.marginLeft = '6px';
+    next.textContent = 'Next →';
+    next.addEventListener('click', () => loadPayments(offset + PAGE_SIZE));
     pag.appendChild(next);
   }
 }

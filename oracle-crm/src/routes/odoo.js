@@ -47,6 +47,10 @@
  * GET /api/odoo/stores
  *   List warehouses from Odoo (live).
  *
+ * GET /api/odoo/payments
+ *   List stored Odoo payment records (fetched from account.payment).
+ *   Query: ?invoiceNumber=&dateFrom=&dateTo=&region=&saleId=&limit=&offset=
+ *
  * GET /api/odoo/config
  *   Returns whether Odoo connection is configured.
  */
@@ -312,6 +316,31 @@ router.get('/reports/pulls', (req, res) => {
     offset,
   });
   res.json({ reports: rows, total, count: rows.length, limit, offset });
+});
+
+// ── GET /api/odoo/payments ────────────────────────────────────────────────────
+// List stored payment records. Mirrors middleware BackupVendhqPayments.
+// Query: ?invoiceNumber=&dateFrom=&dateTo=&region=&saleId=&limit=100&offset=0
+router.get('/payments', (req, res) => {
+  const { invoiceNumber, dateFrom, dateTo, region, saleId } = req.query;
+  const limit  = Math.min(Number(req.query.limit)  || 100, 500);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  try {
+    const { rows, total } = db.querySalePayments({
+      invoiceNumber: invoiceNumber || undefined,
+      dateFrom     : dateFrom      || undefined,
+      dateTo       : dateTo        || undefined,
+      region       : region        || undefined,
+      saleId       : saleId        ? Number(saleId) : undefined,
+      limit,
+      offset,
+    });
+    res.json({ payments: rows, total, count: rows.length, limit, offset });
+  } catch (err) {
+    logger.error('Failed to query sale payments', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── GET /api/odoo/config ──────────────────────────────────────────────────────
