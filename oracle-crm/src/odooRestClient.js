@@ -63,11 +63,22 @@ class OdooRestClient {
    * @param {string} url       Base URL, e.g. https://www.ibqpos.com  (no trailing slash)
    * @param {string} authType  'x-api-key' | 'bearer'
    * @param {string} apiKey    The API key / bearer token value
+   * @param {object} [paths]   Optional custom endpoint paths to override defaults.
+   *                           { saleDetail, posOrderLine, paymentLines }
+   *                           e.g. { saleDetail: '/api/custom/Sales', posOrderLine: '/api/custom/Lines' }
    */
-  constructor(url, authType, apiKey) {
+  constructor(url, authType, apiKey, paths) {
     this.url      = (url || '').replace(/\/$/, '');
     this.authType = (authType || 'x-api-key').toLowerCase();
     this.apiKey   = apiKey || '';
+
+    // Merge custom paths over the defaults so callers can override individual
+    // endpoints without having to specify all three.
+    this.paths = {
+      saleDetail  : (paths && paths.saleDetail)   || PATHS.saleDetail,
+      posOrderLine: (paths && paths.posOrderLine)  || PATHS.posOrderLine,
+      paymentLines: (paths && paths.paymentLines)  || PATHS.paymentLines,
+    };
 
     const authHeader = this.authType === 'bearer'
       ? { Authorization: `Bearer ${this.apiKey}` }
@@ -131,7 +142,7 @@ class OdooRestClient {
    */
   async searchSalesOrders(domain = [], fields, opts = {}) {
     logger.debug('REST: fetching sale headers', { domain });
-    const rows = await this._get(PATHS.saleDetail, { domain: domainToString(domain) });
+    const rows = await this._get(this.paths.saleDetail, { domain: domainToString(domain) });
     logger.info('REST: fetched sale headers', { count: rows.length });
     return rows.map(r => this._normaliseSaleOrder(r));
   }
@@ -147,7 +158,7 @@ class OdooRestClient {
     if (!orderIds || orderIds.length === 0) return [];
     logger.debug('REST: fetching order lines', { orderCount: orderIds.length });
     const domain = [['order_id', 'in', orderIds]];
-    const rows   = await this._get(PATHS.posOrderLine, { domain: domainToString(domain) });
+    const rows   = await this._get(this.paths.posOrderLine, { domain: domainToString(domain) });
     logger.info('REST: fetched order lines', { count: rows.length });
     return rows.map(r => this._normaliseOrderLine(r));
   }
@@ -206,21 +217,21 @@ class OdooRestClient {
       method === 'search_read'
     ) {
       const domain = args[0] || [];
-      const rows   = await this._get(PATHS.paymentLines, { domain: domainToString(domain) });
+      const rows   = await this._get(this.paths.paymentLines, { domain: domainToString(domain) });
       return rows.map(r => this._normalisePayment(r));
     }
 
     // POS order line search
     if (model === 'pos.order.line' && method === 'search_read') {
       const domain = args[0] || [];
-      const rows   = await this._get(PATHS.posOrderLine, { domain: domainToString(domain) });
+      const rows   = await this._get(this.paths.posOrderLine, { domain: domainToString(domain) });
       return rows.map(r => this._normaliseOrderLine(r));
     }
 
     // POS order / sale order search
     if ((model === 'pos.order' || model === 'sale.order') && method === 'search_read') {
       const domain = args[0] || [];
-      const rows   = await this._get(PATHS.saleDetail, { domain: domainToString(domain) });
+      const rows   = await this._get(this.paths.saleDetail, { domain: domainToString(domain) });
       return rows.map(r => this._normaliseSaleOrder(r));
     }
 
@@ -324,6 +335,23 @@ class OdooRestClient {
     // Delegate to OdooClient's static method for consistent domain building
     const OdooClient = require('./odooClient');
     return OdooClient.buildDomain(dateFrom, dateTo, storeId, states);
+  }
+
+  /** Return the module-level default endpoint paths. */
+  static getDefaultPaths() {
+    return { ...PATHS };
+  }
+
+  /**
+   * Lightweight connectivity test – fetches an arbitrary path with no filters.
+   * Returns the raw response body (array or object).  Suitable for checking
+   * whether an endpoint is reachable and the API key is accepted.
+   *
+   * @param {string} path  API path to test, e.g. '/api/vSales/Sale_detail'
+   * @returns {Promise<any>}
+   */
+  async testPath(path) {
+    return this._get(path, {});
   }
 }
 

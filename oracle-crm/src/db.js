@@ -226,8 +226,12 @@ function applyMigrations(db) {
 
   // Additive migrations for country_configs (must run after CREATE TABLE above)
   alterSafely("ALTER TABLE country_configs ADD COLUMN odoo_auth_type TEXT NOT NULL DEFAULT 'jsonrpc'");
-  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_api_key   TEXT');
-  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_api_url   TEXT');
+  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_api_key        TEXT');
+  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_api_url        TEXT');
+  // Per-country REST API endpoint paths (override the default paths in OdooRestClient)
+  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_sale_detail_path TEXT');
+  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_order_line_path  TEXT');
+  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_payment_path     TEXT');
 
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
@@ -894,25 +898,28 @@ function getCountryConfig(countryCode) {
   return getDb().prepare('SELECT * FROM country_configs WHERE country_code = ?').get(countryCode) || null;
 }
 
-function upsertCountryConfig({ countryCode, countryName, odooUrl, odooDb, odooUsername, odooPassword, odooAuthType, odooApiKey, odooApiUrl, oracleBaseUrl, oracleUsername, oraclePassword, enabled = 1 }) {
+function upsertCountryConfig({ countryCode, countryName, odooUrl, odooDb, odooUsername, odooPassword, odooAuthType, odooApiKey, odooApiUrl, odooSaleDetailPath, odooOrderLinePath, odooPaymentPath, oracleBaseUrl, oracleUsername, oraclePassword, enabled = 1 }) {
   getDb().prepare(`
-    INSERT INTO country_configs (country_code, country_name, odoo_url, odoo_db, odoo_username, odoo_password, odoo_auth_type, odoo_api_key, odoo_api_url, oracle_base_url, oracle_username, oracle_password, enabled, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO country_configs (country_code, country_name, odoo_url, odoo_db, odoo_username, odoo_password, odoo_auth_type, odoo_api_key, odoo_api_url, odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path, oracle_base_url, oracle_username, oracle_password, enabled, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(country_code) DO UPDATE SET
-      country_name    = excluded.country_name,
-      odoo_url        = excluded.odoo_url,
-      odoo_db         = excluded.odoo_db,
-      odoo_username   = excluded.odoo_username,
-      odoo_password   = excluded.odoo_password,
-      odoo_auth_type  = excluded.odoo_auth_type,
-      odoo_api_key    = excluded.odoo_api_key,
-      odoo_api_url    = excluded.odoo_api_url,
-      oracle_base_url = excluded.oracle_base_url,
-      oracle_username = excluded.oracle_username,
-      oracle_password = excluded.oracle_password,
-      enabled         = excluded.enabled,
-      updated_at      = datetime('now')
-  `).run(countryCode, countryName, odooUrl || null, odooDb || null, odooUsername || null, odooPassword || null, odooAuthType || 'jsonrpc', odooApiKey || null, odooApiUrl || null, oracleBaseUrl || null, oracleUsername || null, oraclePassword || null, enabled ? 1 : 0);
+      country_name          = excluded.country_name,
+      odoo_url              = excluded.odoo_url,
+      odoo_db               = excluded.odoo_db,
+      odoo_username         = excluded.odoo_username,
+      odoo_password         = excluded.odoo_password,
+      odoo_auth_type        = excluded.odoo_auth_type,
+      odoo_api_key          = excluded.odoo_api_key,
+      odoo_api_url          = excluded.odoo_api_url,
+      odoo_sale_detail_path = excluded.odoo_sale_detail_path,
+      odoo_order_line_path  = excluded.odoo_order_line_path,
+      odoo_payment_path     = excluded.odoo_payment_path,
+      oracle_base_url       = excluded.oracle_base_url,
+      oracle_username       = excluded.oracle_username,
+      oracle_password       = excluded.oracle_password,
+      enabled               = excluded.enabled,
+      updated_at            = datetime('now')
+  `).run(countryCode, countryName, odooUrl || null, odooDb || null, odooUsername || null, odooPassword || null, odooAuthType || 'jsonrpc', odooApiKey || null, odooApiUrl || null, odooSaleDetailPath || null, odooOrderLinePath || null, odooPaymentPath || null, oracleBaseUrl || null, oracleUsername || null, oraclePassword || null, enabled ? 1 : 0);
 }
 
 function deleteCountryConfig(countryCode) {
@@ -932,13 +939,16 @@ function getCredentialsForCountry(countryCode) {
       password: cc.oracle_password || defaults.oracle.password,
     },
     odoo: {
-      url     : cc.odoo_url       || defaults.odoo.url,
-      db      : cc.odoo_db        || defaults.odoo.db,
-      username: cc.odoo_username  || defaults.odoo.username,
-      password: cc.odoo_password  || defaults.odoo.password,
-      authType: cc.odoo_auth_type || 'jsonrpc',
-      apiKey  : cc.odoo_api_key   || null,
-      apiUrl  : cc.odoo_api_url   || defaults.odoo.apiUrl  || null,
+      url           : cc.odoo_url             || defaults.odoo.url,
+      db            : cc.odoo_db              || defaults.odoo.db,
+      username      : cc.odoo_username        || defaults.odoo.username,
+      password      : cc.odoo_password        || defaults.odoo.password,
+      authType      : cc.odoo_auth_type       || 'jsonrpc',
+      apiKey        : cc.odoo_api_key         || null,
+      apiUrl        : cc.odoo_api_url         || defaults.odoo.apiUrl  || null,
+      saleDetailPath: cc.odoo_sale_detail_path || null,
+      orderLinePath : cc.odoo_order_line_path  || null,
+      paymentPath   : cc.odoo_payment_path     || null,
     },
   };
 }

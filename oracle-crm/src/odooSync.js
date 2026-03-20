@@ -63,7 +63,13 @@ function buildOdooClient(country) {
         `Set Odoo URL and API key via the Configuration → Country Configurations page.`
       );
     }
-    return new OdooRestClient(url, authType, apiKey);
+    // Build optional custom paths object – only include a key if the country
+    // config explicitly overrides that particular endpoint path.
+    const customPaths = {};
+    if (creds.odoo.saleDetailPath) customPaths.saleDetail   = creds.odoo.saleDetailPath;
+    if (creds.odoo.orderLinePath)  customPaths.posOrderLine = creds.odoo.orderLinePath;
+    if (creds.odoo.paymentPath)    customPaths.paymentLines = creds.odoo.paymentPath;
+    return new OdooRestClient(url, authType, apiKey, Object.keys(customPaths).length ? customPaths : undefined);
   }
 
   // Default: standard JSONRPC client

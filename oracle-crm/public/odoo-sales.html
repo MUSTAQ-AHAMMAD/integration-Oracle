@@ -169,7 +169,8 @@
           <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:12px">
             <!-- Endpoint 1 -->
             <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
-              <div style="font-weight:700;color:#1a56db">① sale.order</div>
+              <div style="font-weight:700;color:#1a56db">① Sale Headers</div>
+              <div style="color:#1a56db;font-size:10px;font-family:monospace">Sale_detail</div>
               <div style="color:#374151;margin-top:3px">Invoice # · Date</div>
               <div style="color:#374151">Store · Customer</div>
               <div style="color:#374151">Totals · Currency</div>
@@ -177,7 +178,8 @@
             <div style="color:var(--muted);font-size:16px;padding:0 6px">+</div>
             <!-- Endpoint 2 -->
             <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
-              <div style="font-weight:700;color:#1a56db">② sale.order.line</div>
+              <div style="font-weight:700;color:#1a56db">② Order Lines</div>
+              <div style="color:#1a56db;font-size:10px;font-family:monospace">PosOrderLine</div>
               <div style="color:#374151;margin-top:3px">Item # (SKU) · Qty</div>
               <div style="color:#374151">Price · Tax Name</div>
               <div style="color:#374151">Discount</div>
@@ -185,7 +187,8 @@
             <div style="color:var(--muted);font-size:16px;padding:0 6px">+</div>
             <!-- Endpoint 3 -->
             <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
-              <div style="font-weight:700;color:#1a56db">③ account.payment</div>
+              <div style="font-weight:700;color:#1a56db">③ Payments</div>
+              <div style="color:#1a56db;font-size:10px;font-family:monospace">payment_lines</div>
               <div style="color:#374151;margin-top:3px">Payment Type · Amount</div>
               <div style="color:#374151">Currency · Date</div>
               <div style="color:#374151">Outlet · Register</div>
@@ -210,7 +213,8 @@
             </div>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-top:8px">
-            All data is fetched via Odoo JSONRPC API endpoints — no direct database access required.
+            Data is fetched via REST API endpoints (Sale_detail · PosOrderLine · payment_lines) using X-Api-Key authentication.
+            Configure per-country endpoint URLs in <a href="/config.html">Configuration → Country Configurations</a>.
             The mapping mirrors the middleware's BackupVendhqSales / BackupVendhqLineItems / BackupVendhqPayments tables.
           </div>
         </div>
