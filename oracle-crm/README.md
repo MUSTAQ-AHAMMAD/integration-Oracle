@@ -20,6 +20,20 @@ npm start
 # Open http://localhost:3000
 ```
 
+## Default Login Credentials
+
+When the server starts for the first time with no existing users, it automatically
+creates a default admin account:
+
+| Field    | Value        |
+|----------|--------------|
+| Username | `admin`      |
+| Password | `Admin@1234` |
+
+> ⚠️ **Change this password immediately** after your first login via the Profile page
+> or via **Admin → Users**. The default password is well-known and must not remain in
+> a production environment.
+
 > **Windows users:** See the step-by-step [Windows Installation Guide](../WINDOWS_INSTALL.md) for full instructions including Node.js setup, environment configuration, and troubleshooting.
 
 ## Pages
