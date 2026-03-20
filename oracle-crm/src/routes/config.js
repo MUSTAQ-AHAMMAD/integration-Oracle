@@ -8,6 +8,7 @@
  * GET  /api/config/full                  – complete Oracle + Odoo config with endpoint catalogue
  * POST /api/config/test-oracle           – live connectivity test against Oracle Fusion
  * POST /api/config/test-odoo             – live connectivity test against Odoo
+ * POST /api/config/test-endpoint         – test an individual REST API endpoint with given credentials
  * GET  /api/config/middleware-credentials – read Oracle credentials from Java middleware files
  *
  * The endpoint catalogues (ORACLE_ENDPOINTS, ODOO_ENDPOINTS) are derived
@@ -183,7 +184,16 @@ router.get('/regions', (req, res) => {
 router.get('/full', (req, res) => {
   const creds          = db.getActiveCredentials();
   const oracleConfigured = !!(creds.oracle.baseUrl && creds.oracle.username && creds.oracle.password);
-  const odooConfigured   = !!(creds.odoo.url && creds.odoo.db && creds.odoo.username && creds.odoo.password);
+  const odooAuthType     = (creds.odoo.authType || 'jsonrpc').toLowerCase();
+  // For REST auth (x-api-key / bearer) a database name is not needed
+  const odooConfigured   = !!(creds.odoo.url && (
+    (odooAuthType === 'x-api-key' || odooAuthType === 'bearer')
+      ? creds.odoo.apiKey
+      : (creds.odoo.username && creds.odoo.password)
+  ));
+
+  const OdooRestClient = require('../odooRestClient');
+  const defaultPaths   = OdooRestClient.getDefaultPaths();
 
   res.json({
     mode  : creds.mode,
@@ -199,7 +209,10 @@ router.get('/full', (req, res) => {
       url         : odooConfigured ? creds.odoo.url       : null,
       db          : odooConfigured ? creds.odoo.db        : null,
       username    : odooConfigured ? creds.odoo.username  : null,
+      authType    : odooAuthType,
       jsonrpcPath : '/jsonrpc',
+      // REST endpoint paths (defaults; per-country overrides live in country_configs)
+      restPaths   : defaultPaths,
       endpoints   : ODOO_ENDPOINTS,
     },
     regions: (process.env.REGIONS || 'AE,KW,OM,SA,BH,QA').split(','),
@@ -297,6 +310,60 @@ router.post('/test-odoo', async (req, res) => {
     res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server)`, uid });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── POST /api/config/test-endpoint ────────────────────────────────────────────
+// Test an individual REST API endpoint with optional credentials override.
+// Body: {
+//   url:      string  – base URL (required)
+//   apiKey:   string  – API key / bearer token (required)
+//   authType: string  – 'x-api-key' | 'bearer' (default: 'x-api-key')
+//   path:     string  – API path to test (default: /api/vSales/Sale_detail)
+//   country:  string  – optional; loads country creds if url/apiKey not provided
+// }
+router.post('/test-endpoint', async (req, res) => {
+  const { country, path: endpointPath } = req.body || {};
+  let { url, apiKey, authType } = req.body || {};
+
+  // If url / apiKey not provided, load from country config (or global defaults)
+  if (!url || !apiKey) {
+    const creds = country
+      ? db.getCredentialsForCountry(String(country).toUpperCase())
+      : db.getActiveCredentials();
+    url      = url      || creds.odoo.url;
+    apiKey   = apiKey   || creds.odoo.apiKey;
+    authType = authType || creds.odoo.authType;
+  }
+
+  authType = (authType || 'x-api-key').toLowerCase();
+
+  if (!url)    return res.status(400).json({ ok: false, error: 'url is required' });
+  if (!apiKey) return res.status(400).json({ ok: false, error: 'apiKey is required' });
+
+  const OdooRestClient = require('../odooRestClient');
+  const testPath = endpointPath || OdooRestClient.getDefaultPaths().saleDetail;
+
+  try {
+    const client = new OdooRestClient(url, authType, apiKey);
+    // Build a small domain with today's date to avoid fetching large datasets
+    const today  = new Date().toISOString().slice(0, 10);
+    const domain = [[['date_order', '>=', `${today} 00:00:00`], ['date_order', '<=', `${today} 23:59:59`]]];
+    // Use _get directly so we can test any arbitrary path
+    const rows = await client._get(testPath, {});
+    res.json({
+      ok     : true,
+      message: `Endpoint reachable – received ${Array.isArray(rows) ? rows.length : '?'} record(s)`,
+      url,
+      path   : testPath,
+      count  : Array.isArray(rows) ? rows.length : null,
+    });
+  } catch (err) {
+    const status = err.response ? err.response.status : null;
+    if (status === 401 || status === 403) {
+      return res.status(200).json({ ok: false, error: `Authentication failed (HTTP ${status}) – check API key` });
+    }
+    res.status(200).json({ ok: false, error: err.message, url, path: testPath });
   }
 });
 
@@ -423,6 +490,7 @@ router.put('/country-configs/:code', (req, res) => {
   const {
     country_name, odoo_url, odoo_api_url, odoo_username, odoo_password,
     odoo_auth_type, odoo_api_key,
+    odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path,
     oracle_base_url, oracle_username, oracle_password, enabled,
   } = req.body || {};
 
@@ -441,17 +509,20 @@ router.put('/country-configs/:code', (req, res) => {
 
   db.upsertCountryConfig({
     countryCode,
-    countryName    : country_name,
-    odooUrl        : odoo_url        || null,
-    odooApiUrl     : odoo_api_url    || null,
-    odooUsername   : odoo_username   || null,
-    odooPassword   : resolvePass(odoo_password, 'odoo_password'),
-    odooAuthType   : odoo_auth_type  || 'jsonrpc',
-    odooApiKey     : resolvePass(odoo_api_key,  'odoo_api_key'),
-    oracleBaseUrl  : oracle_base_url || null,
-    oracleUsername : oracle_username || null,
-    oraclePassword : resolvePass(oracle_password, 'oracle_password'),
-    enabled        : enabled !== undefined ? (enabled ? 1 : 0) : 1,
+    countryName       : country_name,
+    odooUrl           : odoo_url             || null,
+    odooApiUrl        : odoo_api_url         || null,
+    odooUsername      : odoo_username        || null,
+    odooPassword      : resolvePass(odoo_password, 'odoo_password'),
+    odooAuthType      : odoo_auth_type       || 'jsonrpc',
+    odooApiKey        : resolvePass(odoo_api_key,  'odoo_api_key'),
+    odooSaleDetailPath: odoo_sale_detail_path || null,
+    odooOrderLinePath : odoo_order_line_path  || null,
+    odooPaymentPath   : odoo_payment_path     || null,
+    oracleBaseUrl     : oracle_base_url       || null,
+    oracleUsername    : oracle_username       || null,
+    oraclePassword    : resolvePass(oracle_password, 'oracle_password'),
+    enabled           : enabled !== undefined ? (enabled ? 1 : 0) : 1,
   });
   res.json({ ok: true, countryCode });
 });

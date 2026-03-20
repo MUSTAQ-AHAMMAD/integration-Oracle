@@ -177,19 +177,35 @@
               <div style="font-weight:700;margin-bottom:10px">Odoo ERP (Test)</div>
               <div class="form-group">
                 <label class="form-label">URL</label>
-                <input class="form-control" id="cred-test-odoo-url" placeholder="https://test.odoo.com">
+                <input class="form-control" id="cred-test-odoo-url" placeholder="https://www.ibqpos.com  or  https://test.odoo.com">
               </div>
               <div class="form-group">
-                <label class="form-label">API URL <span style="font-size:11px;color:var(--muted)">(optional – override for JSONRPC calls)</span></label>
-                <input class="form-control" id="cred-test-odoo-api-url" placeholder="https://api.test.odoo.com">
+                <label class="form-label">Auth Type</label>
+                <select class="form-control" id="cred-test-odoo-auth-type" onchange="toggleGlobalOdooAuthFields('test')">
+                  <option value="jsonrpc">JSONRPC (username + password)</option>
+                  <option value="x-api-key">REST – X-Api-Key header</option>
+                  <option value="bearer">REST – Bearer Token</option>
+                </select>
               </div>
-              <div class="form-group">
-                <label class="form-label">Username</label>
-                <input class="form-control" id="cred-test-odoo-user" placeholder="admin@test.com">
+              <div id="cred-test-odoo-rest-fields">
+                <div class="form-group">
+                  <label class="form-label">API Key <span style="font-size:11px;color:var(--muted)">(sent as X-Api-Key or Bearer header)</span></label>
+                  <input class="form-control" id="cred-test-odoo-api-key" type="password" placeholder="Leave blank to keep existing">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Password / API Key</label>
-                <input class="form-control" id="cred-test-odoo-pass" type="password" placeholder="Leave blank to keep existing">
+              <div id="cred-test-odoo-jsonrpc-fields">
+                <div class="form-group">
+                  <label class="form-label">API URL <span style="font-size:11px;color:var(--muted)">(optional – override for JSONRPC calls)</span></label>
+                  <input class="form-control" id="cred-test-odoo-api-url" placeholder="https://api.test.odoo.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Username</label>
+                  <input class="form-control" id="cred-test-odoo-user" placeholder="admin@test.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Password</label>
+                  <input class="form-control" id="cred-test-odoo-pass" type="password" placeholder="Leave blank to keep existing">
+                </div>
               </div>
             </div>
           </div>
@@ -220,19 +236,35 @@
               <div style="font-weight:700;margin-bottom:10px">Odoo ERP (Production)</div>
               <div class="form-group">
                 <label class="form-label">URL</label>
-                <input class="form-control" id="cred-prod-odoo-url" placeholder="https://mycompany.odoo.com">
+                <input class="form-control" id="cred-prod-odoo-url" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com">
               </div>
               <div class="form-group">
-                <label class="form-label">API URL <span style="font-size:11px;color:var(--muted)">(optional – override for JSONRPC calls)</span></label>
-                <input class="form-control" id="cred-prod-odoo-api-url" placeholder="https://api.mycompany.odoo.com">
+                <label class="form-label">Auth Type</label>
+                <select class="form-control" id="cred-prod-odoo-auth-type" onchange="toggleGlobalOdooAuthFields('production')">
+                  <option value="jsonrpc">JSONRPC (username + password)</option>
+                  <option value="x-api-key">REST – X-Api-Key header</option>
+                  <option value="bearer">REST – Bearer Token</option>
+                </select>
               </div>
-              <div class="form-group">
-                <label class="form-label">Username</label>
-                <input class="form-control" id="cred-prod-odoo-user" placeholder="admin@mycompany.com">
+              <div id="cred-prod-odoo-rest-fields">
+                <div class="form-group">
+                  <label class="form-label">API Key <span style="font-size:11px;color:var(--muted)">(sent as X-Api-Key or Bearer header)</span></label>
+                  <input class="form-control" id="cred-prod-odoo-api-key" type="password" placeholder="Leave blank to keep existing">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Password / API Key</label>
-                <input class="form-control" id="cred-prod-odoo-pass" type="password" placeholder="Leave blank to keep existing">
+              <div id="cred-prod-odoo-jsonrpc-fields">
+                <div class="form-group">
+                  <label class="form-label">API URL <span style="font-size:11px;color:var(--muted)">(optional – override for JSONRPC calls)</span></label>
+                  <input class="form-control" id="cred-prod-odoo-api-url" placeholder="https://api.mycompany.odoo.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Username</label>
+                  <input class="form-control" id="cred-prod-odoo-user" placeholder="admin@mycompany.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Password</label>
+                  <input class="form-control" id="cred-prod-odoo-pass" type="password" placeholder="Leave blank to keep existing">
+                </div>
               </div>
             </div>
           </div>
@@ -601,19 +633,36 @@ async function loadCredentials() {
     _credData  = data;
 
     const setVal = (id, value) => { const el = document.getElementById(id); if (el && value) el.value = value; };
+    const setSelect = (id, value) => { const el = document.getElementById(id); if (el && value) el.value = value; };
 
-    setVal('cred-test-oracle-url',      data.test?.oracle?.baseUrl);
-    setVal('cred-test-oracle-user',     data.test?.oracle?.username);
-    setVal('cred-test-odoo-url',        data.test?.odoo?.url);
-    setVal('cred-test-odoo-api-url',    data.test?.odoo?.apiUrl);
-    setVal('cred-test-odoo-user',       data.test?.odoo?.username);
+    setVal('cred-test-oracle-url',          data.test?.oracle?.baseUrl);
+    setVal('cred-test-oracle-user',         data.test?.oracle?.username);
+    setVal('cred-test-odoo-url',            data.test?.odoo?.url);
+    setSelect('cred-test-odoo-auth-type',   data.test?.odoo?.authType);
+    setVal('cred-test-odoo-api-url',        data.test?.odoo?.apiUrl);
+    setVal('cred-test-odoo-user',           data.test?.odoo?.username);
 
-    setVal('cred-prod-oracle-url',      data.production?.oracle?.baseUrl);
-    setVal('cred-prod-oracle-user',     data.production?.oracle?.username);
-    setVal('cred-prod-odoo-url',        data.production?.odoo?.url);
-    setVal('cred-prod-odoo-api-url',    data.production?.odoo?.apiUrl);
-    setVal('cred-prod-odoo-user',       data.production?.odoo?.username);
+    setVal('cred-prod-oracle-url',          data.production?.oracle?.baseUrl);
+    setVal('cred-prod-oracle-user',         data.production?.oracle?.username);
+    setVal('cred-prod-odoo-url',            data.production?.odoo?.url);
+    setSelect('cred-prod-odoo-auth-type',   data.production?.odoo?.authType);
+    setVal('cred-prod-odoo-api-url',        data.production?.odoo?.apiUrl);
+    setVal('cred-prod-odoo-user',           data.production?.odoo?.username);
+
+    // Refresh auth type field visibility for both modes
+    toggleGlobalOdooAuthFields('test');
+    toggleGlobalOdooAuthFields('production');
   } catch (_) {}
+}
+
+function toggleGlobalOdooAuthFields(mode) {
+  const prefix = mode === 'test' ? 'test' : 'prod';
+  const authType  = (document.getElementById(`cred-${prefix}-odoo-auth-type`) || {}).value || 'jsonrpc';
+  const isRest    = authType === 'x-api-key' || authType === 'bearer';
+  const restEl    = document.getElementById(`cred-${prefix}-odoo-rest-fields`);
+  const jsonrpcEl = document.getElementById(`cred-${prefix}-odoo-jsonrpc-fields`);
+  if (restEl)    restEl.style.display    = isRest ? '' : 'none';
+  if (jsonrpcEl) jsonrpcEl.style.display = isRest ? 'none' : '';
 }
 
 async function saveCredentials(mode) {
@@ -623,6 +672,9 @@ async function saveCredentials(mode) {
   const gv = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
   const passOrUndef = (v) => v === '' ? undefined : v; // empty = don't overwrite existing password
 
+  const authType = gv(`cred-${prefix}-odoo-auth-type`) || 'jsonrpc';
+  const isRest   = authType === 'x-api-key' || authType === 'bearer';
+
   const body = {
     mode,
     oracle: {
@@ -631,10 +683,14 @@ async function saveCredentials(mode) {
       password: passOrUndef(gv(`cred-${prefix}-oracle-pass`)),
     },
     odoo: {
-      url     : gv(`cred-${prefix}-odoo-url`)      || undefined,
-      apiUrl  : gv(`cred-${prefix}-odoo-api-url`)  || undefined,
-      username: gv(`cred-${prefix}-odoo-user`)      || undefined,
-      password: passOrUndef(gv(`cred-${prefix}-odoo-pass`)),
+      url      : gv(`cred-${prefix}-odoo-url`)       || undefined,
+      authType,
+      // REST fields
+      apiKey   : isRest ? passOrUndef(gv(`cred-${prefix}-odoo-api-key`)) : undefined,
+      // JSONRPC fields
+      apiUrl   : !isRest ? (gv(`cred-${prefix}-odoo-api-url`)  || undefined) : undefined,
+      username : !isRest ? (gv(`cred-${prefix}-odoo-user`)     || undefined) : undefined,
+      password : !isRest ? passOrUndef(gv(`cred-${prefix}-odoo-pass`))        : undefined,
     },
   };
 
@@ -870,11 +926,18 @@ async function loadCountryConfigs() {
       const authLabel = c.odoo_auth_type === 'x-api-key' ? 'X-Api-Key'
                       : c.odoo_auth_type === 'bearer'    ? 'Bearer'
                       : 'JSONRPC';
+      const isRest    = c.odoo_auth_type === 'x-api-key' || c.odoo_auth_type === 'bearer';
+      // Show endpoint path overrides if they exist
+      const endpointHints = isRest ? [
+        c.odoo_sale_detail_path ? `<div style="color:#1a56db">①&nbsp;${escHtml(c.odoo_sale_detail_path)}</div>` : '',
+        c.odoo_order_line_path  ? `<div style="color:#1a56db">②&nbsp;${escHtml(c.odoo_order_line_path)}</div>`  : '',
+        c.odoo_payment_path     ? `<div style="color:#1a56db">③&nbsp;${escHtml(c.odoo_payment_path)}</div>`     : '',
+      ].filter(Boolean).join('') : '';
       return `
       <tr>
         <td><strong>${escHtml(c.country_code)}</strong></td>
         <td>${escHtml(c.country_name)}</td>
-        <td style="font-size:12px;color:var(--muted)">${escHtml(c.odoo_url || '\u2013')}</td>
+        <td style="font-size:12px;color:var(--muted)">${escHtml(c.odoo_url || '\u2013')}${endpointHints ? '<br><small style="font-size:10px">' + endpointHints + '</small>' : ''}</td>
         <td style="font-size:12px"><span class="badge badge-muted">${authLabel}</span></td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.oracle_base_url || '\u2013')}</td>
         <td><span class="badge ${c.enabled ? 'badge-success' : 'badge-muted'}">${c.enabled ? 'Enabled' : 'Disabled'}</span></td>
@@ -896,13 +959,15 @@ function openCCModal(code, existing) {
   const isRest   = authType === 'x-api-key' || authType === 'bearer';
   const html = `
     <div id="cc-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000">
-      <div style="background:#fff;border-radius:10px;padding:28px 32px;width:100%;max-width:580px;box-shadow:0 8px 40px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto">
+      <div style="background:#fff;border-radius:10px;padding:28px 32px;width:100%;max-width:640px;box-shadow:0 8px 40px rgba(0,0,0,.18);max-height:92vh;overflow-y:auto">
         <div style="font-size:17px;font-weight:700;margin-bottom:16px">${code ? 'Edit Country Config' : 'Add Country Config'}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group"><label class="form-label">Country Code</label><input class="form-control" id="cc-code" value="${escHtml(code||ex.country_code||'')}" ${code ? 'disabled' : ''} placeholder="e.g. BH" maxlength="3"></div>
           <div class="form-group"><label class="form-label">Country Name *</label><input class="form-control" id="cc-name" value="${escHtml(ex.country_name||'')}" placeholder="e.g. Bahrain"></div>
-          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Odoo URL</label><input class="form-control" id="cc-odoo-url" value="${escHtml(ex.odoo_url||'')}" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com"></div>
-          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Odoo API URL <span style="font-size:11px;color:var(--muted)">(optional – separate base URL for JSONRPC API calls)</span></label><input class="form-control" id="cc-odoo-api-url" value="${escHtml(ex.odoo_api_url||'')}" placeholder="e.g. https://api.ibqpos.com"></div>
+
+          <!-- ── Odoo Connection ── -->
+          <div style="grid-column:1/-1;font-weight:700;font-size:13px;margin-top:4px;padding-bottom:4px;border-bottom:1px solid var(--border)">🟣 Odoo REST API</div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Odoo Base URL *</label><input class="form-control" id="cc-odoo-url" value="${escHtml(ex.odoo_url||'')}" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com"></div>
           <div class="form-group" style="grid-column:1/-1">
             <label class="form-label">Odoo Auth Type</label>
             <select class="form-control" id="cc-auth-type" onchange="ccToggleAuthFields()">
@@ -915,12 +980,47 @@ function openCCModal(code, existing) {
             </div>
           </div>
           <div id="cc-jsonrpc-fields" style="grid-column:1/-1;display:${isRest?'none':'grid'};grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label class="form-label">Odoo API URL <span style="font-size:11px;color:var(--muted)">(optional – JSONRPC override)</span></label><input class="form-control" id="cc-odoo-api-url" value="${escHtml(ex.odoo_api_url||'')}" placeholder="e.g. https://api.ibqpos.com"></div>
+            <div class="form-group"></div>
             <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" value="${escHtml(ex.odoo_username||'')}" placeholder="admin"></div>
             <div class="form-group"><label class="form-label">Odoo Password</label><input type="password" class="form-control" id="cc-odoo-pass" placeholder="Leave blank to keep"></div>
           </div>
           <div id="cc-rest-fields" style="grid-column:1/-1;display:${isRest?'grid':'none'};grid-template-columns:1fr;gap:12px">
             <div class="form-group"><label class="form-label">API Key / Bearer Token</label><input type="password" class="form-control" id="cc-api-key" placeholder="Leave blank to keep" autocomplete="off"></div>
           </div>
+
+          <!-- ── REST Endpoint Paths ── -->
+          <div id="cc-endpoint-section" style="grid-column:1/-1;display:${isRest?'block':'none'}">
+            <div style="font-weight:700;font-size:13px;margin-top:4px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">
+              🔗 REST API Endpoint Paths
+              <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:6px">Leave blank to use defaults</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:8px">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">① Sale Headers (Sale_detail)</label>
+                <input class="form-control" id="cc-sale-detail-path" value="${escHtml(ex.odoo_sale_detail_path||'')}" placeholder="/api/vSales/Sale_detail" style="font-family:monospace;font-size:12px">
+              </div>
+              <button class="btn btn-outline test-btn" style="height:38px" onclick="testCCEndpoint('sale-detail')">⚡ Test</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:8px">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">② Order Lines (PosOrderLine)</label>
+                <input class="form-control" id="cc-order-line-path" value="${escHtml(ex.odoo_order_line_path||'')}" placeholder="/api/vSales/PosOrderLine" style="font-family:monospace;font-size:12px">
+              </div>
+              <button class="btn btn-outline test-btn" style="height:38px" onclick="testCCEndpoint('order-line')">⚡ Test</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:4px">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">③ Payment Lines (payment_lines)</label>
+                <input class="form-control" id="cc-payment-path" value="${escHtml(ex.odoo_payment_path||'')}" placeholder="/api/vSales/payment_lines" style="font-family:monospace;font-size:12px">
+              </div>
+              <button class="btn btn-outline test-btn" style="height:38px" onclick="testCCEndpoint('payment')">⚡ Test</button>
+            </div>
+            <div id="cc-endpoint-test-result" style="display:none;font-size:12px;padding:6px 10px;border-radius:4px;margin-top:6px"></div>
+          </div>
+
+          <!-- ── Oracle Connection ── -->
+          <div style="grid-column:1/-1;font-weight:700;font-size:13px;margin-top:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">🔵 Oracle Fusion (leave blank to use global defaults)</div>
           <div class="form-group"><label class="form-label">Oracle Base URL</label><input class="form-control" id="cc-oracle-url" value="${escHtml(ex.oracle_base_url||'')}" placeholder="https://fusion.example.com"></div>
           <div class="form-group"><label class="form-label">Oracle Username</label><input class="form-control" id="cc-oracle-user" value="${escHtml(ex.oracle_username||'')}" placeholder="oracle_user"></div>
           <div class="form-group"><label class="form-label">Oracle Password</label><input type="password" class="form-control" id="cc-oracle-pass" placeholder="Leave blank to keep"></div>
@@ -939,14 +1039,57 @@ function openCCModal(code, existing) {
 function ccToggleAuthFields() {
   const authType = document.getElementById('cc-auth-type').value;
   const isRest   = authType === 'x-api-key' || authType === 'bearer';
-  const jrpc  = document.getElementById('cc-jsonrpc-fields');
-  const rest  = document.getElementById('cc-rest-fields');
-  const hint  = document.getElementById('cc-auth-hint');
-  jrpc.style.display = isRest ? 'none' : 'grid';
-  rest.style.display = isRest ? 'grid' : 'none';
-  hint.textContent   = isRest
+  const jrpc    = document.getElementById('cc-jsonrpc-fields');
+  const rest    = document.getElementById('cc-rest-fields');
+  const hint    = document.getElementById('cc-auth-hint');
+  const epSect  = document.getElementById('cc-endpoint-section');
+  jrpc.style.display   = isRest ? 'none' : 'grid';
+  rest.style.display   = isRest ? 'grid' : 'none';
+  if (epSect) epSect.style.display = isRest ? 'block' : 'none';
+  hint.textContent     = isRest
     ? 'REST mode: API key is sent as a request header. Username and password are not used.'
     : 'Standard Odoo JSONRPC authentication.';
+}
+
+async function testCCEndpoint(endpointType) {
+  const url    = (document.getElementById('cc-odoo-url')  || {}).value || '';
+  const apiKey = (document.getElementById('cc-api-key')   || {}).value || '';
+  const authType = (document.getElementById('cc-auth-type') || {}).value || 'x-api-key';
+  const pathMap = {
+    'sale-detail': document.getElementById('cc-sale-detail-path'),
+    'order-line' : document.getElementById('cc-order-line-path'),
+    'payment'    : document.getElementById('cc-payment-path'),
+  };
+  const pathEl   = pathMap[endpointType];
+  const path     = pathEl ? pathEl.value.trim() : '';
+  const resultEl = document.getElementById('cc-endpoint-test-result');
+  resultEl.style.display  = 'block';
+  resultEl.className      = '';
+  resultEl.style.background = '#e2e3e5';
+  resultEl.style.color    = '#41464b';
+  resultEl.textContent    = 'Testing…';
+
+  if (!url) { resultEl.textContent = '✗ Odoo Base URL is required'; resultEl.style.background='#f8d7da'; resultEl.style.color='#842029'; return; }
+  if (!apiKey) { resultEl.textContent = '✗ API Key is required'; resultEl.style.background='#f8d7da'; resultEl.style.color='#842029'; return; }
+
+  try {
+    const res  = await fetch('/api/config/test-endpoint', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ url, apiKey, authType, path: path || undefined }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.style.background = '#d1e7dd'; resultEl.style.color = '#0a3622';
+      resultEl.textContent = `✓ ${esc(data.path)} → reachable (${data.count != null ? data.count + ' records' : 'ok'})`;
+    } else {
+      resultEl.style.background = '#f8d7da'; resultEl.style.color = '#842029';
+      resultEl.textContent = `✗ ${esc(data.path || path || '(default)')} → ${esc(data.error || 'failed')}`;
+    }
+  } catch (err) {
+    resultEl.style.background = '#f8d7da'; resultEl.style.color = '#842029';
+    resultEl.textContent = '✗ Request failed: ' + esc(err.message);
+  }
 }
 
 async function saveCCConfig() {
@@ -956,17 +1099,20 @@ async function saveCCConfig() {
   if (!name) { document.getElementById('cc-modal-err').textContent = 'Country name is required'; return; }
   const authType = document.getElementById('cc-auth-type').value;
   const body = {
-    country_name   : name,
-    odoo_url       : document.getElementById('cc-odoo-url').value.trim() || null,
-    odoo_api_url   : document.getElementById('cc-odoo-api-url').value.trim() || null,
-    odoo_auth_type : authType,
-    odoo_username  : document.getElementById('cc-odoo-user').value.trim() || null,
-    odoo_password  : document.getElementById('cc-odoo-pass').value || null,
-    odoo_api_key   : document.getElementById('cc-api-key').value || null,
-    oracle_base_url: document.getElementById('cc-oracle-url').value.trim() || null,
-    oracle_username: document.getElementById('cc-oracle-user').value.trim() || null,
-    oracle_password: document.getElementById('cc-oracle-pass').value || null,
-    enabled        : Number(document.getElementById('cc-enabled').value),
+    country_name          : name,
+    odoo_url              : document.getElementById('cc-odoo-url').value.trim() || null,
+    odoo_api_url          : document.getElementById('cc-odoo-api-url') ? document.getElementById('cc-odoo-api-url').value.trim() || null : null,
+    odoo_auth_type        : authType,
+    odoo_username         : document.getElementById('cc-odoo-user') ? document.getElementById('cc-odoo-user').value.trim() || null : null,
+    odoo_password         : document.getElementById('cc-odoo-pass') ? document.getElementById('cc-odoo-pass').value || null : null,
+    odoo_api_key          : document.getElementById('cc-api-key') ? document.getElementById('cc-api-key').value || null : null,
+    odoo_sale_detail_path : document.getElementById('cc-sale-detail-path') ? document.getElementById('cc-sale-detail-path').value.trim() || null : null,
+    odoo_order_line_path  : document.getElementById('cc-order-line-path') ? document.getElementById('cc-order-line-path').value.trim() || null : null,
+    odoo_payment_path     : document.getElementById('cc-payment-path') ? document.getElementById('cc-payment-path').value.trim() || null : null,
+    oracle_base_url       : document.getElementById('cc-oracle-url').value.trim() || null,
+    oracle_username       : document.getElementById('cc-oracle-user').value.trim() || null,
+    oracle_password       : document.getElementById('cc-oracle-pass').value || null,
+    enabled               : Number(document.getElementById('cc-enabled').value),
   };
   try {
     const res  = await fetch(`/api/config/country-configs/${code}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
