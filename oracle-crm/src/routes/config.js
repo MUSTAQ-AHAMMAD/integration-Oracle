@@ -346,11 +346,8 @@ router.post('/test-endpoint', async (req, res) => {
 
   try {
     const client = new OdooRestClient(url, authType, apiKey);
-    // Build a small domain with today's date to avoid fetching large datasets
-    const today  = new Date().toISOString().slice(0, 10);
-    const domain = [[['date_order', '>=', `${today} 00:00:00`], ['date_order', '<=', `${today} 23:59:59`]]];
-    // Use _get directly so we can test any arbitrary path
-    const rows = await client._get(testPath, {});
+    // Use the public testPath helper to probe any arbitrary endpoint path
+    const rows = await client.testPath(testPath);
     res.json({
       ok     : true,
       message: `Endpoint reachable – received ${Array.isArray(rows) ? rows.length : '?'} record(s)`,

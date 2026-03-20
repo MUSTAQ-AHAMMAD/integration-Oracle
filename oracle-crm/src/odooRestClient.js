@@ -341,6 +341,18 @@ class OdooRestClient {
   static getDefaultPaths() {
     return { ...PATHS };
   }
+
+  /**
+   * Lightweight connectivity test – fetches an arbitrary path with no filters.
+   * Returns the raw response body (array or object).  Suitable for checking
+   * whether an endpoint is reachable and the API key is accepted.
+   *
+   * @param {string} path  API path to test, e.g. '/api/vSales/Sale_detail'
+   * @returns {Promise<any>}
+   */
+  async testPath(path) {
+    return this._get(path, {});
+  }
 }
 
 module.exports = OdooRestClient;
