@@ -186,7 +186,7 @@ function renderAvatar(data, name) {
   if (data) {
     el.innerHTML = `<img src="${data}" alt="avatar">`;
   } else {
-    el.textContent = (name || '?')[0].toUpperCase();
+    el.textContent = ((name || '?').trim() || '?')[0].toUpperCase();
   }
 }
 

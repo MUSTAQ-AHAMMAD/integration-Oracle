@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const av = document.getElementById('sidebar-avatar');
     const un = document.getElementById('sidebar-username');
     const rl = document.getElementById('sidebar-role');
-    if (av) av.textContent = (u.display_name || u.username || '?')[0].toUpperCase();
+    if (av) av.textContent = ((u.display_name || u.username || '?').trim() || '?')[0].toUpperCase();
     if (un) un.textContent = u.display_name || u.username;
     if (rl) rl.textContent = u.role || '';
   }

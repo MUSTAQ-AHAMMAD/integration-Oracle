@@ -35,6 +35,7 @@ router.post('/', requireAdmin, async (req, res) => {
 // PUT /api/users/:id
 router.put('/:id', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
+  const { email, role, display_name, password } = req.body || {};
   const target = db.getUserById(id);
   if (!target) return res.status(404).json({ error: 'User not found' });
   const validRoles = ['admin', 'operator', 'viewer'];

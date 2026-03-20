@@ -3,7 +3,13 @@
 const jwt = require('jsonwebtoken');
 const db  = require('../db');
 
-const JWT_SECRET  = process.env.JWT_SECRET || 'oracle-crm-secret-change-in-production';
+const JWT_SECRET  = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable must be set in production');
+  }
+  console.warn('[WARN] JWT_SECRET not set – using insecure default. Set JWT_SECRET in .env for production.');
+  return 'oracle-crm-secret-change-in-production';
+})();
 const JWT_EXPIRES = '12h';
 
 function signToken(user) {
