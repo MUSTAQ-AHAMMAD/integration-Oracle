@@ -200,6 +200,65 @@ class OdooClient {
   }
 
   /**
+   * List all databases available on this Odoo server.
+   * Does NOT require authentication – uses the public /web/database/list endpoint.
+   * @returns {string[]} list of database names
+   */
+  async listDatabases() {
+    logger.debug('Listing Odoo databases', { url: this.url });
+    const res = await this.http.post('/web/database/list', { jsonrpc: '2.0', method: 'call', id: Date.now(), params: {} });
+    if (res.data && res.data.error) {
+      const { code, message, data: errData } = res.data.error;
+      throw new Error(
+        `Odoo JSONRPC error [${code}]: ${message}` +
+        (errData ? ` – ${errData.message || JSON.stringify(errData)}` : '')
+      );
+    }
+    const dbs = res.data.result;
+    logger.info('Listed Odoo databases', { count: Array.isArray(dbs) ? dbs.length : 0 });
+    return Array.isArray(dbs) ? dbs : [];
+  }
+
+  /**
+   * Create a new database on this Odoo server.
+   * Requires the Odoo master password (set in odoo.conf or ODOO_MASTER_PASSWORD env var on the Odoo server).
+   *
+   * @param {string} masterPassword  Odoo master/administrator password
+   * @param {string} dbName          Name of the database to create
+   * @param {string} adminLogin      Admin login for the new database (default: 'admin')
+   * @param {string} adminPassword   Admin password for the new database
+   * @param {string} [lang]          Language code, e.g. 'en_US' (default: 'en_US')
+   * @param {string} [countryCode]   ISO country code, e.g. 'AE' (optional)
+   * @returns {boolean} true on success
+   */
+  async createDatabase(masterPassword, dbName, adminLogin = 'admin', adminPassword, lang = 'en_US', countryCode = '') {
+    logger.info('Creating Odoo database', { url: this.url, dbName, lang });
+    const res = await this.http.post('/web/database/create', {
+      jsonrpc: '2.0',
+      method : 'call',
+      id     : Date.now(),
+      params : {
+        master_pwd   : masterPassword,
+        name         : dbName,
+        login        : adminLogin,
+        password     : adminPassword,
+        lang,
+        country_code : countryCode,
+        phone        : '',
+      },
+    });
+    if (res.data && res.data.error) {
+      const { code, message, data: errData } = res.data.error;
+      throw new Error(
+        `Odoo JSONRPC error [${code}]: ${message}` +
+        (errData ? ` – ${errData.message || JSON.stringify(errData)}` : '')
+      );
+    }
+    logger.info('Odoo database created', { dbName });
+    return true;
+  }
+
+  /**
    * Build a standard domain for filtering by date range and optional store.
    *
    * @param {string}  dateFrom   YYYY-MM-DD

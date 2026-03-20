@@ -8,6 +8,8 @@
  * GET  /api/config/full                  – complete Oracle + Odoo config with endpoint catalogue
  * POST /api/config/test-oracle           – live connectivity test against Oracle Fusion
  * POST /api/config/test-odoo             – live connectivity test against Odoo
+ * POST /api/config/list-odoo-databases   – list databases available on the configured Odoo server
+ * POST /api/config/create-odoo-db        – create a new Odoo database (requires Odoo master password)
  * GET  /api/config/middleware-credentials – read Oracle credentials from Java middleware files
  *
  * The endpoint catalogues (ORACLE_ENDPOINTS, ODOO_ENDPOINTS) are derived
@@ -267,6 +269,61 @@ router.post('/test-odoo', async (req, res) => {
     const client = new OdooClient(url, odooDb, username, password);
     const uid    = await client.authenticate();
     res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server)`, uid });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── POST /api/config/list-odoo-databases ──────────────────────────────────────
+// Lists databases available on the configured Odoo server.
+// Uses the public /web/database/list endpoint (no authentication needed).
+// Accepts optional { url } in the request body to override the configured URL.
+router.post('/list-odoo-databases', async (req, res) => {
+  const creds = db.getActiveCredentials();
+  const url   = (req.body && req.body.url) || creds.odoo.url;
+
+  if (!url) {
+    return res.status(400).json({
+      ok   : false,
+      error: 'Odoo URL not configured. Set credentials via the Configuration page.',
+    });
+  }
+
+  try {
+    const client    = new OdooClient(url, '', '', '');
+    const databases = await client.listDatabases();
+    res.json({ ok: true, databases });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── POST /api/config/create-odoo-db ──────────────────────────────────────────
+// Creates a new Odoo database via /web/database/create.
+// Body: { masterPassword, dbName, adminLogin?, adminPassword, lang?, countryCode?, url? }
+// Note: masterPassword is the Odoo server master password (set in odoo.conf).
+router.post('/create-odoo-db', async (req, res) => {
+  const { masterPassword, dbName, adminLogin, adminPassword, lang, countryCode } = req.body || {};
+
+  if (!masterPassword) return res.status(400).json({ ok: false, error: 'masterPassword is required' });
+  if (!dbName)         return res.status(400).json({ ok: false, error: 'dbName is required' });
+  if (!adminPassword)  return res.status(400).json({ ok: false, error: 'adminPassword is required' });
+
+  const creds = db.getActiveCredentials();
+  const url   = (req.body && req.body.url) || creds.odoo.url;
+
+  if (!url) {
+    return res.status(400).json({
+      ok   : false,
+      error: 'Odoo URL not configured. Set credentials via the Configuration page.',
+    });
+  }
+
+  try {
+    const resolvedLogin = adminLogin || 'admin';
+    const client = new OdooClient(url, dbName, resolvedLogin, adminPassword);
+    await client.createDatabase(masterPassword, dbName, resolvedLogin, adminPassword, lang || 'en_US', countryCode || '');
+    res.json({ ok: true, message: `Odoo database "${dbName}" created successfully on ${url}` });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
