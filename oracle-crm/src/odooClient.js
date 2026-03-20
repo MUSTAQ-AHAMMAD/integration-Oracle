@@ -29,6 +29,47 @@ const logger = require('./logger').child('OdooClient');
 
 const JSONRPC_PATH = '/jsonrpc';
 
+/**
+ * Convert a low-level HTTP / JSON-parse error into a human-readable message.
+ *
+ * When Odoo (or a proxy in front of it) returns an HTML error page, axios will
+ * either throw a SyntaxError during JSON parsing or, with silent-parse mode,
+ * hand back the raw HTML string as `res.data`.  Both cases are detected here so
+ * that callers receive a clear message instead of the raw
+ * "Unexpected token '<', "<!DOCTYPE "... is not valid JSON" error.
+ *
+ * @param {Error}  err      Error thrown by axios (or re-thrown internally).
+ * @param {string} context  Short description used as a prefix in the message.
+ * @returns {Error}
+ */
+function _normalizeHttpError(err, context) {
+  const prefix = context ? `${context}: ` : '';
+
+  // axios error with an HTTP response (non-2xx status)
+  if (err.response) {
+    const status = err.response.status;
+    const body   = err.response.data;
+    if (typeof body === 'string' && body.trimStart().startsWith('<')) {
+      return new Error(
+        `${prefix}Odoo returned an HTML page (HTTP ${status}). ` +
+        'The URL may be wrong or the server is redirecting to a login / error page.'
+      );
+    }
+    return new Error(`${prefix}HTTP ${status}: ${err.message}`);
+  }
+
+  // SyntaxError from JSON.parse inside axios transformResponse
+  if (err instanceof SyntaxError || (err.message && err.message.includes('is not valid JSON'))) {
+    return new Error(
+      `${prefix}Odoo returned a non-JSON response. ` +
+      'The server may be down, returning an HTML error page, or the URL is incorrect. ' +
+      `(${err.message})`
+    );
+  }
+
+  return err;
+}
+
 // Persistent connections to Odoo – avoids repeated TLS negotiation during
 // paginated fetches.  maxSockets is set generously; Odoo's thread pool is the
 // real bottleneck, not the number of sockets on the client.
@@ -82,7 +123,21 @@ class OdooClient {
       params  : { service, method, args },
     };
 
-    const res = await this.http.post(JSONRPC_PATH, payload);
+    let res;
+    try {
+      res = await this.http.post(JSONRPC_PATH, payload);
+    } catch (err) {
+      throw _normalizeHttpError(err, 'Odoo JSONRPC');
+    }
+
+    // Guard: some proxy/CDN configs return HTML as the response body even when
+    // the status code is 200 (e.g. a WAF login wall).
+    if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
+      throw new Error(
+        'Odoo JSONRPC: endpoint returned HTML instead of JSON. ' +
+        'The server may be redirecting to a login page or returning an error page.'
+      );
+    }
 
     if (res.data.error) {
       const { code, message, data: errData } = res.data.error;
@@ -248,7 +303,15 @@ class OdooClient {
    */
   async listDatabases() {
     logger.debug('Listing Odoo databases', { url: this.url });
-    const res = await this.http.post('/web/database/list', { jsonrpc: '2.0', method: 'call', id: Date.now(), params: {} });
+    let res;
+    try {
+      res = await this.http.post('/web/database/list', { jsonrpc: '2.0', method: 'call', id: Date.now(), params: {} });
+    } catch (err) {
+      throw _normalizeHttpError(err, 'Odoo listDatabases');
+    }
+    if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
+      throw new Error('Odoo listDatabases: endpoint returned HTML instead of JSON.');
+    }
     if (res.data && res.data.error) {
       const { code, message, data: errData } = res.data.error;
       throw new Error(
@@ -275,20 +338,28 @@ class OdooClient {
    */
   async createDatabase(masterPassword, dbName, adminLogin = 'admin', adminPassword, lang = 'en_US', countryCode = '') {
     logger.info('Creating Odoo database', { url: this.url, dbName, lang });
-    const res = await this.http.post('/web/database/create', {
-      jsonrpc: '2.0',
-      method : 'call',
-      id     : Date.now(),
-      params : {
-        master_pwd   : masterPassword,
-        name         : dbName,
-        login        : adminLogin,
-        password     : adminPassword,
-        lang,
-        country_code : countryCode,
-        phone        : '',
-      },
-    });
+    let res;
+    try {
+      res = await this.http.post('/web/database/create', {
+        jsonrpc: '2.0',
+        method : 'call',
+        id     : Date.now(),
+        params : {
+          master_pwd   : masterPassword,
+          name         : dbName,
+          login        : adminLogin,
+          password     : adminPassword,
+          lang,
+          country_code : countryCode,
+          phone        : '',
+        },
+      });
+    } catch (err) {
+      throw _normalizeHttpError(err, 'Odoo createDatabase');
+    }
+    if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
+      throw new Error('Odoo createDatabase: endpoint returned HTML instead of JSON.');
+    }
     if (res.data && res.data.error) {
       const { code, message, data: errData } = res.data.error;
       throw new Error(

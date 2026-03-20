@@ -99,11 +99,56 @@ class OdooRestClient {
 
   // ── Internal helpers ──────────────────────────────────────────────────────
 
+  /**
+   * Convert a low-level HTTP / JSON-parse error from axios into a readable
+   * message.  When the server returns an HTML page (login wall, CDN error page,
+   * etc.) instead of JSON, this replaces the raw SyntaxError with a descriptive
+   * message that includes the endpoint path and HTTP status.
+   */
+  _normalizeHttpError(err, path) {
+    const prefix = `Odoo REST GET ${path}: `;
+    if (err.response) {
+      const status = err.response.status;
+      const body   = err.response.data;
+      if (typeof body === 'string' && body.trimStart().startsWith('<')) {
+        return new Error(
+          `${prefix}server returned an HTML page (HTTP ${status}). ` +
+          `Check the endpoint URL and API key. URL: ${this.url}${path}`
+        );
+      }
+      return new Error(`${prefix}HTTP ${status}: ${err.message}`);
+    }
+    if (err instanceof SyntaxError || (err.message && err.message.includes('is not valid JSON'))) {
+      return new Error(
+        `${prefix}non-JSON response received. ` +
+        `The server may be down or returning an HTML error page. ` +
+        `URL: ${this.url}${path}. (${err.message})`
+      );
+    }
+    return err;
+  }
+
   async _get(path, params = {}) {
-    const res = await this.http.get(path, { params });
+    let res;
+    try {
+      res = await this.http.get(path, { params });
+    } catch (err) {
+      throw this._normalizeHttpError(err, path);
+    }
+
     // The vSales API may return either an array directly or a wrapper like
     // { result: [...] } / { data: [...] }.  Handle both transparently.
     const body = res.data;
+
+    // Guard: some proxy/CDN configs return HTML (e.g. a WAF login wall) with a
+    // 200 status code, causing axios to return the raw HTML string as res.data.
+    if (typeof body === 'string' && body.trimStart().startsWith('<')) {
+      throw new Error(
+        `Odoo REST endpoint returned HTML instead of JSON. ` +
+        `Check the endpoint URL and API key. URL: ${this.url}${path}`
+      );
+    }
+
     if (Array.isArray(body))          return body;
     if (Array.isArray(body.result))   return body.result;
     if (Array.isArray(body.data))     return body.data;
