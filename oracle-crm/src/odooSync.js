@@ -43,6 +43,8 @@ const FETCH_PAGE_SIZE   = Number(process.env.ODOO_FETCH_PAGE_SIZE)   || 500;
 const PUSH_BATCH_SIZE   = Number(process.env.PUSH_BATCH_SIZE)        || 500;
 // Max concurrent Odoo line-chunk fetches (paginated in parallel)
 const LINE_FETCH_CONCURRENCY = Number(process.env.ODOO_LINE_FETCH_CONCURRENCY) || 5;
+// Default currency used when Odoo does not return one
+const DEFAULT_CURRENCY  = process.env.ODOO_DEFAULT_CURRENCY || 'AED';
 
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
@@ -149,12 +151,12 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
         date_order     : (o.date_order || '').split(' ')[0],
         partner_id     : Array.isArray(o.partner_id) ? o.partner_id[0] : null,
         partner_name   : Array.isArray(o.partner_id) ? o.partner_id[1] : null,
-        currency       : Array.isArray(o.currency_id) ? o.currency_id[1] : 'AED',
+        currency       : Array.isArray(o.currency_id) ? o.currency_id[1] : DEFAULT_CURRENCY,
         amount_untaxed : Number(o.amount_untaxed) || 0,
         amount_tax     : Number(o.amount_tax)     || 0,
         amount_total   : Number(o.amount_total)   || 0,
         state          : o.state || '',
-        customer_type  : 'NORMAL',   // default; overridden by partner category if available
+        customer_type  : 'NORMAL',   // placeholder; partner category fetch not yet implemented
         register_name  : Array.isArray(o.team_id) ? o.team_id[1] : null,
         fetched_at     : now,
         raw_json       : JSON.stringify(o),
@@ -219,7 +221,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
             odoo_line_id   : l.id,
             product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
             product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
-            item_number    : l.default_code || null,   // SKU / product reference
+            item_number    : l.default_code || null,   // Odoo product.default_code = SKU; maps to middleware item_number
             tax_name       : taxName,
             line_number    : l.sequence != null ? l.sequence : idx + 1,
             qty_ordered    : Number(l.product_uom_qty) || 0,
@@ -258,7 +260,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
           const invIds = Array.isArray(o.invoice_ids) ? o.invoice_ids : [];
           const storeName  = Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : (o.warehouse_id || null);
           const teamName   = Array.isArray(o.team_id) ? o.team_id[1] : (o.team_id || null);
-          const currency   = Array.isArray(o.currency_id) ? o.currency_id[1] : 'AED';
+          const currency   = Array.isArray(o.currency_id) ? o.currency_id[1] : DEFAULT_CURRENCY;
           for (const invId of invIds) {
             allInvoiceIds.push(invId);
             invoiceToSaleMap.set(invId, {
@@ -286,7 +288,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
             odoo_payment_id: p.id,
             payment_type   : Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown'),
             amount         : Number(p.amount)    || 0,
-            currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : (meta.currency || 'AED'),
+            currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : (meta.currency || DEFAULT_CURRENCY),
             payment_date   : (p.date || '').split(' ')[0] || null,
             outlet_name    : meta.storeName      || null,
             register_name  : meta.teamName       || null,
@@ -741,7 +743,7 @@ function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
   };
 
   const outletObj = jobOutlet || {
-    currency        : sale.currency       || 'AED',
+    currency        : sale.currency       || DEFAULT_CURRENCY,
     outletName      : sale.store_name     || 'Odoo Store',
     organizationName: sale.store_name     || 'Odoo Store',
   };

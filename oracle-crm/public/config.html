@@ -180,13 +180,17 @@
                 <input class="form-control" id="cred-test-odoo-url" placeholder="https://test.odoo.com">
               </div>
               <div class="form-group">
-                <label class="form-label">Database Name</label>
+                <label class="form-label">Database Name <span style="font-weight:400;color:var(--muted)">(optional for odoo.com – auto-inferred from URL)</span></label>
                 <div style="display:flex;gap:6px;align-items:center">
-                  <input class="form-control" id="cred-test-odoo-db" placeholder="test_db" style="flex:1">
+                  <input class="form-control" id="cred-test-odoo-db" placeholder="Leave blank for odoo.com instances" style="flex:1">
                   <button class="btn btn-sm btn-outline" type="button" id="btn-browse-db-test" title="List databases on the Odoo server">📋 Browse</button>
                   <button class="btn btn-sm btn-outline" type="button" id="btn-create-db-test" title="Create a new database on the Odoo server" style="white-space:nowrap">＋ Create DB</button>
                 </div>
                 <div id="odoo-db-list-test" style="display:none;margin-top:6px"></div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">
+                  For <code>https://mycompany.odoo.com</code>, leave blank — the DB name is inferred as <code>mycompany</code>.
+                  For self-hosted Odoo, enter the database name explicitly.
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Username</label>
@@ -228,13 +232,17 @@
                 <input class="form-control" id="cred-prod-odoo-url" placeholder="https://mycompany.odoo.com">
               </div>
               <div class="form-group">
-                <label class="form-label">Database Name</label>
+                <label class="form-label">Database Name <span style="font-weight:400;color:var(--muted)">(optional for odoo.com – auto-inferred from URL)</span></label>
                 <div style="display:flex;gap:6px;align-items:center">
-                  <input class="form-control" id="cred-prod-odoo-db" placeholder="mycompany_db" style="flex:1">
+                  <input class="form-control" id="cred-prod-odoo-db" placeholder="Leave blank for odoo.com instances" style="flex:1">
                   <button class="btn btn-sm btn-outline" type="button" id="btn-browse-db-production" title="List databases on the Odoo server">📋 Browse</button>
                   <button class="btn btn-sm btn-outline" type="button" id="btn-create-db-production" title="Create a new database on the Odoo server" style="white-space:nowrap">＋ Create DB</button>
                 </div>
                 <div id="odoo-db-list-production" style="display:none;margin-top:6px"></div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">
+                  For <code>https://mycompany.odoo.com</code>, leave blank — the DB name is inferred as <code>mycompany</code>.
+                  For self-hosted Odoo, enter the database name explicitly.
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Username</label>

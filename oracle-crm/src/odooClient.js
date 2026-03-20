@@ -44,7 +44,9 @@ class OdooClient {
    */
   constructor(url, db, username, password) {
     this.url      = url.replace(/\/$/, '');
-    this.db       = db || OdooClient.inferDbFromUrl(url);
+    // Auto-infer db from URL if not provided (e.g. https://mycompany.odoo.com → 'mycompany').
+    // Falls back to empty string rather than null so downstream code that requires a string stays safe.
+    this.db       = db || OdooClient.inferDbFromUrl(url) || '';
     this.username = username;
     this.password = password;
     this.uid      = null;
