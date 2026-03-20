@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Orders Search</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .orders-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+    .orders-tab {
+      padding:8px 20px; border-radius:20px; font-size:13px; font-weight:600;
+      border:2px solid var(--border); cursor:pointer; background:var(--white);
+      color:var(--muted); transition:all .15s;
+    }
+    .orders-tab.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+
+    .section-panel { display:none; }
+    .section-panel.active { display:block; }
+
+    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:flex-end; }
+    .filter-bar .fg { flex:1; min-width:120px; }
+
+    .stat-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+    .stat-chip {
+      background:var(--white); border:1px solid var(--border); border-radius:var(--radius);
+      padding:8px 14px; font-size:13px;
+    }
+    .stat-chip strong { color:var(--primary); font-size:16px; }
+
+    .oracle-cell { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span>Oracle</span> CRM
+    <small>Odoo → Fusion Sync</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/odoo-sales.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+      Odoo Sales
+    </a>
+    <a href="/orders.html" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+      Orders Search
+    </a>
+    <a href="/reports.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Reports
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/calculations.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Calculations Ref
+    </a>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<!-- ── Main content ─────────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="topbar">
+    <h1>Orders Search</h1>
+    <div class="d-flex gap-10">
+      <a href="/reports.html" class="btn btn-outline">Reports</a>
+      <a href="/odoo-sales.html" class="btn btn-primary">Odoo Sales →</a>
+    </div>
+  </div>
+  <div class="page-body">
+
+    <div id="alert-area" class="alert hidden"></div>
+
+    <!-- ── View Tabs ──────────────────────────────────────────────────── -->
+    <div class="orders-tabs">
+      <button class="orders-tab active" data-tab="oracle-pushed">
+        🏛 Orders Pushed to Oracle
+      </button>
+      <button class="orders-tab" data-tab="odoo-pulled">
+        📦 Orders Pulled from Odoo
+      </button>
+    </div>
+
+    <!-- ── Shared Filter Bar ──────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-body" style="padding:14px 18px">
+        <div class="filter-bar">
+          <div class="fg" style="min-width:150px">
+            <label class="form-label" style="font-size:12px">From Date</label>
+            <input type="date" id="ord-date-from" class="form-control">
+          </div>
+          <div class="fg" style="min-width:150px">
+            <label class="form-label" style="font-size:12px">To Date</label>
+            <input type="date" id="ord-date-to" class="form-control">
+          </div>
+          <div class="fg">
+            <label class="form-label" style="font-size:12px">Country</label>
+            <select id="ord-country" class="form-control form-select">
+              <option value="">All Countries</option>
+              <option value="AE">🇦🇪 AE – UAE</option>
+              <option value="KW">🇰🇼 KW – Kuwait</option>
+              <option value="OM">🇴🇲 OM – Oman</option>
+              <option value="SA">🇸🇦 SA – Saudi Arabia</option>
+              <option value="BH">🇧🇭 BH – Bahrain</option>
+              <option value="QA">🇶🇦 QA – Qatar</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="form-label" style="font-size:12px">Store</label>
+            <select id="ord-store" class="form-control form-select">
+              <option value="">All Stores</option>
+            </select>
+          </div>
+          <div class="fg" style="min-width:160px">
+            <label class="form-label" style="font-size:12px">Order / Txn Search</label>
+            <input type="text" id="ord-search" class="form-control" placeholder="e.g. S00123 or TXN-…">
+          </div>
+          <button id="btn-search" class="btn btn-primary" style="height:38px;white-space:nowrap">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+            Search
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Orders Pushed to Oracle ──────────────────────────────── -->
+    <div id="tab-oracle-pushed" class="section-panel active">
+      <div class="card">
+        <div class="card-header">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Orders Successfully Pushed to Oracle Fusion
+          <span class="badge badge-success" id="pushed-count-badge" style="margin-left:auto">–</span>
+        </div>
+        <div class="card-body">
+          <div id="pushed-stats" class="stat-row"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Sale Order</th>
+                  <th>Order Date</th>
+                  <th>Country</th>
+                  <th>Store</th>
+                  <th>Customer</th>
+                  <th>Total</th>
+                  <th>Currency</th>
+                  <th>Oracle Txn #</th>
+                  <th>Pushed At</th>
+                </tr>
+              </thead>
+              <tbody id="pushed-tbody">
+                <tr><td colspan="10" class="text-muted" style="text-align:center;padding:24px">Enter filters and click Search.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="pushed-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Orders Pulled from Odoo ──────────────────────────────── -->
+    <div id="tab-odoo-pulled" class="section-panel">
+      <div class="card">
+        <div class="card-header">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Orders Pulled from Odoo (Local Database)
+          <span class="badge badge-info" id="pulled-count-badge" style="margin-left:auto">–</span>
+        </div>
+        <div class="card-body">
+          <div id="pulled-stats" class="stat-row"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Sale Order</th>
+                  <th>Order Date</th>
+                  <th>Country</th>
+                  <th>Store</th>
+                  <th>Customer</th>
+                  <th>Total</th>
+                  <th>Currency</th>
+                  <th>State</th>
+                  <th>Oracle Txn</th>
+                  <th>Fetched At</th>
+                </tr>
+              </thead>
+              <tbody id="pulled-tbody">
+                <tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px">Enter filters and click Search.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="pulled-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-body -->
+</div><!-- /main-content -->
+
+<script src="/js/app.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Orders Search – Frontend Controller
+   ══════════════════════════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+
+const PAGE_SIZE   = 50;
+let pushedOffset  = 0;
+let pulledOffset  = 0;
+let activeTab     = 'oracle-pushed';
+
+// ── Bootstrap ────────────────────────────────────────────────────────
+(async function init() {
+  setDefaultDates();
+  await loadStores();
+  // Auto-search on load
+  runSearch(0, 0);
+})();
+
+function setDefaultDates() {
+  const today    = new Date().toISOString().split('T')[0];
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+  $('ord-date-from').value = monthAgo;
+  $('ord-date-to').value   = today;
+}
+
+async function loadStores() {
+  try {
+    const d = await api('/api/odoo/stores');
+    const opts = (d.stores || []).map(s =>
+      `<option value="${s.id}">${escHtml(s.name)}${s.code ? ' ('+escHtml(s.code)+')' : ''}</option>`
+    ).join('');
+    $('ord-store').innerHTML = '<option value="">All Stores</option>' + opts;
+  } catch(_) {}
+}
+
+// ── Tab switching ────────────────────────────────────────────────────
+document.querySelectorAll('.orders-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.orders-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeTab = tab.dataset.tab;
+    document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+    $('tab-' + activeTab).classList.add('active');
+  });
+});
+
+$('btn-search').addEventListener('click', () => runSearch(0, 0));
+
+function runSearch(pOff, lOff) {
+  pushedOffset = pOff;
+  pulledOffset = lOff;
+  loadPushed(pOff);
+  loadPulled(lOff);
+}
+
+// ── Orders Pushed to Oracle ──────────────────────────────────────────
+async function loadPushed(offset = 0) {
+  const params = buildParams({ offset, limit: PAGE_SIZE, unpushedOnly: '' });
+  // Only pushed orders: we filter client-side from the results using oracle_txn_id
+  // But we pass a special filter to the API to only get pushed orders
+  const p2 = buildParams({ offset, limit: PAGE_SIZE });
+  // Use the sales API but with push status filter not available, so fetch all and count
+  try {
+    const d = await api('/api/odoo/sales?' + p2.toString());
+    // Filter to only pushed orders
+    const pushed = (d.sales || []).filter(s => s.oracle_txn_id);
+    renderPushedTable(pushed, d.total, offset);
+    $('pushed-count-badge').textContent = d.total.toLocaleString() + ' total';
+
+    // Load stats
+    api('/api/odoo/push-stats?' + buildStatsParams().toString()).then(s => {
+      $('pushed-stats').innerHTML = `
+        <div class="stat-chip">Total: <strong>${(s.total||0).toLocaleString()}</strong></div>
+        <div class="stat-chip" style="color:var(--success)">Pushed to Oracle: <strong>${(s.pushed||0).toLocaleString()}</strong></div>
+        <div class="stat-chip" style="color:var(--muted)">Pending: <strong>${(s.pending||0).toLocaleString()}</strong></div>
+      `;
+    }).catch(()=>{});
+  } catch(e) {
+    showAlert($('alert-area'), 'danger', 'Failed to load pushed orders: ' + e.message);
+  }
+}
+
+function renderPushedTable(rows, total, offset) {
+  const tbody = $('pushed-tbody');
+  const searchTerm = $('ord-search').value.trim().toLowerCase();
+
+  // Client-side filter by search term
+  let filtered = rows;
+  if (searchTerm) {
+    filtered = rows.filter(s =>
+      (s.name || '').toLowerCase().includes(searchTerm) ||
+      (s.oracle_txn_id || '').toLowerCase().includes(searchTerm) ||
+      (s.partner_name || '').toLowerCase().includes(searchTerm)
+    );
+  }
+
+  const pushed = filtered.filter(s => s.oracle_txn_id);
+
+  if (!pushed.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-muted" style="text-align:center;padding:24px">No orders found matching the filters.</td></tr>';
+    $('pushed-pagination').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = pushed.map((s, i) => `<tr>
+    <td style="color:var(--muted);font-size:12px">${offset + i + 1}</td>
+    <td><strong>${escHtml(s.name)}</strong></td>
+    <td>${escHtml(s.date_order)}</td>
+    <td>${escHtml(s.country||'–')}</td>
+    <td>${escHtml(s.store_name||'–')}</td>
+    <td>${escHtml(s.partner_name||'–')}</td>
+    <td style="text-align:right">${fmtMoney(s.amount_total)}</td>
+    <td>${escHtml(s.currency||'–')}</td>
+    <td class="oracle-cell" title="${escHtml(s.oracle_txn_id||'')}">
+      <span class="tag" style="background:#d1e7dd;color:#0a3622">✓ ${escHtml(s.oracle_txn_id||'')}</span>
+    </td>
+    <td style="font-size:11px;color:var(--muted)">${(s.pushed_at||'').replace('T',' ').slice(0,16)}</td>
+  </tr>`).join('');
+
+  const pag = $('pushed-pagination');
+  pag.innerHTML = `Showing ${offset+1}–${offset+pushed.length} of ${total} &nbsp;`;
+  if (offset > 0) {
+    pag.appendChild(mkBtn('← Previous', () => loadPushed(Math.max(0, offset - PAGE_SIZE))));
+  }
+  if (offset + rows.length < total) {
+    pag.appendChild(mkBtn('Next →', () => loadPushed(offset + PAGE_SIZE), true));
+  }
+}
+
+// ── Orders Pulled from Odoo ──────────────────────────────────────────
+async function loadPulled(offset = 0) {
+  const params = buildParams({ offset, limit: PAGE_SIZE });
+  try {
+    const d = await api('/api/odoo/sales?' + params.toString());
+    renderPulledTable(d.sales || [], d.total, offset);
+    $('pulled-count-badge').textContent = d.total.toLocaleString() + ' total';
+
+    api('/api/odoo/push-stats?' + buildStatsParams().toString()).then(s => {
+      $('pulled-stats').innerHTML = `
+        <div class="stat-chip">Total in DB: <strong>${(s.total||0).toLocaleString()}</strong></div>
+        <div class="stat-chip" style="color:var(--success)">Pushed ✓: <strong>${(s.pushed||0).toLocaleString()}</strong></div>
+        <div class="stat-chip" style="color:#e3b341">Pending ⏳: <strong>${(s.pending||0).toLocaleString()}</strong></div>
+      `;
+    }).catch(()=>{});
+  } catch(e) {
+    showAlert($('alert-area'), 'danger', 'Failed to load Odoo orders: ' + e.message);
+  }
+}
+
+function renderPulledTable(rows, total, offset) {
+  const tbody = $('pulled-tbody');
+  const searchTerm = $('ord-search').value.trim().toLowerCase();
+  let filtered = rows;
+  if (searchTerm) {
+    filtered = rows.filter(s =>
+      (s.name || '').toLowerCase().includes(searchTerm) ||
+      (s.oracle_txn_id || '').toLowerCase().includes(searchTerm) ||
+      (s.partner_name || '').toLowerCase().includes(searchTerm)
+    );
+  }
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px">No orders found matching the filters.</td></tr>';
+    $('pulled-pagination').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((s, i) => {
+    const pushCell = s.oracle_txn_id
+      ? `<span class="tag" style="background:#d1e7dd;color:#0a3622" title="${escHtml(s.pushed_at||'')}">✓ ${escHtml(s.oracle_txn_id)}</span>`
+      : `<span class="tag" style="background:#fff3cd;color:#664d03">Pending</span>`;
+    return `<tr>
+      <td style="color:var(--muted);font-size:12px">${offset + i + 1}</td>
+      <td><strong>${escHtml(s.name)}</strong></td>
+      <td>${escHtml(s.date_order)}</td>
+      <td>${escHtml(s.country||'–')}</td>
+      <td>${escHtml(s.store_name||'–')}</td>
+      <td>${escHtml(s.partner_name||'–')}</td>
+      <td style="text-align:right">${fmtMoney(s.amount_total)}</td>
+      <td>${escHtml(s.currency||'–')}</td>
+      <td><span class="tag tag-${escHtml(s.state)}">${escHtml(s.state||'')}</span></td>
+      <td>${pushCell}</td>
+      <td style="font-size:11px;color:var(--muted)">${(s.fetched_at||'').replace('T',' ').slice(0,16)}</td>
+    </tr>`;
+  }).join('');
+
+  const pag = $('pulled-pagination');
+  pag.innerHTML = `Showing ${offset+1}–${offset+filtered.length} of ${total} &nbsp;`;
+  if (offset > 0) {
+    pag.appendChild(mkBtn('← Previous', () => loadPulled(Math.max(0, offset - PAGE_SIZE))));
+  }
+  if (offset + rows.length < total) {
+    pag.appendChild(mkBtn('Next →', () => loadPulled(offset + PAGE_SIZE), true));
+  }
+}
+
+// ── Utilities ────────────────────────────────────────────────────────
+function buildParams(extra = {}) {
+  const p = new URLSearchParams({
+    dateFrom : $('ord-date-from').value || '',
+    dateTo   : $('ord-date-to').value   || '',
+    country  : $('ord-country').value   || '',
+    storeId  : $('ord-store').value     || '',
+    ...extra,
+  });
+  for (const [k,v] of [...p]) if (!v && v !== 0) p.delete(k);
+  return p;
+}
+
+function buildStatsParams() {
+  const p = new URLSearchParams({
+    dateFrom: $('ord-date-from').value || '',
+    dateTo  : $('ord-date-to').value   || '',
+    country : $('ord-country').value   || '',
+    storeId : $('ord-store').value     || '',
+  });
+  for (const [k,v] of [...p]) if (!v) p.delete(k);
+  return p;
+}
+
+function mkBtn(label, onclick, marginLeft) {
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-outline btn-sm';
+  if (marginLeft) btn.style.marginLeft = '6px';
+  btn.textContent = label;
+  btn.onclick = onclick;
+  return btn;
+}
+
+async function api(url, method = 'GET', body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fmtMoney(n, decimals = 2) {
+  return Number(n).toLocaleString('en', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  });
+}
+
+function showAlert(el, type, msg) {
+  if (!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+</script>
+</body>
+</html>

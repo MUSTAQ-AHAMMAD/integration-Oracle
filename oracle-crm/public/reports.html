@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Reports</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .report-tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+    .report-tab {
+      padding:8px 20px; border-radius:20px; font-size:13px; font-weight:600;
+      border:2px solid var(--border); cursor:pointer; background:var(--white);
+      color:var(--muted); transition:all .15s;
+    }
+    .report-tab.active { border-color:var(--primary); background:var(--primary); color:#fff; }
+
+    .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px; }
+    .summary-card {
+      background:var(--white); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px 18px; text-align:center;
+    }
+    .summary-card .val { font-size:28px; font-weight:700; color:var(--primary); }
+    .summary-card .val.success { color:var(--success); }
+    .summary-card .val.warning { color:#e3b341; }
+    .summary-card .lbl { font-size:11px; color:var(--muted); text-transform:uppercase; margin-top:4px; }
+
+    .highlight-banner {
+      background:linear-gradient(135deg,#198754,#0d6efd);
+      color:#fff; border-radius:var(--radius); padding:16px 20px;
+      margin-bottom:20px; display:flex; align-items:center; gap:14px;
+      flex-wrap:wrap;
+    }
+    .highlight-banner .hb-main { font-size:18px; font-weight:700; }
+    .highlight-banner .hb-sub  { font-size:13px; opacity:.85; margin-top:3px; }
+
+    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:flex-end; }
+    .filter-bar .fg { flex:1; min-width:130px; }
+
+    .date-summary-table th, .date-summary-table td { font-size:13px; }
+
+    .section-panel { display:none; }
+    .section-panel.active { display:block; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span>Oracle</span> CRM
+    <small>Odoo → Fusion Sync</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/odoo-sales.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+      Odoo Sales
+    </a>
+    <a href="/orders.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+      Orders Search
+    </a>
+    <a href="/reports.html" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Reports
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/calculations.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Calculations Ref
+    </a>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<!-- ── Main content ─────────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="topbar">
+    <h1>Reports</h1>
+    <div class="d-flex gap-10">
+      <a href="/odoo-sales.html" class="btn btn-primary">← Odoo Sales</a>
+    </div>
+  </div>
+  <div class="page-body">
+
+    <div id="alert-area" class="alert hidden"></div>
+
+    <!-- ── Last Push Highlighter ─────────────────────────────────────── -->
+    <div id="last-push-banner" class="highlight-banner hidden">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      <div>
+        <div class="hb-main" id="banner-headline">Orders synced to Oracle</div>
+        <div class="hb-sub" id="banner-detail">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Summary Stats ─────────────────────────────────────────────── -->
+    <div class="summary-grid">
+      <div class="summary-card"><div class="val" id="stat-total-fetched">–</div><div class="lbl">Total Orders Fetched</div></div>
+      <div class="summary-card"><div class="val success" id="stat-total-pushed">–</div><div class="lbl">Total Orders Pushed</div></div>
+      <div class="summary-card"><div class="val warning" id="stat-total-pending">–</div><div class="lbl">Pending Push</div></div>
+      <div class="summary-card"><div class="val" id="stat-push-jobs">–</div><div class="lbl">Push Jobs Run</div></div>
+      <div class="summary-card"><div class="val" id="stat-pull-jobs">–</div><div class="lbl">Pull Jobs Run</div></div>
+    </div>
+
+    <!-- ── Report Tabs ───────────────────────────────────────────────── -->
+    <div class="report-tabs">
+      <button class="report-tab active" data-tab="push-date">📅 Push Date Summary</button>
+      <button class="report-tab" data-tab="push-jobs">🚀 Push Job Reports</button>
+      <button class="report-tab" data-tab="pull-jobs">⬇ Pull Job Reports</button>
+    </div>
+
+    <!-- ── Filter Bar (shared) ───────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-body" style="padding:14px 18px">
+        <div class="filter-bar">
+          <div class="fg">
+            <label class="form-label" style="font-size:12px">From</label>
+            <input type="date" id="rpt-date-from" class="form-control">
+          </div>
+          <div class="fg">
+            <label class="form-label" style="font-size:12px">To</label>
+            <input type="date" id="rpt-date-to" class="form-control">
+          </div>
+          <div class="fg">
+            <label class="form-label" style="font-size:12px">Country</label>
+            <select id="rpt-country" class="form-control form-select">
+              <option value="">All Countries</option>
+              <option value="AE">🇦🇪 AE – UAE</option>
+              <option value="KW">🇰🇼 KW – Kuwait</option>
+              <option value="OM">🇴🇲 OM – Oman</option>
+              <option value="SA">🇸🇦 SA – Saudi Arabia</option>
+              <option value="BH">🇧🇭 BH – Bahrain</option>
+              <option value="QA">🇶🇦 QA – Qatar</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="form-label" style="font-size:12px">Store</label>
+            <select id="rpt-store" class="form-control form-select">
+              <option value="">All Stores</option>
+            </select>
+          </div>
+          <button id="btn-apply-filter" class="btn btn-primary" style="height:38px;white-space:nowrap">
+            Apply Filter
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Push Date Summary ─────────────────────────────────────── -->
+    <div id="tab-push-date" class="section-panel active">
+      <div class="card">
+        <div class="card-header">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Orders Pushed to Oracle – Date Summary
+          <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+            Breakdown per order date, showing up to which date orders have been pushed
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table class="date-summary-table">
+              <thead>
+                <tr>
+                  <th>Order Date</th>
+                  <th>Country</th>
+                  <th>Store</th>
+                  <th>Orders Pushed</th>
+                  <th>Total Amount</th>
+                  <th>Last Pushed At</th>
+                </tr>
+              </thead>
+              <tbody id="push-date-tbody">
+                <tr><td colspan="6" class="text-muted" style="text-align:center;padding:20px">Apply filter to load data.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="push-date-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Push Job Reports ──────────────────────────────────────── -->
+    <div id="tab-push-jobs" class="section-panel">
+      <div class="card">
+        <div class="card-header">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Push to Oracle – Job History
+          <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+            Every push job run, with full statistics
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Job ID</th>
+                  <th>Mode</th>
+                  <th>Date Range</th>
+                  <th>Store</th>
+                  <th>Countries</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Pushed ✓</th>
+                  <th>Failed ✗</th>
+                  <th>Started</th>
+                  <th>Finished</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody id="push-jobs-tbody">
+                <tr><td colspan="12" class="text-muted" style="text-align:center;padding:20px">Apply filter to load data.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="push-jobs-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Pull Job Reports ──────────────────────────────────────── -->
+    <div id="tab-pull-jobs" class="section-panel">
+      <div class="card">
+        <div class="card-header">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Pull from Odoo – Job History
+          <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+            Every fetch job run, showing orders retrieved from Odoo
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Job ID</th>
+                  <th>Mode</th>
+                  <th>Date Range</th>
+                  <th>Store</th>
+                  <th>Status</th>
+                  <th>Orders Fetched</th>
+                  <th>Failed</th>
+                  <th>Started</th>
+                  <th>Finished</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody id="pull-jobs-tbody">
+                <tr><td colspan="10" class="text-muted" style="text-align:center;padding:20px">Apply filter to load data.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="pull-jobs-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-body -->
+</div><!-- /main-content -->
+
+<script src="/js/app.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Reports Page – Frontend Controller
+   ══════════════════════════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+
+const PAGE_SIZE = 50;
+let pushDateOffset = 0;
+let pushJobsOffset = 0;
+let pullJobsOffset = 0;
+let activeTab = 'push-date';
+
+// ── Bootstrap ────────────────────────────────────────────────────────
+(async function init() {
+  setDefaultDates();
+  await loadStores();
+  await loadLastPush();
+  await loadStats();
+  await loadActiveTab();
+})();
+
+function setDefaultDates() {
+  const today         = new Date().toISOString().split('T')[0];
+  const threeMonthsAgo = new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0];
+  $('rpt-date-from').value = threeMonthsAgo;
+  $('rpt-date-to').value   = today;
+}
+
+async function loadStores() {
+  try {
+    const d = await api('/api/odoo/stores');
+    const opts = (d.stores || []).map(s =>
+      `<option value="${s.id}">${escHtml(s.name)}${s.code ? ' ('+escHtml(s.code)+')' : ''}</option>`
+    ).join('');
+    $('rpt-store').innerHTML = '<option value="">All Stores</option>' + opts;
+  } catch(_) {}
+}
+
+async function loadLastPush() {
+  try {
+    const d = await api('/api/odoo/last-push');
+    if (d.last_pushed_at) {
+      $('last-push-banner').classList.remove('hidden');
+      $('banner-headline').textContent =
+        `Orders synced up to: ${d.last_pushed_date || '–'}`;
+      $('banner-detail').innerHTML =
+        `Last push completed at <strong>${(d.last_pushed_at||'').replace('T',' ').slice(0,16)}</strong>` +
+        (d.country    ? ` &nbsp;·&nbsp; Country: <strong>${escHtml(d.country)}</strong>`    : '') +
+        (d.store_name ? ` &nbsp;·&nbsp; Store: <strong>${escHtml(d.store_name)}</strong>` : '');
+    }
+  } catch(_) {}
+}
+
+async function loadStats() {
+  try {
+    const [statsAll, pushRpt, pullRpt] = await Promise.all([
+      api('/api/odoo/push-stats'),
+      api('/api/odoo/reports/pushes?limit=1'),
+      api('/api/odoo/reports/pulls?limit=1'),
+    ]);
+    $('stat-total-fetched').textContent = (statsAll.total || 0).toLocaleString();
+    $('stat-total-pushed').textContent  = (statsAll.pushed || 0).toLocaleString();
+    $('stat-total-pending').textContent = (statsAll.pending || 0).toLocaleString();
+    $('stat-push-jobs').textContent     = (pushRpt.total || 0).toLocaleString();
+    $('stat-pull-jobs').textContent     = (pullRpt.total || 0).toLocaleString();
+  } catch(_) {}
+}
+
+// ── Tab switching ────────────────────────────────────────────────────
+document.querySelectorAll('.report-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeTab = tab.dataset.tab;
+    document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+    $('tab-' + activeTab).classList.add('active');
+    loadActiveTab();
+  });
+});
+
+function loadActiveTab() {
+  if (activeTab === 'push-date')  return loadPushDateSummary(0);
+  if (activeTab === 'push-jobs')  return loadPushJobReports(0);
+  if (activeTab === 'pull-jobs')  return loadPullJobReports(0);
+}
+
+$('btn-apply-filter').addEventListener('click', () => {
+  pushDateOffset = 0; pushJobsOffset = 0; pullJobsOffset = 0;
+  loadStats();
+  loadActiveTab();
+});
+
+// ── Push Date Summary ────────────────────────────────────────────────
+async function loadPushDateSummary(offset = 0) {
+  const params = buildFilterParams({ limit: PAGE_SIZE, offset });
+  try {
+    const d = await api('/api/odoo/push-date-summary?' + params.toString());
+    renderPushDateTable(d.rows || [], offset);
+    pushDateOffset = offset;
+  } catch(e) { showAlert($('alert-area'), 'danger', 'Failed: ' + e.message); }
+}
+
+function renderPushDateTable(rows, offset) {
+  const tbody = $('push-date-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:24px">No pushed orders found for the selected filters.</td></tr>';
+    $('push-date-pagination').textContent = '';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `<tr>
+    <td><strong>${escHtml(r.date_order)}</strong></td>
+    <td>${escHtml(r.country || '–')}</td>
+    <td>${escHtml(r.store_name || '–')}</td>
+    <td style="text-align:right"><strong>${(r.total_pushed||0).toLocaleString()}</strong></td>
+    <td style="text-align:right">${fmtMoney(r.total_amount)}</td>
+    <td style="font-size:12px;color:var(--muted)">${(r.last_pushed_at||'').replace('T',' ').slice(0,16)}</td>
+  </tr>`).join('');
+
+  const pag = $('push-date-pagination');
+  pag.innerHTML = `Showing ${offset + 1}–${offset + rows.length} &nbsp;`;
+  if (offset > 0) {
+    const prev = mkBtn('← Previous', () => loadPushDateSummary(Math.max(0, offset - PAGE_SIZE)));
+    pag.appendChild(prev);
+  }
+  if (rows.length === PAGE_SIZE) {
+    const next = mkBtn('Next →', () => loadPushDateSummary(offset + PAGE_SIZE), true);
+    pag.appendChild(next);
+  }
+}
+
+// ── Push Job Reports ─────────────────────────────────────────────────
+async function loadPushJobReports(offset = 0) {
+  const params = buildFilterParams({ limit: PAGE_SIZE, offset });
+  try {
+    const d = await api('/api/odoo/reports/pushes?' + params.toString());
+    renderPushJobTable(d.reports || [], d.total || 0, offset);
+    pushJobsOffset = offset;
+  } catch(e) { showAlert($('alert-area'), 'danger', 'Failed: ' + e.message); }
+}
+
+function renderPushJobTable(rows, total, offset) {
+  const tbody = $('push-jobs-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="12" class="text-muted" style="text-align:center;padding:24px">No push jobs found.</td></tr>';
+    $('push-jobs-pagination').textContent = '';
+    return;
+  }
+  tbody.innerHTML = rows.map(j => {
+    const dr       = [j.date_from, j.date_to].filter(Boolean).join(' → ') || '–';
+    const duration = calcDuration(j.started_at, j.finished_at);
+    return `<tr>
+      <td style="font-size:11px;color:var(--muted)">${escHtml((j.job_id||'').slice(0,8))}…</td>
+      <td style="font-size:12px">${escHtml(j.mode||'')}</td>
+      <td style="font-size:12px">${escHtml(dr)}</td>
+      <td style="font-size:12px">${escHtml(j.store_name||'–')}</td>
+      <td style="font-size:12px">${escHtml(j.countries||'–')}</td>
+      <td><span class="badge ${badgeClass(j.status)}">${escHtml(j.status||'')}</span></td>
+      <td style="text-align:right">${(j.total||0).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--success)"><strong>${(j.processed||0).toLocaleString()}</strong></td>
+      <td style="text-align:right;color:var(--danger)">${(j.failed||0).toLocaleString()}</td>
+      <td style="font-size:11px;color:var(--muted)">${fmt(j.started_at)}</td>
+      <td style="font-size:11px;color:var(--muted)">${fmt(j.finished_at)}</td>
+      <td style="font-size:11px;color:var(--muted)">${duration}</td>
+    </tr>`;
+  }).join('');
+
+  const pag = $('push-jobs-pagination');
+  pag.innerHTML = `Showing ${offset+1}–${offset+rows.length} of ${total} &nbsp;`;
+  if (offset > 0) {
+    pag.appendChild(mkBtn('← Previous', () => loadPushJobReports(Math.max(0, offset - PAGE_SIZE))));
+  }
+  if (offset + rows.length < total) {
+    pag.appendChild(mkBtn('Next →', () => loadPushJobReports(offset + PAGE_SIZE), true));
+  }
+}
+
+// ── Pull Job Reports ─────────────────────────────────────────────────
+async function loadPullJobReports(offset = 0) {
+  const params = buildFilterParams({ limit: PAGE_SIZE, offset });
+  try {
+    const d = await api('/api/odoo/reports/pulls?' + params.toString());
+    renderPullJobTable(d.reports || [], d.total || 0, offset);
+    pullJobsOffset = offset;
+  } catch(e) { showAlert($('alert-area'), 'danger', 'Failed: ' + e.message); }
+}
+
+function renderPullJobTable(rows, total, offset) {
+  const tbody = $('pull-jobs-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-muted" style="text-align:center;padding:24px">No pull jobs found.</td></tr>';
+    $('pull-jobs-pagination').textContent = '';
+    return;
+  }
+  tbody.innerHTML = rows.map(j => {
+    const dr       = [j.date_from, j.date_to].filter(Boolean).join(' → ') || '–';
+    const duration = calcDuration(j.started_at, j.finished_at);
+    return `<tr>
+      <td style="font-size:11px;color:var(--muted)">${escHtml((j.job_id||'').slice(0,8))}…</td>
+      <td style="font-size:12px">${escHtml(j.mode||'')}</td>
+      <td style="font-size:12px">${escHtml(dr)}</td>
+      <td style="font-size:12px">${escHtml(j.store_name||'–')}</td>
+      <td><span class="badge ${badgeClass(j.status)}">${escHtml(j.status||'')}</span></td>
+      <td style="text-align:right"><strong>${(j.total||0).toLocaleString()}</strong></td>
+      <td style="text-align:right;color:var(--danger)">${(j.failed||0).toLocaleString()}</td>
+      <td style="font-size:11px;color:var(--muted)">${fmt(j.started_at)}</td>
+      <td style="font-size:11px;color:var(--muted)">${fmt(j.finished_at)}</td>
+      <td style="font-size:11px;color:var(--muted)">${duration}</td>
+    </tr>`;
+  }).join('');
+
+  const pag = $('pull-jobs-pagination');
+  pag.innerHTML = `Showing ${offset+1}–${offset+rows.length} of ${total} &nbsp;`;
+  if (offset > 0) {
+    pag.appendChild(mkBtn('← Previous', () => loadPullJobReports(Math.max(0, offset - PAGE_SIZE))));
+  }
+  if (offset + rows.length < total) {
+    pag.appendChild(mkBtn('Next →', () => loadPullJobReports(offset + PAGE_SIZE), true));
+  }
+}
+
+// ── Utilities ────────────────────────────────────────────────────────
+function buildFilterParams(extra = {}) {
+  const p = new URLSearchParams({
+    dateFrom: $('rpt-date-from').value || '',
+    dateTo  : $('rpt-date-to').value   || '',
+    country : $('rpt-country').value   || '',
+    storeId : $('rpt-store').value     || '',
+    ...extra,
+  });
+  for (const [k,v] of [...p]) if (!v && v !== 0) p.delete(k);
+  return p;
+}
+
+function calcDuration(start, end) {
+  if (!start || !end) return '–';
+  const ms = new Date(end) - new Date(start);
+  if (ms < 0) return '–';
+  if (ms < 60000) return Math.round(ms / 1000) + 's';
+  return Math.floor(ms / 60000) + 'm ' + Math.round((ms % 60000) / 1000) + 's';
+}
+
+function fmt(iso) {
+  if (!iso) return '–';
+  return iso.replace('T',' ').slice(0,16);
+}
+
+function mkBtn(label, onclick, marginLeft) {
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-outline btn-sm';
+  if (marginLeft) btn.style.marginLeft = '6px';
+  btn.textContent = label;
+  btn.onclick = onclick;
+  return btn;
+}
+
+async function api(url, method = 'GET', body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function badgeClass(s) {
+  if (s === 'DONE')    return 'badge-success';
+  if (s === 'FAILED')  return 'badge-danger';
+  if (s === 'RUNNING') return 'badge-warning';
+  return 'badge-muted';
+}
+
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fmtMoney(n, decimals = 2) {
+  return Number(n).toLocaleString('en', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  });
+}
+
+function showAlert(el, type, msg) {
+  if (!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+</script>
+</body>
+</html>
