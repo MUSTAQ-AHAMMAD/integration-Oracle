@@ -261,3 +261,50 @@ tr:hover td { background: #fafafa; }
 .activity-pill.push { background: #d1e7dd; color: #0a3622; }
 .activity-pill.pull { background: #cff4fc; color: #055160; }
 .activity-pill svg  { flex-shrink: 0; }
+
+/* ── Environment mode global indicators ─────────────────────────────── */
+
+/* Mode banner – sticky ribbon just below the topbar */
+#env-mode-banner {
+  display: none;
+  position: sticky; top: 0; z-index: 49;
+  padding: 5px 28px; font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; text-align: center;
+}
+:root[data-server-mode="test"] #env-mode-banner,
+body[data-server-mode="test"] #env-mode-banner {
+  display: block;
+  background: #17a2b8; color: #fff;
+}
+:root[data-server-mode="production"] #env-mode-banner,
+body[data-server-mode="production"] #env-mode-banner {
+  display: none;
+}
+
+/* Topbar gets a coloured top-border accent based on mode */
+:root[data-server-mode="test"] .topbar,
+body[data-server-mode="test"] .topbar {
+  border-top: 3px solid #17a2b8;
+}
+:root[data-server-mode="production"] .topbar,
+body[data-server-mode="production"] .topbar {
+  border-top: 3px solid var(--success);
+}
+
+/* Sidebar logo area shows current environment */
+.sidebar-env-badge {
+  display: none;
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  padding: 2px 8px; border-radius: 20px; margin-top: 4px;
+  text-transform: uppercase;
+}
+:root[data-server-mode="test"] .sidebar-env-badge,
+body[data-server-mode="test"] .sidebar-env-badge {
+  display: inline-block;
+  background: #17a2b8; color: #fff;
+}
+:root[data-server-mode="production"] .sidebar-env-badge,
+body[data-server-mode="production"] .sidebar-env-badge {
+  display: inline-block;
+  background: var(--success); color: #fff;
+}

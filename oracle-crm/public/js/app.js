@@ -45,6 +45,26 @@ function logout() {
   };
 })();
 
+// ── Server mode – apply immediately from localStorage to avoid flash ──────────
+const SERVER_MODE_TEST       = 'test';
+const SERVER_MODE_PRODUCTION = 'production';
+const SERVER_MODE_DEFAULT    = SERVER_MODE_PRODUCTION;
+const SERVER_MODE_KEY        = 'crm_server_mode';
+
+function _serverModeBannerText(mode) {
+  return mode === SERVER_MODE_TEST
+    ? '🔵 TEST MODE – you are connected to the test server'
+    : '';
+}
+
+(function _applyStoredMode() {
+  const stored = localStorage.getItem(SERVER_MODE_KEY);
+  if (stored === SERVER_MODE_TEST || stored === SERVER_MODE_PRODUCTION) {
+    document.documentElement.setAttribute('data-server-mode', stored);
+    if (document.body) document.body.setAttribute('data-server-mode', stored);
+  }
+})();
+
 // ── Topbar meta: server switcher + last push/pull dates ───────────────────────
 
 function _fmtDate(isoString) {
@@ -98,7 +118,7 @@ async function _loadTopbarMeta() {
     ]);
 
     // Update switcher state
-    const mode = modeRes.mode || 'production';
+    const mode = modeRes.mode || SERVER_MODE_DEFAULT;
     _applyServerModeUI(mode);
 
     // Update activity pills
@@ -114,8 +134,31 @@ function _applyServerModeUI(mode) {
   const swProd = document.getElementById('sw-prod');
   if (!swTest || !swProd) return;
 
-  swTest.className = (mode === 'test')       ? 'active-test' : '';
-  swProd.className = (mode === 'production') ? 'active-prod' : '';
+  swTest.className = (mode === SERVER_MODE_TEST)       ? 'active-test' : '';
+  swProd.className = (mode === SERVER_MODE_PRODUCTION) ? 'active-prod' : '';
+
+  // Apply global mode class to both documentElement and body so CSS rules take
+  // effect even before <body> is fully parsed (set on <html> above).
+  document.documentElement.setAttribute('data-server-mode', mode);
+  document.body.setAttribute('data-server-mode', mode);
+
+  // Persist selection so next page load can apply it before the API responds
+  localStorage.setItem(SERVER_MODE_KEY, mode);
+
+  // Update mode banner text
+  const banner = document.getElementById('env-mode-banner');
+  if (banner) {
+    banner.textContent = _serverModeBannerText(mode);
+  }
+
+  // Update sidebar env badge text
+  const badge = document.getElementById('sidebar-env-badge');
+  if (badge) {
+    badge.textContent = mode === SERVER_MODE_TEST ? 'Test' : 'Production';
+  }
+
+  // Notify page-specific scripts that the mode has changed
+  window.dispatchEvent(new CustomEvent('servermodechange', { detail: { mode } }));
 }
 
 async function switchServerMode(mode) {
@@ -126,6 +169,10 @@ async function switchServerMode(mode) {
       body   : JSON.stringify({ mode }),
     });
     _applyServerModeUI(mode);
+    // Reload mode-sensitive data displayed on the current page
+    if (typeof window.onServerModeChanged === 'function') {
+      window.onServerModeChanged(mode);
+    }
   } catch (err) {
     console.warn('Failed to switch server mode:', err);
   }
@@ -140,6 +187,25 @@ document.addEventListener('DOMContentLoaded', () => {
       a.classList.add('active');
     }
   });
+
+  // ── Inject environment badge into sidebar logo ──────────────────────────
+  const sidebarLogo = document.querySelector('.sidebar-logo');
+  if (sidebarLogo && !document.getElementById('sidebar-env-badge')) {
+    const badge = document.createElement('span');
+    badge.id        = 'sidebar-env-badge';
+    badge.className = 'sidebar-env-badge';
+    badge.textContent = localStorage.getItem(SERVER_MODE_KEY) === SERVER_MODE_TEST ? 'Test' : 'Production';
+    sidebarLogo.appendChild(badge);
+  }
+
+  // ── Inject env-mode-banner after topbar ─────────────────────────────────
+  const topbar = document.querySelector('.topbar');
+  if (topbar && !document.getElementById('env-mode-banner')) {
+    const banner = document.createElement('div');
+    banner.id = 'env-mode-banner';
+    banner.textContent = _serverModeBannerText(localStorage.getItem(SERVER_MODE_KEY) || SERVER_MODE_DEFAULT);
+    topbar.insertAdjacentElement('afterend', banner);
+  }
 
   // Populate sidebar user info
   const u = getStoredUser();
