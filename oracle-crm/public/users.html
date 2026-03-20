@@ -165,6 +165,19 @@ if (!cu || cu.role !== 'admin') {
 }
 
 let editingId = null;
+let _usersCache = {};
+
+function openEditModalById(uid) {
+  const u = _usersCache[uid];
+  if (!u) return;
+  openEditModal(u.id, u.username, u.email || '', u.role, u.display_name || '');
+}
+
+function deleteUserById(uid) {
+  const u = _usersCache[uid];
+  if (!u) return;
+  deleteUser(u.id, u.username);
+}
 
 function roleBadge(role) {
   const cls = role === 'admin' ? 'role-admin' : role === 'operator' ? 'role-operator' : 'role-viewer';
@@ -186,6 +199,9 @@ async function loadUsers() {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No users found</td></tr>';
       return;
     }
+    // Store user data keyed by id for safe access in event handlers
+    _usersCache = {};
+    users.forEach(u => { _usersCache[u.id] = u; });
     tbody.innerHTML = users.map(u => `
       <tr>
         <td>${u.id}</td>
@@ -196,8 +212,8 @@ async function loadUsers() {
         <td style="font-size:12px;color:var(--muted)">${fmtDate(u.created_at)}</td>
         <td style="font-size:12px;color:var(--muted)">${fmtDate(u.last_login)}</td>
         <td>
-          <button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 10px;margin-right:4px" onclick="openEditModal(${u.id}, '${escHtml(u.username)}', '${escHtml(u.email||'')}', '${escHtml(u.role)}', '${escHtml(u.display_name||'')}')">Edit</button>
-          ${cu && u.id !== cu.id ? `<button class="btn btn-sm" style="font-size:12px;padding:4px 10px;background:#dc3545;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">Delete</button>` : ''}
+          <button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 10px;margin-right:4px" data-uid="${u.id}" onclick="openEditModalById(this.dataset.uid)">Edit</button>
+          ${cu && u.id !== cu.id ? `<button class="btn btn-sm" style="font-size:12px;padding:4px 10px;background:#dc3545;color:#fff;border:none;border-radius:6px;cursor:pointer" data-uid="${u.id}" onclick="deleteUserById(this.dataset.uid)">Delete</button>` : ''}
         </td>
       </tr>
     `).join('');

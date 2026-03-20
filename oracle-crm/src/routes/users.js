@@ -35,16 +35,14 @@ router.post('/', requireAdmin, async (req, res) => {
 // PUT /api/users/:id
 router.put('/:id', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const { email, role, display_name, password } = req.body || {};
+  const target = db.getUserById(id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
   const validRoles = ['admin', 'operator', 'viewer'];
   if (role && !validRoles.includes(role)) {
     return res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` });
   }
-  if (role && role !== 'admin') {
-    const target = db.getUserById(id);
-    if (target && target.role === 'admin' && db.countAdmins() <= 1) {
-      return res.status(400).json({ error: 'Cannot demote the last admin' });
-    }
+  if (role && role !== 'admin' && target.role === 'admin' && db.countAdmins() <= 1) {
+    return res.status(400).json({ error: 'Cannot demote the last admin' });
   }
   const fields = {};
   if (email        !== undefined) fields.email        = email;

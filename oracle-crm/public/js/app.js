@@ -38,7 +38,7 @@ function logout() {
       if (res.status === 401) {
         localStorage.removeItem('crm_token');
         localStorage.removeItem('crm_user');
-        window.location.href = '/login.html';
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
       }
       return res;
     });
