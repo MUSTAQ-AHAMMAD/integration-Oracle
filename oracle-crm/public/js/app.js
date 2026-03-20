@@ -2,6 +2,49 @@
  * app.js – shared UI helpers
  */
 
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+function requireLogin() {
+  const token = localStorage.getItem('crm_token');
+  if (!token) {
+    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+    return false;
+  }
+  return true;
+}
+
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('crm_user') || 'null'); }
+  catch(_) { return null; }
+}
+
+function logout() {
+  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  localStorage.removeItem('crm_token');
+  localStorage.removeItem('crm_user');
+  window.location.href = '/login.html';
+}
+
+// Intercept all fetch calls to add Authorization header and handle 401s
+(function() {
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    const token = localStorage.getItem('crm_token');
+    if (token && typeof url === 'string' && url.startsWith('/api/')) {
+      opts.headers = Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + token });
+    }
+    return _origFetch.call(this, url, opts).then(function(res) {
+      if (res.status === 401) {
+        localStorage.removeItem('crm_token');
+        localStorage.removeItem('crm_user');
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+      }
+      return res;
+    });
+  };
+})();
+
 // ── Topbar meta: server switcher + last push/pull dates ───────────────────────
 
 function _fmtDate(isoString) {
@@ -98,6 +141,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Populate sidebar user info
+  const u = getStoredUser();
+  if (u) {
+    const av = document.getElementById('sidebar-avatar');
+    const un = document.getElementById('sidebar-username');
+    const rl = document.getElementById('sidebar-role');
+    if (av) {
+      if (u.avatar_data) {
+        av.innerHTML = `<img src="${u.avatar_data}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      } else {
+        av.textContent = ((u.display_name || u.username || '').trim() || '?')[0].toUpperCase();
+      }
+    }
+    if (un) un.textContent = u.display_name || u.username;
+    if (rl) rl.textContent = u.role || '';
+  }
+
   // Fetch Oracle config status and update sidebar dot
   fetch('/api/config/status')
     .then(r => r.json())
@@ -140,4 +200,14 @@ function showAlert(el, type, msg) {
 }
 function hideAlert(el) {
   if (el) el.classList.add('hidden');
+}
+
+// Escape HTML special characters to prevent XSS in template literals
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

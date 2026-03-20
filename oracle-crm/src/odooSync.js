@@ -46,8 +46,8 @@ const LINE_FETCH_CONCURRENCY = Number(process.env.ODOO_LINE_FETCH_CONCURRENCY) |
 
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
-function buildOdooClient() {
-  const creds = db.getActiveCredentials();
+function buildOdooClient(country) {
+  const creds = db.getCredentialsForCountry(country);
   const url      = creds.odoo.url;
   const odoo_db  = creds.odoo.db;
   const username = creds.odoo.username;
@@ -60,8 +60,8 @@ function buildOdooClient() {
   return new OdooClient(url, odoo_db, username, password);
 }
 
-function buildOracleService() {
-  const creds = db.getActiveCredentials();
+function buildOracleService(country) {
+  const creds = db.getCredentialsForCountry(country);
   const baseUrl  = creds.oracle.baseUrl;
   const username = creds.oracle.username;
   const password = creds.oracle.password;
@@ -112,7 +112,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
   jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country });
 
   try {
-    const odoo   = buildOdooClient();
+    const odoo   = buildOdooClient(country);
     const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId);
 
     jobLog(jobId, 'info', 'Connecting to Odoo…');
@@ -292,7 +292,7 @@ function startPushJob(options) {
 }
 
 async function _runPushJob(jobId, options) {
-  const { mode, dateFrom, dateTo, storeId, metadata, outlet } = options;
+  const { mode, dateFrom, dateTo, storeId, country, metadata, outlet } = options;
   // Default: skip orders already successfully pushed (idempotent re-runs).
   const skipAlreadyPushed = options.skipAlreadyPushed !== false;
 
@@ -315,7 +315,7 @@ async function _runPushJob(jobId, options) {
       return;
     }
 
-    const oracle    = buildOracleService();
+    const oracle    = buildOracleService(country);
     let processed   = 0;
     let failed      = 0;
     let dbOffset    = 0;

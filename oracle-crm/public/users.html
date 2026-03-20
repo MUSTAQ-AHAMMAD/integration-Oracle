@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – User Management</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .role-badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:11px; font-weight:700; }
+    .role-admin    { background:#fde8e4; color:#C74634; }
+    .role-operator { background:#dbeafe; color:#1d4ed8; }
+    .role-viewer   { background:#e2e3e5; color:#41464b; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .modal-box { background:#fff; border-radius:10px; padding:28px 32px; width:100%; max-width:460px; box-shadow:0 8px 40px rgba(0,0,0,0.18); }
+    .modal-title { font-size:17px; font-weight:700; margin-bottom:20px; }
+    .modal-box .form-group { margin-bottom:14px; }
+    .modal-box label { display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:4px; }
+    .modal-box input, .modal-box select { width:100%; padding:9px 12px; border:1.5px solid #D1D5DB; border-radius:7px; font-size:14px; }
+    .modal-box input:focus, .modal-box select:focus { border-color:#C74634; outline:none; }
+    .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    .btn-sm { padding:7px 16px; font-size:13px; }
+  </style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>Odoo → Fusion Sync</small></div>
+  <div class="sidebar-nav">
+    <a href="/">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/odoo-sales.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+      Odoo Sales
+    </a>
+    <a href="/orders.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+      Orders Search
+    </a>
+    <a href="/reports.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Reports
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/calculations.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Calculations Ref
+    </a>
+    <a href="/users.html" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </a>
+    <a href="/profile.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+  <div class="sidebar-user" id="sidebar-user" style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);margin-top:auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="sidebar-avatar" style="width:32px;height:32px;border-radius:50%;background:#C74634;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="sidebar-username" style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="sidebar-role" style="font-size:11px;color:rgba(255,255,255,0.6);"></div>
+      </div>
+      <button onclick="logout()" title="Logout" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:16px;padding:2px;">⏏</button>
+    </div>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>User Management</h1>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add User</button>
+  </div>
+  <div class="page-body">
+
+    <div id="alert-area" class="alert hidden"></div>
+    <div id="access-denied" class="alert alert-danger hidden">🚫 Admin access required to manage users.</div>
+
+    <div class="card" id="users-card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        System Users
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="table-wrap">
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Username</th><th>Email</th><th>Role</th>
+                <th>Display Name</th><th>Created</th><th>Last Login</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div id="user-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Add User</div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="m-username" placeholder="username">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="m-email" placeholder="user@example.com">
+    </div>
+    <div class="form-group">
+      <label id="m-pass-label">Password</label>
+      <input type="password" id="m-password" placeholder="Min 8 characters">
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="m-role">
+        <option value="operator">Operator</option>
+        <option value="viewer">Viewer</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Display Name</label>
+      <input type="text" id="m-display-name" placeholder="Full name">
+    </div>
+    <div id="modal-error" class="alert alert-danger hidden" style="font-size:13px;margin-bottom:10px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="modal-submit" onclick="submitModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+requireLogin();
+
+const cu = getStoredUser();
+if (!cu || cu.role !== 'admin') {
+  document.getElementById('access-denied').classList.remove('hidden');
+  document.getElementById('users-card').style.display = 'none';
+  document.querySelector('.topbar button').style.display = 'none';
+}
+
+let editingId = null;
+let _usersCache = {};
+
+function openEditModalById(uid) {
+  const u = _usersCache[uid];
+  if (!u) return;
+  openEditModal(u.id, u.username, u.email || '', u.role, u.display_name || '');
+}
+
+function deleteUserById(uid) {
+  const u = _usersCache[uid];
+  if (!u) return;
+  deleteUser(u.id, u.username);
+}
+
+function roleBadge(role) {
+  const cls = role === 'admin' ? 'role-admin' : role === 'operator' ? 'role-operator' : 'role-viewer';
+  return `<span class="role-badge ${cls}">${role}</span>`;
+}
+
+function fmtDate(s) {
+  if (!s) return '–';
+  try { return new Date(s).toLocaleString('en', { dateStyle: 'short', timeStyle: 'short' }); } catch(_) { return s; }
+}
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/users');
+    if (!res.ok) return;
+    const users = await res.json();
+    const tbody = document.getElementById('users-tbody');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No users found</td></tr>';
+      return;
+    }
+    // Store user data keyed by id for safe access in event handlers
+    _usersCache = {};
+    users.forEach(u => { _usersCache[u.id] = u; });
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>${u.id}</td>
+        <td><strong>${escHtml(u.username)}</strong></td>
+        <td>${escHtml(u.email || '')}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td>${escHtml(u.display_name || '')}</td>
+        <td style="font-size:12px;color:var(--muted)">${fmtDate(u.created_at)}</td>
+        <td style="font-size:12px;color:var(--muted)">${fmtDate(u.last_login)}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" style="font-size:12px;padding:4px 10px;margin-right:4px" data-uid="${u.id}" onclick="openEditModalById(this.dataset.uid)">Edit</button>
+          ${cu && u.id !== cu.id ? `<button class="btn btn-sm" style="font-size:12px;padding:4px 10px;background:#dc3545;color:#fff;border:none;border-radius:6px;cursor:pointer" data-uid="${u.id}" onclick="deleteUserById(this.dataset.uid)">Delete</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } catch(err) {
+    document.getElementById('users-tbody').innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc3545;padding:24px">${err.message}</td></tr>`;
+  }
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add User';
+  document.getElementById('m-username').value = '';
+  document.getElementById('m-username').disabled = false;
+  document.getElementById('m-email').value = '';
+  document.getElementById('m-password').value = '';
+  document.getElementById('m-pass-label').textContent = 'Password';
+  document.getElementById('m-password').placeholder = 'Min 8 characters';
+  document.getElementById('m-role').value = 'operator';
+  document.getElementById('m-display-name').value = '';
+  document.getElementById('modal-error').classList.add('hidden');
+  document.getElementById('user-modal').style.display = 'flex';
+}
+
+function openEditModal(id, username, email, role, displayName) {
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit User';
+  document.getElementById('m-username').value = username;
+  document.getElementById('m-username').disabled = true;
+  document.getElementById('m-email').value = email;
+  document.getElementById('m-password').value = '';
+  document.getElementById('m-pass-label').textContent = 'New Password (leave blank to keep)';
+  document.getElementById('m-password').placeholder = 'Leave blank to keep current';
+  document.getElementById('m-role').value = role;
+  document.getElementById('m-display-name').value = displayName;
+  document.getElementById('modal-error').classList.add('hidden');
+  document.getElementById('user-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('user-modal').style.display = 'none';
+}
+
+async function submitModal() {
+  const errEl = document.getElementById('modal-error');
+  errEl.classList.add('hidden');
+  const body = {
+    email       : document.getElementById('m-email').value.trim() || null,
+    role        : document.getElementById('m-role').value,
+    display_name: document.getElementById('m-display-name').value.trim() || null,
+  };
+  const pass = document.getElementById('m-password').value;
+  if (pass) body.password = pass;
+
+  if (!editingId) {
+    body.username = document.getElementById('m-username').value.trim();
+    if (!body.password) { errEl.textContent = 'Password is required'; errEl.classList.remove('hidden'); return; }
+  }
+
+  try {
+    const url    = editingId ? `/api/users/${editingId}` : '/api/users';
+    const method = editingId ? 'PUT' : 'POST';
+    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data   = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Save failed'; errEl.classList.remove('hidden'); return; }
+    closeModal();
+    loadUsers();
+  } catch(err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+  try {
+    const res  = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Delete failed'); return; }
+    loadUsers();
+  } catch(err) { alert(err.message); }
+}
+
+if (cu && cu.role === 'admin') loadUsers();
+</script>
+</body>
+</html>

@@ -49,8 +49,29 @@
     <a href="/sync-history.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Sync History</a>
     <a href="/config.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Configuration</a>
     <a href="/calculations.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Calculations Ref</a>
+    <a href="/users.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </a>
+    <a href="/profile.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
   </div>
-  <div class="sidebar-status"><span class="dot" id="status-dot"></span><span id="status-label">Checking…</span></div>
+  <div class="sidebar-user" id="sidebar-user" style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);margin-top:auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="sidebar-avatar" style="width:32px;height:32px;border-radius:50%;background:#C74634;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="sidebar-username" style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="sidebar-role" style="font-size:11px;color:rgba(255,255,255,0.6);"></div>
+      </div>
+      <button onclick="logout()" title="Logout" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:16px;padding:2px;">⏏</button>
+    </div>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
 </nav>
 
 <div class="main-content">
@@ -386,11 +407,30 @@ npm start
       </div>
     </div>
 
+    <!-- ── Country Configurations ─────────────────────────────────────────── -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+        Country Configurations
+        <button class="btn btn-primary" style="margin-left:auto;font-size:12px;padding:5px 12px" onclick="openCCModal()">+ Add Country</button>
+      </div>
+      <div class="card-body" style="padding-top:6px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Per-country Odoo and Oracle credential overrides. If a country config is enabled, its credentials take precedence over the global settings.</p>
+        <div class="table-wrap">
+          <table id="cc-table">
+            <thead><tr><th>Code</th><th>Country Name</th><th>Odoo URL</th><th>Oracle URL</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="cc-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script src="/js/app.js"></script>
 <script>
+requireLogin();
 /* ══════════════════════════════════════════════════════════
    Config page – load full config and populate panels
    ══════════════════════════════════════════════════════════ */
@@ -594,6 +634,97 @@ async function saveCredentials(mode) {
 
 // Initialise credentials panel
 loadCredentials().then(() => showCredTab('test')).catch(() => showCredTab('test'));
+loadCountryConfigs();
+
+// ── Country Config CRUD ────────────────────────────────────────────────────────────────────────────────
+
+let ccEditCode = null;
+
+async function loadCountryConfigs() {
+  try {
+    const res  = await fetch('/api/config/country-configs');
+    const data = await res.json();
+    const tbody = document.getElementById('cc-tbody');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">No country configs yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(c => `
+      <tr>
+        <td><strong>${escHtml(c.country_code)}</strong></td>
+        <td>${escHtml(c.country_name)}</td>
+        <td style="font-size:12px;color:var(--muted)">${escHtml(c.odoo_url || '\u2013')}</td>
+        <td style="font-size:12px;color:var(--muted)">${escHtml(c.oracle_base_url || '\u2013')}</td>
+        <td><span class="badge ${c.enabled ? 'badge-success' : 'badge-muted'}">${c.enabled ? 'Enabled' : 'Disabled'}</span></td>
+        <td>
+          <button class="btn btn-outline test-btn" onclick="openCCModal('${escHtml(c.country_code)}')">Edit</button>
+          <button class="btn test-btn" style="background:#dc3545;color:#fff;border:none;margin-left:4px" onclick="deleteCCConfig('${escHtml(c.country_code)}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    document.getElementById('cc-tbody').innerHTML = `<tr><td colspan="6" style="color:#dc3545;padding:16px">${e.message}</td></tr>`;
+  }
+}
+
+function openCCModal(code) {
+  ccEditCode = code || null;
+  const html = `
+    <div id="cc-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000">
+      <div style="background:#fff;border-radius:10px;padding:28px 32px;width:100%;max-width:540px;box-shadow:0 8px 40px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto">
+        <div style="font-size:17px;font-weight:700;margin-bottom:16px">${code ? 'Edit Country Config' : 'Add Country Config'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group"><label class="form-label">Country Code</label><input class="form-control" id="cc-code" value="${code||''}" ${code ? 'disabled' : ''} placeholder="e.g. AE" maxlength="3"></div>
+          <div class="form-group"><label class="form-label">Country Name *</label><input class="form-control" id="cc-name" placeholder="e.g. UAE"></div>
+          <div class="form-group"><label class="form-label">Odoo URL</label><input class="form-control" id="cc-odoo-url" placeholder="https://odoo.example.com"></div>
+          <div class="form-group"><label class="form-label">Odoo DB</label><input class="form-control" id="cc-odoo-db" placeholder="mydb"></div>
+          <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" placeholder="admin"></div>
+          <div class="form-group"><label class="form-label">Odoo Password</label><input type="password" class="form-control" id="cc-odoo-pass" placeholder="Leave blank to keep"></div>
+          <div class="form-group"><label class="form-label">Oracle Base URL</label><input class="form-control" id="cc-oracle-url" placeholder="https://fusion.example.com"></div>
+          <div class="form-group"><label class="form-label">Oracle Username</label><input class="form-control" id="cc-oracle-user" placeholder="oracle_user"></div>
+          <div class="form-group"><label class="form-label">Oracle Password</label><input type="password" class="form-control" id="cc-oracle-pass" placeholder="Leave blank to keep"></div>
+          <div class="form-group"><label class="form-label">Enabled</label><select class="form-control" id="cc-enabled"><option value="1">Yes</option><option value="0">No</option></select></div>
+        </div>
+        <div id="cc-modal-err" style="color:#dc3545;font-size:13px;margin-top:8px"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+          <button class="btn btn-outline" onclick="document.getElementById('cc-modal').remove()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCCConfig()">Save</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function saveCCConfig() {
+  const code = (document.getElementById('cc-code').value || '').trim().toUpperCase();
+  const name = (document.getElementById('cc-name').value || '').trim();
+  if (!code) { document.getElementById('cc-modal-err').textContent = 'Country code is required'; return; }
+  if (!name) { document.getElementById('cc-modal-err').textContent = 'Country name is required'; return; }
+  const body = {
+    country_name   : name,
+    odoo_url       : document.getElementById('cc-odoo-url').value.trim() || null,
+    odoo_db        : document.getElementById('cc-odoo-db').value.trim() || null,
+    odoo_username  : document.getElementById('cc-odoo-user').value.trim() || null,
+    odoo_password  : document.getElementById('cc-odoo-pass').value || null,
+    oracle_base_url: document.getElementById('cc-oracle-url').value.trim() || null,
+    oracle_username: document.getElementById('cc-oracle-user').value.trim() || null,
+    oracle_password: document.getElementById('cc-oracle-pass').value || null,
+    enabled        : Number(document.getElementById('cc-enabled').value),
+  };
+  try {
+    const res  = await fetch(`/api/config/country-configs/${code}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('cc-modal-err').textContent = data.error || 'Save failed'; return; }
+    document.getElementById('cc-modal').remove();
+    loadCountryConfigs();
+  } catch(e) { document.getElementById('cc-modal-err').textContent = e.message; }
+}
+
+async function deleteCCConfig(code) {
+  if (!confirm(`Delete config for "${code}"?`)) return;
+  await fetch(`/api/config/country-configs/${code}`, { method:'DELETE' });
+  loadCountryConfigs();
+}
 </script>
 </body>
 </html>
