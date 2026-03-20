@@ -47,12 +47,13 @@ const LINE_FETCH_CONCURRENCY = Number(process.env.ODOO_LINE_FETCH_CONCURRENCY) |
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
 function buildOdooClient(country) {
-  const creds = db.getCredentialsForCountry(country);
+  const creds    = db.getCredentialsForCountry(country);
   const url      = creds.odoo.url;
-  const odoo_db  = creds.odoo.db;
   const username = creds.odoo.username;
   const password = creds.odoo.password;
-  if (!url || !odoo_db || !username || !password) {
+  // DB is optional for odoo.com SaaS – inferred from subdomain if not set.
+  const odoo_db  = creds.odoo.db || OdooClient.inferDbFromUrl(url) || '';
+  if (!url || !username || !password) {
     throw new Error(
       `Odoo connection not configured for ${creds.mode} server. Set credentials via the Configuration page.`
     );
@@ -153,6 +154,8 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
         amount_tax     : Number(o.amount_tax)     || 0,
         amount_total   : Number(o.amount_total)   || 0,
         state          : o.state || '',
+        customer_type  : 'NORMAL',   // default; overridden by partner category if available
+        register_name  : Array.isArray(o.team_id) ? o.team_id[1] : null,
         fetched_at     : now,
         raw_json       : JSON.stringify(o),
       }));
@@ -206,17 +209,24 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
         // One bulk query instead of one SELECT per line
         const internalIdMap = db.getSaleInternalIdMap(idChunk);
 
-        const lineRows = rawLines.map(l => {
+        const lineRows = rawLines.map((l, idx) => {
           const orderId = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id;
+          // tax_name: first tax name from tax_id array (Odoo returns [id, name] tuples or IDs only)
+          const firstTax   = Array.isArray(l.tax_id) && l.tax_id.length > 0 ? l.tax_id[0] : null;
+          const taxName    = Array.isArray(firstTax) ? firstTax[1] : null;
           return {
             sale_id        : internalIdMap.get(orderId) || null,
             odoo_line_id   : l.id,
             product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
             product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
+            item_number    : l.default_code || null,   // SKU / product reference
+            tax_name       : taxName,
+            line_number    : l.sequence != null ? l.sequence : idx + 1,
             qty_ordered    : Number(l.product_uom_qty) || 0,
             qty_delivered  : Number(l.qty_delivered)   || 0,
             price_unit     : Number(l.price_unit)       || 0,
             price_subtotal : Number(l.price_subtotal)   || 0,
+            total_discount : Number(l.discount)         || 0,
             tax_ids        : JSON.stringify(l.tax_id    || []),
           };
         }).filter(l => l.sale_id !== null);
@@ -229,6 +239,74 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
     }
 
     jobLog(jobId, 'info', `Stored ${totalLines} sale lines in local DB`);
+
+    // ── Fetch + persist payments (3rd endpoint: account.payment) ─────────────
+    // Mirrors middleware BackupVendhqPayments table populated from the same fetch.
+    // Collect all invoice_ids from all fetched sale orders for lookup.
+    jobLog(jobId, 'info', 'Fetching sale payments from Odoo (account.payment)…');
+    try {
+      const allInvoiceIds = [];
+      const invoiceToSaleMap = new Map(); // invoiceId → { saleId, invoiceNumber, storeName, teamName, currency, country }
+
+      // Re-read sale headers to collect invoice_ids
+      for (let i = 0; i < allOrderIds.length; i += 500) {
+        const idChunk  = allOrderIds.slice(i, i + 500);
+        const orderPage = await odoo.execute('sale.order', 'read', [idChunk], {
+          fields: ['id', 'name', 'invoice_ids', 'warehouse_id', 'team_id', 'currency_id'],
+        });
+        for (const o of orderPage) {
+          const invIds = Array.isArray(o.invoice_ids) ? o.invoice_ids : [];
+          const storeName  = Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : (o.warehouse_id || null);
+          const teamName   = Array.isArray(o.team_id) ? o.team_id[1] : (o.team_id || null);
+          const currency   = Array.isArray(o.currency_id) ? o.currency_id[1] : 'AED';
+          for (const invId of invIds) {
+            allInvoiceIds.push(invId);
+            invoiceToSaleMap.set(invId, {
+              saleId       : db.getSaleInternalId(o.id),
+              invoiceNumber: o.name,
+              storeName,
+              teamName,
+              currency,
+              countryCode  : country || null,
+            });
+          }
+        }
+        await new Promise(resolve => setImmediate(resolve));
+      }
+
+      if (allInvoiceIds.length > 0) {
+        const now = new Date().toISOString();
+        const rawPayments = await odoo.getOrderPayments(allInvoiceIds);
+        const paymentRows = rawPayments.map(p => {
+          const moveId = Array.isArray(p.move_id) ? p.move_id[0] : p.move_id;
+          const meta   = invoiceToSaleMap.get(moveId) || {};
+          return {
+            sale_id        : meta.saleId        || null,
+            invoice_number : meta.invoiceNumber  || '',
+            odoo_payment_id: p.id,
+            payment_type   : Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown'),
+            amount         : Number(p.amount)    || 0,
+            currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : (meta.currency || 'AED'),
+            payment_date   : (p.date || '').split(' ')[0] || null,
+            outlet_name    : meta.storeName      || null,
+            register_name  : meta.teamName       || null,
+            region         : meta.countryCode    || null,
+            fetched_at     : now,
+          };
+        });
+        if (paymentRows.length > 0) {
+          db.upsertSalePayments(paymentRows);
+          jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);
+        } else {
+          jobLog(jobId, 'info', 'No payments found for fetched sale orders');
+        }
+      } else {
+        jobLog(jobId, 'info', 'No invoices linked to fetched orders – skipping payment fetch');
+      }
+    } catch (payErr) {
+      // Payment fetch failure is non-fatal – log and continue
+      jobLog(jobId, 'warn', `Payment fetch skipped: ${payErr.message}`);
+    }
 
     db.updateJob(jobId, {
       status      : 'DONE',
@@ -614,7 +692,13 @@ function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
     ? jobMeta.payments
     : null;
 
-  const payments = explicitPayments || [{
+  // Use stored payment records from the local DB (fetched via account.payment – 3rd Odoo endpoint)
+  // when no explicit override is provided. This mirrors the middleware's BackupVendhqPayments path.
+  const storedPayments = Array.isArray(sale.payments) && sale.payments.length > 0
+    ? sale.payments.map(p => ({ paymentType: p.payment_type || 'Cash', amount: p.amount || 0 }))
+    : null;
+
+  const payments = explicitPayments || storedPayments || [{
     paymentType : (jobMeta && jobMeta.defaultPaymentType) || 'Cash',
     amount      : sale.amount_total || 0,
   }];

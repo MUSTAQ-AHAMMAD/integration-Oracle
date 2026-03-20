@@ -44,7 +44,7 @@ class OdooClient {
    */
   constructor(url, db, username, password) {
     this.url      = url.replace(/\/$/, '');
-    this.db       = db;
+    this.db       = db || OdooClient.inferDbFromUrl(url);
     this.username = username;
     this.password = password;
     this.uid      = null;
@@ -137,7 +137,7 @@ class OdooClient {
       'id', 'name', 'date_order', 'state',
       'partner_id', 'currency_id',
       'amount_untaxed', 'amount_tax', 'amount_total',
-      'order_line',
+      'order_line', 'invoice_ids',
       // warehouse / store – field name varies by Odoo version
       'warehouse_id', 'team_id',
     ];
@@ -166,6 +166,7 @@ class OdooClient {
       'id', 'order_id', 'product_id', 'name',
       'product_uom_qty', 'qty_delivered',
       'price_unit', 'price_subtotal', 'tax_id',
+      'default_code', 'sequence', 'discount',
     ];
 
     if (!orderIds || orderIds.length === 0) return [];
@@ -197,6 +198,36 @@ class OdooClient {
       logger.warn('Could not fetch stock.warehouse – returning empty list', { err: err.message });
       return [];
     }
+  }
+
+  /**
+   * Fetch payment records (account.payment) for a set of sale order invoice IDs.
+   * This is the 3rd Odoo API endpoint (after sale.order and sale.order.line)
+   * and mirrors the middleware's BackupVendhqPayments data.
+   *
+   * @param {number[]} invoiceIds  account.move IDs from sale.order.invoice_ids
+   * @param {string[]} [fields]    fields to return
+   * @returns {object[]}
+   */
+  async getOrderPayments(invoiceIds, fields) {
+    if (!invoiceIds || invoiceIds.length === 0) return [];
+
+    const defaultFields = [
+      'id', 'name', 'payment_type', 'amount', 'date',
+      'currency_id', 'journal_id', 'partner_id', 'state', 'move_id',
+    ];
+
+    logger.debug('Fetching Odoo payments (account.payment)', { invoiceCount: invoiceIds.length });
+
+    // Fetch payments whose linked journal entry (move_id) is in the set of
+    // invoice IDs we collected from the sale orders.
+    const rows = await this.execute('account.payment', 'search_read',
+      [[['move_id', 'in', invoiceIds], ['payment_type', '=', 'inbound']]],
+      { fields: fields || defaultFields, limit: 0 }
+    );
+
+    logger.info('Fetched Odoo payments', { count: rows.length });
+    return rows;
   }
 
   /**
@@ -256,6 +287,25 @@ class OdooClient {
     }
     logger.info('Odoo database created', { dbName });
     return true;
+  }
+
+  /**
+   * Infer the Odoo database name from the instance URL.
+   * For odoo.com SaaS instances the subdomain IS the database name.
+   * e.g. https://mycompany.odoo.com → 'mycompany'
+   * Returns null if the URL doesn't match the odoo.com pattern.
+   * @param {string} url
+   * @returns {string|null}
+   */
+  static inferDbFromUrl(url) {
+    if (!url) return null;
+    try {
+      const hostname = new URL(url).hostname; // e.g. mycompany.odoo.com
+      if (hostname.endsWith('.odoo.com')) {
+        return hostname.split('.')[0]; // 'mycompany'
+      }
+    } catch (_) { /* ignore parse errors */ }
+    return null;
   }
 
   /**
