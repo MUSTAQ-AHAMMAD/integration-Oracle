@@ -92,12 +92,12 @@ function jobLog(jobId, level, message, meta = {}) {
  * @returns {string} jobId
  */
 function startFetchJob(options) {
-  const { dateFrom, dateTo, storeId, storeName } = options;
+  const { dateFrom, dateTo, storeId, storeName, country } = options;
   const mode  = storeId ? 'BY_STORE_DATE' : 'ALL_STORES_DATE';
   const jobId = randomUUID();
 
-  db.createJob({ jobId, mode, dateFrom, dateTo, storeId, storeName });
-  logger.info('Fetch job created', { jobId, mode, dateFrom, dateTo, storeId });
+  db.createJob({ jobId, jobType: 'FETCH', mode, dateFrom, dateTo, storeId, storeName });
+  logger.info('Fetch job created', { jobId, mode, dateFrom, dateTo, storeId, country });
 
   // Run in background – do NOT await
   setImmediate(() => _runFetchJob(jobId, options));
@@ -105,9 +105,9 @@ function startFetchJob(options) {
   return jobId;
 }
 
-async function _runFetchJob(jobId, { dateFrom, dateTo, storeId }) {
+async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
   db.updateJob(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
-  jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId });
+  jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country });
 
   try {
     const odoo   = buildOdooClient();
@@ -142,6 +142,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId }) {
         name           : o.name,
         store_id       : Array.isArray(o.warehouse_id) ? o.warehouse_id[0] : (o.warehouse_id || null),
         store_name     : Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : null,
+        country        : country || null,
         date_order     : (o.date_order || '').split(' ')[0],
         partner_id     : Array.isArray(o.partner_id) ? o.partner_id[0] : null,
         partner_name   : Array.isArray(o.partner_id) ? o.partner_id[1] : null,
@@ -280,7 +281,7 @@ function startPushJob(options) {
   const { mode = 'BY_DATE', dateFrom, dateTo, storeId, storeName } = options;
   const jobId = randomUUID();
 
-  db.createJob({ jobId, mode, dateFrom, dateTo, storeId, storeName });
+  db.createJob({ jobId, jobType: 'PUSH', mode, dateFrom, dateTo, storeId, storeName });
   logger.info('Push job created', { jobId, mode, dateFrom, dateTo, storeId });
 
   setImmediate(() => _runPushJob(jobId, options));
@@ -436,6 +437,7 @@ function startRetryJob(options) {
 
   db.createJob({
     jobId,
+    jobType   : 'RETRY',
     mode      : 'RETRY',
     dateFrom  : null,
     dateTo    : null,

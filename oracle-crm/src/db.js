@@ -65,6 +65,7 @@ function applyMigrations(db) {
       name            TEXT    NOT NULL,          -- SO number e.g. S00123
       store_id        INTEGER,
       store_name      TEXT,
+      country         TEXT,                      -- ISO-2 country code (AE, KW, SA …)
       date_order      TEXT    NOT NULL,          -- ISO date (YYYY-MM-DD)
       partner_id      INTEGER,
       partner_name    TEXT,
@@ -95,6 +96,7 @@ function applyMigrations(db) {
     CREATE TABLE IF NOT EXISTS push_jobs (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       job_id        TEXT    NOT NULL UNIQUE,     -- UUID
+      job_type      TEXT    NOT NULL DEFAULT 'PUSH', -- FETCH | PUSH | RETRY
       mode          TEXT    NOT NULL,            -- BY_DATE | BY_STORE_DATE | ALL_STORES_DATE
       date_from     TEXT,                        -- YYYY-MM-DD
       date_to       TEXT,                        -- YYYY-MM-DD
@@ -157,8 +159,12 @@ function applyMigrations(db) {
   alterSafely('ALTER TABLE odoo_sales ADD COLUMN oracle_txn_id TEXT');
   alterSafely('ALTER TABLE odoo_sales ADD COLUMN pushed_at     TEXT');
   alterSafely('ALTER TABLE odoo_sales ADD COLUMN push_job_id   TEXT');
+  alterSafely('ALTER TABLE odoo_sales ADD COLUMN country       TEXT');
+  alterSafely("ALTER TABLE push_jobs  ADD COLUMN job_type TEXT NOT NULL DEFAULT 'PUSH'");
   try {
-    db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_txn ON odoo_sales(oracle_txn_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_txn      ON odoo_sales(oracle_txn_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_country  ON odoo_sales(country)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_push_jobs_type      ON push_jobs(job_type)');
   } catch (_) { /* already exists */ }
 }
 
@@ -172,15 +178,16 @@ function upsertSales(sales) {
   const db = getDb();
   const stmt = db.prepare(`
     INSERT INTO odoo_sales
-      (odoo_id, name, store_id, store_name, date_order, partner_id, partner_name,
+      (odoo_id, name, store_id, store_name, country, date_order, partner_id, partner_name,
        currency, amount_untaxed, amount_tax, amount_total, state, fetched_at, raw_json)
     VALUES
-      (@odoo_id, @name, @store_id, @store_name, @date_order, @partner_id, @partner_name,
+      (@odoo_id, @name, @store_id, @store_name, @country, @date_order, @partner_id, @partner_name,
        @currency, @amount_untaxed, @amount_tax, @amount_total, @state, @fetched_at, @raw_json)
     ON CONFLICT(odoo_id) DO UPDATE SET
       name           = excluded.name,
       store_id       = excluded.store_id,
       store_name     = excluded.store_name,
+      country        = excluded.country,
       date_order     = excluded.date_order,
       partner_id     = excluded.partner_id,
       partner_name   = excluded.partner_name,
@@ -246,11 +253,12 @@ function updateSalePushStatus(id, oracleTxnId, jobId) {
  * @param {string}  [filters.dateFrom]       YYYY-MM-DD
  * @param {string}  [filters.dateTo]         YYYY-MM-DD
  * @param {number}  [filters.storeId]
+ * @param {string}  [filters.country]        ISO-2 country code
  * @param {boolean} [filters.unpushedOnly]   When true, only return sales without oracle_txn_id
  * @param {number}  [filters.limit]          default 500
  * @param {number}  [filters.offset]         default 0
  */
-function querySales({ dateFrom, dateTo, storeId, unpushedOnly, limit = 500, offset = 0 } = {}) {
+function querySales({ dateFrom, dateTo, storeId, country, unpushedOnly, limit = 500, offset = 0 } = {}) {
   const db = getDb();
   const conditions = [];
   const params     = {};
@@ -258,6 +266,7 @@ function querySales({ dateFrom, dateTo, storeId, unpushedOnly, limit = 500, offs
   if (dateFrom) { conditions.push('date_order >= @dateFrom'); params.dateFrom = dateFrom; }
   if (dateTo)   { conditions.push('date_order <= @dateTo');   params.dateTo   = dateTo;   }
   if (storeId)  { conditions.push('store_id = @storeId');     params.storeId  = storeId;  }
+  if (country)  { conditions.push('country = @country');      params.country  = country;  }
   if (unpushedOnly) { conditions.push('oracle_txn_id IS NULL'); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -327,10 +336,11 @@ function getSaleInternalIdMap(odooIds) {
 function createJob(job) {
   const db = getDb();
   db.prepare(`
-    INSERT INTO push_jobs (job_id, mode, date_from, date_to, store_id, store_name, status, log, created_at)
-    VALUES (@job_id, @mode, @date_from, @date_to, @store_id, @store_name, 'QUEUED', '[]', @created_at)
+    INSERT INTO push_jobs (job_id, job_type, mode, date_from, date_to, store_id, store_name, status, log, created_at)
+    VALUES (@job_id, @job_type, @mode, @date_from, @date_to, @store_id, @store_name, 'QUEUED', '[]', @created_at)
   `).run({
     job_id     : job.jobId,
+    job_type   : job.jobType  || 'PUSH',
     mode       : job.mode,
     date_from  : job.dateFrom  || null,
     date_to    : job.dateTo    || null,
@@ -468,6 +478,181 @@ function updateFailedRecord(id, status) {
   ).run(status, new Date().toISOString(), id);
 }
 
+/**
+ * Get the date of the most recently pushed sale (per country, store, or overall).
+ * @returns {{ last_pushed_at: string|null, last_pushed_date: string|null, country: string|null, store_name: string|null }}
+ */
+function getLastPushInfo() {
+  const db  = getDb();
+  const row = db.prepare(
+    `SELECT pushed_at, date_order, country, store_name FROM odoo_sales
+     WHERE pushed_at IS NOT NULL ORDER BY pushed_at DESC LIMIT 1`
+  ).get();
+  if (!row) return { last_pushed_at: null, last_pushed_date: null, country: null, store_name: null };
+  return {
+    last_pushed_at  : row.pushed_at,
+    last_pushed_date: row.date_order,
+    country         : row.country,
+    store_name      : row.store_name,
+  };
+}
+
+/**
+ * Push report: summarise all push jobs with their per-job statistics.
+ * Groups by job, date range, store and country for a tabular report.
+ *
+ * @param {object} [opts]
+ * @param {string}  [opts.dateFrom]
+ * @param {string}  [opts.dateTo]
+ * @param {string}  [opts.country]
+ * @param {number}  [opts.storeId]
+ * @param {number}  [opts.limit=100]
+ * @param {number}  [opts.offset=0]
+ * @returns {{ rows: object[], total: number }}
+ */
+function getPushReport({ dateFrom, dateTo, country, storeId, limit = 100, offset = 0 } = {}) {
+  const db         = getDb();
+  const conditions = [`j.job_type = 'PUSH'`];
+  const params     = [];
+
+  if (dateFrom) { conditions.push('j.date_from >= ?'); params.push(dateFrom); }
+  if (dateTo)   { conditions.push('j.date_to   <= ?'); params.push(dateTo);   }
+  if (storeId)  { conditions.push('j.store_id = ?');   params.push(storeId);  }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+
+  // Join push_jobs with per-job country summary from odoo_sales
+  const sql = `
+    SELECT
+      j.job_id,
+      j.mode,
+      j.date_from,
+      j.date_to,
+      j.store_id,
+      j.store_name,
+      j.status,
+      j.total,
+      j.processed,
+      j.failed,
+      j.started_at,
+      j.finished_at,
+      j.created_at,
+      (SELECT GROUP_CONCAT(DISTINCT s.country) FROM odoo_sales s WHERE s.push_job_id = j.job_id) AS countries
+    FROM push_jobs j
+    ${where}
+    ORDER BY j.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const filtered = [...params, limit, offset];
+
+  // Country filter: post-filter rows that have matching country (SQLite limitation with GROUP_CONCAT)
+  let rows = db.prepare(sql).all(...filtered);
+  if (country) {
+    rows = rows.filter(r => r.countries && r.countries.split(',').includes(country));
+  }
+
+  const countSql = `SELECT COUNT(*) AS cnt FROM push_jobs j ${where}`;
+  const total = db.prepare(countSql).get(...params).cnt;
+
+  return { rows, total };
+}
+
+/**
+ * Pull report: summarise all fetch jobs with per-job statistics.
+ *
+ * @param {object} [opts]
+ * @param {string}  [opts.dateFrom]
+ * @param {string}  [opts.dateTo]
+ * @param {string}  [opts.country]
+ * @param {number}  [opts.storeId]
+ * @param {number}  [opts.limit=100]
+ * @param {number}  [opts.offset=0]
+ * @returns {{ rows: object[], total: number }}
+ */
+function getPullReport({ dateFrom, dateTo, country, storeId, limit = 100, offset = 0 } = {}) {
+  const db         = getDb();
+  const conditions = [`j.job_type = 'FETCH'`];
+  const params     = [];
+
+  if (dateFrom) { conditions.push('j.date_from >= ?'); params.push(dateFrom); }
+  if (dateTo)   { conditions.push('j.date_to   <= ?'); params.push(dateTo);   }
+  if (storeId)  { conditions.push('j.store_id = ?');   params.push(storeId);  }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+
+  const sql = `
+    SELECT
+      j.job_id,
+      j.mode,
+      j.date_from,
+      j.date_to,
+      j.store_id,
+      j.store_name,
+      j.status,
+      j.total,
+      j.processed,
+      j.failed,
+      j.started_at,
+      j.finished_at,
+      j.created_at,
+      (SELECT GROUP_CONCAT(DISTINCT s.country) FROM odoo_sales s WHERE s.fetched_at >= j.started_at AND (j.finished_at IS NULL OR s.fetched_at <= j.finished_at)) AS countries
+    FROM push_jobs j
+    ${where}
+    ORDER BY j.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const filtered = [...params, limit, offset];
+  let rows = db.prepare(sql).all(...filtered);
+  if (country) {
+    rows = rows.filter(r => r.countries && r.countries.split(',').includes(country));
+  }
+
+  const countSql = `SELECT COUNT(*) AS cnt FROM push_jobs j ${where}`;
+  const total = db.prepare(countSql).get(...params).cnt;
+
+  return { rows, total };
+}
+
+/**
+ * Summary of pushed orders grouped by date, country and store.
+ * Used by the reports page to show "till which date orders have been pushed".
+ *
+ * @param {object} [opts]
+ * @param {string}  [opts.country]
+ * @param {number}  [opts.storeId]
+ * @param {number}  [opts.limit=500]
+ * @returns {object[]}
+ */
+function getPushDateSummary({ country, storeId, limit = 500 } = {}) {
+  const db         = getDb();
+  const conditions = ['oracle_txn_id IS NOT NULL'];
+  const params     = [];
+
+  if (country) { conditions.push('country = ?');  params.push(country); }
+  if (storeId) { conditions.push('store_id = ?'); params.push(storeId); }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+
+  const rows = db.prepare(`
+    SELECT
+      date_order,
+      country,
+      store_name,
+      COUNT(*)             AS total_pushed,
+      SUM(amount_total)    AS total_amount,
+      MAX(pushed_at)       AS last_pushed_at
+    FROM odoo_sales
+    ${where}
+    GROUP BY date_order, country, store_name
+    ORDER BY date_order DESC, country, store_name
+    LIMIT ?
+  `).all(...params, limit);
+
+  return rows;
+}
+
 module.exports = {
   getDb,
   upsertSales,
@@ -486,4 +671,8 @@ module.exports = {
   insertFailedRecord,
   listFailedRecords,
   updateFailedRecord,
+  getLastPushInfo,
+  getPushReport,
+  getPullReport,
+  getPushDateSummary,
 };

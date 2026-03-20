@@ -67,13 +67,18 @@ function badRequest(res, msg) {
   return res.status(400).json({ error: msg });
 }
 
+const VALID_COUNTRIES = ['AE','KW','OM','SA','BH','QA'];
+
 // ── POST /api/odoo/fetch ──────────────────────────────────────────────────────
 router.post('/fetch', (req, res) => {
-  const { dateFrom, dateTo, storeId, storeName } = req.body || {};
+  const { dateFrom, dateTo, storeId, storeName, country } = req.body || {};
 
   if (!dateFrom || !validateDate(dateFrom)) return badRequest(res, 'dateFrom is required (YYYY-MM-DD)');
   if (!dateTo   || !validateDate(dateTo))   return badRequest(res, 'dateTo is required (YYYY-MM-DD)');
   if (new Date(dateFrom) > new Date(dateTo)) return badRequest(res, 'dateFrom must be <= dateTo');
+  if (country && !VALID_COUNTRIES.includes(country)) {
+    return badRequest(res, `country must be one of: ${VALID_COUNTRIES.join(', ')}`);
+  }
 
   try {
     const jobId = startFetchJob({
@@ -81,9 +86,10 @@ router.post('/fetch', (req, res) => {
       dateTo,
       storeId  : storeId  ? Number(storeId)  : undefined,
       storeName: storeName || undefined,
+      country  : country   || undefined,
     });
 
-    logger.info('Fetch job queued via API', { jobId, dateFrom, dateTo, storeId });
+    logger.info('Fetch job queued via API', { jobId, dateFrom, dateTo, storeId, country });
     res.json({ jobId, status: 'QUEUED', message: 'Fetch job started in background' });
   } catch (err) {
     logger.error('Failed to start fetch job', { err: err.message });
@@ -97,6 +103,7 @@ router.post('/push', (req, res) => {
     mode = 'BY_DATE',
     dateFrom, dateTo,
     storeId, storeName,
+    country,
     metadata, outlet,
     skipAlreadyPushed,
   } = req.body || {};
@@ -108,6 +115,9 @@ router.post('/push', (req, res) => {
   if (!dateFrom || !validateDate(dateFrom)) return badRequest(res, 'dateFrom is required (YYYY-MM-DD)');
   if (!dateTo   || !validateDate(dateTo))   return badRequest(res, 'dateTo is required (YYYY-MM-DD)');
   if (new Date(dateFrom) > new Date(dateTo)) return badRequest(res, 'dateFrom must be <= dateTo');
+  if (country && !VALID_COUNTRIES.includes(country)) {
+    return badRequest(res, `country must be one of: ${VALID_COUNTRIES.join(', ')}`);
+  }
 
   if (mode === 'BY_STORE_DATE' && !storeId) {
     return badRequest(res, 'storeId is required for BY_STORE_DATE mode');
@@ -120,14 +130,13 @@ router.post('/push', (req, res) => {
       dateTo,
       storeId  : storeId  ? Number(storeId)  : undefined,
       storeName: storeName || undefined,
+      country  : country   || undefined,
       metadata : metadata  || undefined,
       outlet   : outlet    || undefined,
-      // skipAlreadyPushed defaults to true inside startPushJob; the caller can
-      // explicitly pass false to re-push orders that were already synced.
       skipAlreadyPushed: skipAlreadyPushed !== undefined ? !!skipAlreadyPushed : undefined,
     });
 
-    logger.info('Push job queued via API', { jobId, mode, dateFrom, dateTo, storeId });
+    logger.info('Push job queued via API', { jobId, mode, dateFrom, dateTo, storeId, country });
     res.json({ jobId, status: 'QUEUED', message: 'Push job started in background' });
   } catch (err) {
     logger.error('Failed to start push job', { err: err.message });
@@ -192,11 +201,12 @@ router.get('/jobs', (req, res) => {
 
 // ── GET /api/odoo/sales ───────────────────────────────────────────────────────
 router.get('/sales', (req, res) => {
-  const { dateFrom, dateTo, storeId, unpushedOnly, limit = 100, offset = 0 } = req.query;
+  const { dateFrom, dateTo, storeId, country, unpushedOnly, limit = 100, offset = 0 } = req.query;
   const { rows, total } = db.querySales({
     dateFrom     : dateFrom     || undefined,
     dateTo       : dateTo       || undefined,
     storeId      : storeId      ? Number(storeId) : undefined,
+    country      : country      || undefined,
     unpushedOnly : unpushedOnly === 'true' || unpushedOnly === '1',
     limit        : Math.min(Number(limit)  || 100, 500),
     offset       : Number(offset) || 0,
@@ -238,15 +248,70 @@ router.get('/stores', async (req, res) => {
 // ── GET /api/odoo/push-stats ──────────────────────────────────────────────────
 // Returns counts of pushed vs pending sales for a given date range.
 router.get('/push-stats', (req, res) => {
-  const { dateFrom, dateTo, storeId } = req.query;
+  const { dateFrom, dateTo, storeId, country } = req.query;
   const baseFilters = {
     dateFrom: dateFrom || undefined,
     dateTo  : dateTo   || undefined,
     storeId : storeId  ? Number(storeId) : undefined,
+    country : country  || undefined,
   };
   const { total }           = db.querySales({ ...baseFilters, limit: 1, offset: 0 });
   const { total: unpushed } = db.querySales({ ...baseFilters, unpushedOnly: true, limit: 1, offset: 0 });
   res.json({ total, pushed: total - unpushed, pending: unpushed });
+});
+
+// ── GET /api/odoo/last-push ───────────────────────────────────────────────────
+// Returns information about the most recently pushed order.
+router.get('/last-push', (req, res) => {
+  const info = db.getLastPushInfo();
+  res.json(info);
+});
+
+// ── GET /api/odoo/push-date-summary ──────────────────────────────────────────
+// Returns a per-date/country/store summary of pushed orders.
+router.get('/push-date-summary', (req, res) => {
+  const { country, storeId } = req.query;
+  const limit = Math.min(Number(req.query.limit) || 500, 2000);
+  const rows = db.getPushDateSummary({
+    country: country || undefined,
+    storeId: storeId ? Number(storeId) : undefined,
+    limit,
+  });
+  res.json({ rows, count: rows.length });
+});
+
+// ── GET /api/odoo/reports/pushes ──────────────────────────────────────────────
+// Returns detailed push-job reports.
+router.get('/reports/pushes', (req, res) => {
+  const { dateFrom, dateTo, country, storeId } = req.query;
+  const limit  = Math.min(Number(req.query.limit)  || 100, 500);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const { rows, total } = db.getPushReport({
+    dateFrom: dateFrom || undefined,
+    dateTo  : dateTo   || undefined,
+    country : country  || undefined,
+    storeId : storeId  ? Number(storeId) : undefined,
+    limit,
+    offset,
+  });
+  res.json({ reports: rows, total, count: rows.length, limit, offset });
+});
+
+// ── GET /api/odoo/reports/pulls ───────────────────────────────────────────────
+// Returns detailed fetch-job (pull-from-Odoo) reports.
+router.get('/reports/pulls', (req, res) => {
+  const { dateFrom, dateTo, country, storeId } = req.query;
+  const limit  = Math.min(Number(req.query.limit)  || 100, 500);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const { rows, total } = db.getPullReport({
+    dateFrom: dateFrom || undefined,
+    dateTo  : dateTo   || undefined,
+    country : country  || undefined,
+    storeId : storeId  ? Number(storeId) : undefined,
+    limit,
+    offset,
+  });
+  res.json({ reports: rows, total, count: rows.length, limit, offset });
 });
 
 // ── GET /api/odoo/config ──────────────────────────────────────────────────────
