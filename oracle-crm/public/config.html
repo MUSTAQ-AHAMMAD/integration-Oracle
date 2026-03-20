@@ -434,8 +434,8 @@ npm start
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Per-country Odoo and Oracle credential overrides. If a country config is enabled, its credentials take precedence over the global settings.</p>
         <div class="table-wrap">
           <table id="cc-table">
-            <thead><tr><th>Code</th><th>Country Name</th><th>Odoo URL</th><th>Oracle URL</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="cc-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Loading…</td></tr></tbody>
+            <thead><tr><th>Code</th><th>Country Name</th><th>Odoo URL</th><th>Auth Type</th><th>Oracle URL</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="cc-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -842,49 +842,77 @@ window.onServerModeChanged = function(newMode) {
 
 let ccEditCode = null;
 
+let _ccData = {};
+
 async function loadCountryConfigs() {
   try {
     const res  = await fetch('/api/config/country-configs');
     const data = await res.json();
+    _ccData = {};
     const tbody = document.getElementById('cc-tbody');
     if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">No country configs yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">No country configs yet</td></tr>';
       return;
     }
-    tbody.innerHTML = data.map(c => `
+    data.forEach(c => { _ccData[c.country_code] = c; });
+    tbody.innerHTML = data.map(c => {
+      const authLabel = c.odoo_auth_type === 'x-api-key' ? 'X-Api-Key'
+                      : c.odoo_auth_type === 'bearer'    ? 'Bearer'
+                      : 'JSONRPC';
+      return `
       <tr>
         <td><strong>${escHtml(c.country_code)}</strong></td>
         <td>${escHtml(c.country_name)}</td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.odoo_url || '\u2013')}</td>
+        <td style="font-size:12px"><span class="badge badge-muted">${authLabel}</span></td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.oracle_base_url || '\u2013')}</td>
         <td><span class="badge ${c.enabled ? 'badge-success' : 'badge-muted'}">${c.enabled ? 'Enabled' : 'Disabled'}</span></td>
         <td>
-          <button class="btn btn-outline test-btn" onclick="openCCModal('${escHtml(c.country_code)}')">Edit</button>
+          <button class="btn btn-outline test-btn" onclick="openCCModal('${escHtml(c.country_code)}', _ccData['${escHtml(c.country_code)}'])">Edit</button>
           <button class="btn test-btn" style="background:#dc3545;color:#fff;border:none;margin-left:4px" onclick="deleteCCConfig('${escHtml(c.country_code)}')">Delete</button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   } catch(e) {
-    document.getElementById('cc-tbody').innerHTML = `<tr><td colspan="6" style="color:#dc3545;padding:16px">${e.message}</td></tr>`;
+    document.getElementById('cc-tbody').innerHTML = `<tr><td colspan="7" style="color:#dc3545;padding:16px">${e.message}</td></tr>`;
   }
 }
 
-function openCCModal(code) {
+function openCCModal(code, existing) {
   ccEditCode = code || null;
+  const ex = existing || {};
+  const authType = ex.odoo_auth_type || 'jsonrpc';
+  const isRest   = authType === 'x-api-key' || authType === 'bearer';
   const html = `
     <div id="cc-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000">
-      <div style="background:#fff;border-radius:10px;padding:28px 32px;width:100%;max-width:540px;box-shadow:0 8px 40px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto">
+      <div style="background:#fff;border-radius:10px;padding:28px 32px;width:100%;max-width:580px;box-shadow:0 8px 40px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto">
         <div style="font-size:17px;font-weight:700;margin-bottom:16px">${code ? 'Edit Country Config' : 'Add Country Config'}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="form-group"><label class="form-label">Country Code</label><input class="form-control" id="cc-code" value="${code||''}" ${code ? 'disabled' : ''} placeholder="e.g. AE" maxlength="3"></div>
-          <div class="form-group"><label class="form-label">Country Name *</label><input class="form-control" id="cc-name" placeholder="e.g. UAE"></div>
-          <div class="form-group"><label class="form-label">Odoo URL</label><input class="form-control" id="cc-odoo-url" placeholder="https://odoo.example.com"></div>
-          <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" placeholder="admin"></div>
-          <div class="form-group"><label class="form-label">Odoo Password</label><input type="password" class="form-control" id="cc-odoo-pass" placeholder="Leave blank to keep"></div>
-          <div class="form-group"><label class="form-label">Oracle Base URL</label><input class="form-control" id="cc-oracle-url" placeholder="https://fusion.example.com"></div>
-          <div class="form-group"><label class="form-label">Oracle Username</label><input class="form-control" id="cc-oracle-user" placeholder="oracle_user"></div>
+          <div class="form-group"><label class="form-label">Country Code</label><input class="form-control" id="cc-code" value="${escHtml(code||ex.country_code||'')}" ${code ? 'disabled' : ''} placeholder="e.g. BH" maxlength="3"></div>
+          <div class="form-group"><label class="form-label">Country Name *</label><input class="form-control" id="cc-name" value="${escHtml(ex.country_name||'')}" placeholder="e.g. Bahrain"></div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Odoo URL</label><input class="form-control" id="cc-odoo-url" value="${escHtml(ex.odoo_url||'')}" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com"></div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Odoo Auth Type</label>
+            <select class="form-control" id="cc-auth-type" onchange="ccToggleAuthFields()">
+              <option value="jsonrpc" ${authType==='jsonrpc'?'selected':''}>JSONRPC (username + password)</option>
+              <option value="x-api-key" ${authType==='x-api-key'?'selected':''}>REST – X-Api-Key header</option>
+              <option value="bearer" ${authType==='bearer'?'selected':''}>REST – Bearer Token</option>
+            </select>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px" id="cc-auth-hint">
+              ${isRest ? 'REST mode: API key is sent as a request header. Username and password are not used.' : 'Standard Odoo JSONRPC authentication.'}
+            </div>
+          </div>
+          <div id="cc-jsonrpc-fields" style="grid-column:1/-1;display:${isRest?'none':'grid'};grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" value="${escHtml(ex.odoo_username||'')}" placeholder="admin"></div>
+            <div class="form-group"><label class="form-label">Odoo Password</label><input type="password" class="form-control" id="cc-odoo-pass" placeholder="Leave blank to keep"></div>
+          </div>
+          <div id="cc-rest-fields" style="grid-column:1/-1;display:${isRest?'grid':'none'};grid-template-columns:1fr;gap:12px">
+            <div class="form-group"><label class="form-label">API Key / Bearer Token</label><input type="password" class="form-control" id="cc-api-key" placeholder="Leave blank to keep" autocomplete="off"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Oracle Base URL</label><input class="form-control" id="cc-oracle-url" value="${escHtml(ex.oracle_base_url||'')}" placeholder="https://fusion.example.com"></div>
+          <div class="form-group"><label class="form-label">Oracle Username</label><input class="form-control" id="cc-oracle-user" value="${escHtml(ex.oracle_username||'')}" placeholder="oracle_user"></div>
           <div class="form-group"><label class="form-label">Oracle Password</label><input type="password" class="form-control" id="cc-oracle-pass" placeholder="Leave blank to keep"></div>
-          <div class="form-group"><label class="form-label">Enabled</label><select class="form-control" id="cc-enabled"><option value="1">Yes</option><option value="0">No</option></select></div>
+          <div class="form-group"><label class="form-label">Enabled</label><select class="form-control" id="cc-enabled"><option value="1" ${ex.enabled!==0?'selected':''}>Yes</option><option value="0" ${ex.enabled===0?'selected':''}>No</option></select></div>
         </div>
         <div id="cc-modal-err" style="color:#dc3545;font-size:13px;margin-top:8px"></div>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
@@ -896,16 +924,32 @@ function openCCModal(code) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+function ccToggleAuthFields() {
+  const authType = document.getElementById('cc-auth-type').value;
+  const isRest   = authType === 'x-api-key' || authType === 'bearer';
+  const jrpc  = document.getElementById('cc-jsonrpc-fields');
+  const rest  = document.getElementById('cc-rest-fields');
+  const hint  = document.getElementById('cc-auth-hint');
+  jrpc.style.display = isRest ? 'none' : 'grid';
+  rest.style.display = isRest ? 'grid' : 'none';
+  hint.textContent   = isRest
+    ? 'REST mode: API key is sent as a request header. Username and password are not used.'
+    : 'Standard Odoo JSONRPC authentication.';
+}
+
 async function saveCCConfig() {
   const code = (document.getElementById('cc-code').value || '').trim().toUpperCase();
   const name = (document.getElementById('cc-name').value || '').trim();
   if (!code) { document.getElementById('cc-modal-err').textContent = 'Country code is required'; return; }
   if (!name) { document.getElementById('cc-modal-err').textContent = 'Country name is required'; return; }
+  const authType = document.getElementById('cc-auth-type').value;
   const body = {
     country_name   : name,
     odoo_url       : document.getElementById('cc-odoo-url').value.trim() || null,
+    odoo_auth_type : authType,
     odoo_username  : document.getElementById('cc-odoo-user').value.trim() || null,
     odoo_password  : document.getElementById('cc-odoo-pass').value || null,
+    odoo_api_key   : document.getElementById('cc-api-key').value || null,
     oracle_base_url: document.getElementById('cc-oracle-url').value.trim() || null,
     oracle_username: document.getElementById('cc-oracle-user').value.trim() || null,
     oracle_password: document.getElementById('cc-oracle-pass').value || null,
