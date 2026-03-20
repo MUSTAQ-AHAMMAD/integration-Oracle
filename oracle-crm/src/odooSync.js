@@ -72,12 +72,15 @@ function buildOdooClient(country) {
   const password = creds.odoo.password;
   // DB is optional for odoo.com SaaS – inferred from subdomain if not set.
   const odoo_db  = creds.odoo.db || OdooClient.inferDbFromUrl(url) || '';
+  // apiUrl allows the JSONRPC API to be hosted on a different domain than
+  // the main Odoo web URL (e.g. api.mycompany.com vs www.mycompany.com).
+  const apiUrl   = creds.odoo.apiUrl || null;
   if (!url || !username || !password) {
     throw new Error(
       `Odoo connection not configured for ${creds.mode} server. Set credentials via the Configuration page.`
     );
   }
-  return new OdooClient(url, odoo_db, username, password);
+  return new OdooClient(url, odoo_db, username, password, apiUrl);
 }
 
 function buildOracleService(country) {
