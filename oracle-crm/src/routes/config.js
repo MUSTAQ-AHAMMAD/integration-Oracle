@@ -8,8 +8,6 @@
  * GET  /api/config/full                  – complete Oracle + Odoo config with endpoint catalogue
  * POST /api/config/test-oracle           – live connectivity test against Oracle Fusion
  * POST /api/config/test-odoo             – live connectivity test against Odoo
- * POST /api/config/list-odoo-databases   – list databases available on the configured Odoo server
- * POST /api/config/create-odoo-db        – create a new Odoo database (requires Odoo master password)
  * GET  /api/config/middleware-credentials – read Oracle credentials from Java middleware files
  *
  * The endpoint catalogues (ORACLE_ENDPOINTS, ODOO_ENDPOINTS) are derived
@@ -274,61 +272,6 @@ router.post('/test-odoo', async (req, res) => {
   }
 });
 
-// ── POST /api/config/list-odoo-databases ──────────────────────────────────────
-// Lists databases available on the configured Odoo server.
-// Uses the public /web/database/list endpoint (no authentication needed).
-// Accepts optional { url } in the request body to override the configured URL.
-router.post('/list-odoo-databases', async (req, res) => {
-  const creds = db.getActiveCredentials();
-  const url   = (req.body && req.body.url) || creds.odoo.url;
-
-  if (!url) {
-    return res.status(400).json({
-      ok   : false,
-      error: 'Odoo URL not configured. Set credentials via the Configuration page.',
-    });
-  }
-
-  try {
-    const client    = new OdooClient(url, '', '', '');
-    const databases = await client.listDatabases();
-    res.json({ ok: true, databases });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ── POST /api/config/create-odoo-db ──────────────────────────────────────────
-// Creates a new Odoo database via /web/database/create.
-// Body: { masterPassword, dbName, adminLogin?, adminPassword, lang?, countryCode?, url? }
-// Note: masterPassword is the Odoo server master password (set in odoo.conf).
-router.post('/create-odoo-db', async (req, res) => {
-  const { masterPassword, dbName, adminLogin, adminPassword, lang, countryCode } = req.body || {};
-
-  if (!masterPassword) return res.status(400).json({ ok: false, error: 'masterPassword is required' });
-  if (!dbName)         return res.status(400).json({ ok: false, error: 'dbName is required' });
-  if (!adminPassword)  return res.status(400).json({ ok: false, error: 'adminPassword is required' });
-
-  const creds = db.getActiveCredentials();
-  const url   = (req.body && req.body.url) || creds.odoo.url;
-
-  if (!url) {
-    return res.status(400).json({
-      ok   : false,
-      error: 'Odoo URL not configured. Set credentials via the Configuration page.',
-    });
-  }
-
-  try {
-    const resolvedLogin = adminLogin || 'admin';
-    const client = new OdooClient(url, dbName, resolvedLogin, adminPassword);
-    await client.createDatabase(masterPassword, dbName, resolvedLogin, adminPassword, lang || 'en_US', countryCode || '');
-    res.json({ ok: true, message: `Odoo database "${dbName}" created successfully on ${url}` });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
 // ── GET /api/config/server-mode ───────────────────────────────────────────────
 // Returns the current server mode (test | production).
 router.get('/server-mode', (req, res) => {
@@ -366,7 +309,6 @@ router.get('/credentials', (req, res) => {
       },
       odoo: {
         url     : db.getAppSetting(`odoo_${m}_url`)      || (m === 'production' ? process.env.ODOO_URL      || null : null),
-        db      : db.getAppSetting(`odoo_${m}_db`)       || (m === 'production' ? process.env.ODOO_DB       || null : null),
         username: db.getAppSetting(`odoo_${m}_username`) || (m === 'production' ? process.env.ODOO_USERNAME  || null : null),
         password: mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
       },
@@ -402,7 +344,6 @@ router.put('/credentials', (req, res) => {
   }
   if (odoo) {
     persist(`odoo_${mode}_url`,      odoo.url);
-    persist(`odoo_${mode}_db`,       odoo.db);
     persist(`odoo_${mode}_username`, odoo.username);
     persist(`odoo_${mode}_password`, odoo.password);
   }
@@ -445,7 +386,7 @@ router.get('/country-configs', (req, res) => {
 router.put('/country-configs/:code', (req, res) => {
   const countryCode = req.params.code.toUpperCase();
   const {
-    country_name, odoo_url, odoo_db, odoo_username, odoo_password,
+    country_name, odoo_url, odoo_username, odoo_password,
     oracle_base_url, oracle_username, oracle_password, enabled,
   } = req.body || {};
 
@@ -461,7 +402,6 @@ router.put('/country-configs/:code', (req, res) => {
     countryCode,
     countryName    : country_name,
     odooUrl        : odoo_url        || null,
-    odooDb         : odoo_db         || null,
     odooUsername   : odoo_username   || null,
     odooPassword   : resolvePass(odoo_password, 'odoo_password'),
     oracleBaseUrl  : oracle_base_url || null,

@@ -180,19 +180,6 @@
                 <input class="form-control" id="cred-test-odoo-url" placeholder="https://test.odoo.com">
               </div>
               <div class="form-group">
-                <label class="form-label">Database Name <span style="font-weight:400;color:var(--muted)">(optional for odoo.com – auto-inferred from URL)</span></label>
-                <div style="display:flex;gap:6px;align-items:center">
-                  <input class="form-control" id="cred-test-odoo-db" placeholder="Leave blank for odoo.com instances" style="flex:1">
-                  <button class="btn btn-sm btn-outline" type="button" id="btn-browse-db-test" title="List databases on the Odoo server">📋 Browse</button>
-                  <button class="btn btn-sm btn-outline" type="button" id="btn-create-db-test" title="Create a new database on the Odoo server" style="white-space:nowrap">＋ Create DB</button>
-                </div>
-                <div id="odoo-db-list-test" style="display:none;margin-top:6px"></div>
-                <div style="font-size:11px;color:var(--muted);margin-top:4px">
-                  For <code>https://mycompany.odoo.com</code>, leave blank — the DB name is inferred as <code>mycompany</code>.
-                  For self-hosted Odoo, enter the database name explicitly.
-                </div>
-              </div>
-              <div class="form-group">
                 <label class="form-label">Username</label>
                 <input class="form-control" id="cred-test-odoo-user" placeholder="admin@test.com">
               </div>
@@ -230,19 +217,6 @@
               <div class="form-group">
                 <label class="form-label">URL</label>
                 <input class="form-control" id="cred-prod-odoo-url" placeholder="https://mycompany.odoo.com">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Database Name <span style="font-weight:400;color:var(--muted)">(optional for odoo.com – auto-inferred from URL)</span></label>
-                <div style="display:flex;gap:6px;align-items:center">
-                  <input class="form-control" id="cred-prod-odoo-db" placeholder="Leave blank for odoo.com instances" style="flex:1">
-                  <button class="btn btn-sm btn-outline" type="button" id="btn-browse-db-production" title="List databases on the Odoo server">📋 Browse</button>
-                  <button class="btn btn-sm btn-outline" type="button" id="btn-create-db-production" title="Create a new database on the Odoo server" style="white-space:nowrap">＋ Create DB</button>
-                </div>
-                <div id="odoo-db-list-production" style="display:none;margin-top:6px"></div>
-                <div style="font-size:11px;color:var(--muted);margin-top:4px">
-                  For <code>https://mycompany.odoo.com</code>, leave blank — the DB name is inferred as <code>mycompany</code>.
-                  For self-hosted Odoo, enter the database name explicitly.
-                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Username</label>
@@ -302,7 +276,6 @@
       <div class="card-body">
         <p style="font-size:13px;margin-bottom:12px">
           Odoo URL: <code id="odoo-url-display">–</code> &nbsp;·&nbsp;
-          Database: <code id="odoo-db-display">–</code> &nbsp;·&nbsp;
           Username: <code id="odoo-username-display">–</code>
         </p>
         <div class="table-wrap">
@@ -345,7 +318,6 @@ FUSION_PASSWORD=your_oracle_password
 # ── Odoo ERP Connection ───────────────────────────────────────────────
 # All Odoo data is fetched via JSON-RPC at {ODOO_URL}/jsonrpc
 ODOO_URL=https://your-odoo-instance.odoo.com
-ODOO_DB=your-odoo-database-name
 ODOO_USERNAME=your-odoo-username
 ODOO_PASSWORD=your-odoo-password-or-api-key
 
@@ -483,16 +455,6 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Wire up Browse / Create DB buttons using event listeners (no inline onclick)
-document.addEventListener('DOMContentLoaded', () => {
-  ['test', 'production'].forEach(mode => {
-    const browseBtn = document.getElementById(`btn-browse-db-${mode}`);
-    const createBtn = document.getElementById(`btn-create-db-${mode}`);
-    if (browseBtn) browseBtn.addEventListener('click', () => browseOdooDatabases(mode));
-    if (createBtn) createBtn.addEventListener('click', () => openCreateDbModal(mode));
-  });
-});
-
 // ── Load full config on page load ────────────────────────
 fetch('/api/config/full')
   .then(r => r.json())
@@ -546,11 +508,9 @@ function renderOdooPanel(o) {
     badge.textContent = '✓ Configured';
     meta.innerHTML =
       `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
-      `<span>Database:</span> <strong>${esc(o.db)}</strong><br>` +
       `<span>Username:</span> <strong>${esc(o.username)}</strong><br>` +
       `<span>JSON-RPC path:</span> <strong>${esc(o.url)}${esc(o.jsonrpcPath)}</strong>`;
     document.getElementById('odoo-url-display').textContent = o.url || '–';
-    document.getElementById('odoo-db-display').textContent  = o.db  || '–';
     document.getElementById('odoo-username-display').textContent = o.username || '–';
     document.getElementById('odoo-endpoints-card').style.display = '';
   } else {
@@ -637,13 +597,11 @@ async function loadCredentials() {
     setVal('cred-test-oracle-url',  data.test?.oracle?.baseUrl);
     setVal('cred-test-oracle-user', data.test?.oracle?.username);
     setVal('cred-test-odoo-url',    data.test?.odoo?.url);
-    setVal('cred-test-odoo-db',     data.test?.odoo?.db);
     setVal('cred-test-odoo-user',   data.test?.odoo?.username);
 
     setVal('cred-prod-oracle-url',  data.production?.oracle?.baseUrl);
     setVal('cred-prod-oracle-user', data.production?.oracle?.username);
     setVal('cred-prod-odoo-url',    data.production?.odoo?.url);
-    setVal('cred-prod-odoo-db',     data.production?.odoo?.db);
     setVal('cred-prod-odoo-user',   data.production?.odoo?.username);
   } catch (_) {}
 }
@@ -664,7 +622,6 @@ async function saveCredentials(mode) {
     },
     odoo: {
       url     : gv(`cred-${prefix}-odoo-url`)  || undefined,
-      db      : gv(`cred-${prefix}-odoo-db`)   || undefined,
       username: gv(`cred-${prefix}-odoo-user`) || undefined,
       password: passOrUndef(gv(`cred-${prefix}-odoo-pass`)),
     },
@@ -922,7 +879,6 @@ function openCCModal(code) {
           <div class="form-group"><label class="form-label">Country Code</label><input class="form-control" id="cc-code" value="${code||''}" ${code ? 'disabled' : ''} placeholder="e.g. AE" maxlength="3"></div>
           <div class="form-group"><label class="form-label">Country Name *</label><input class="form-control" id="cc-name" placeholder="e.g. UAE"></div>
           <div class="form-group"><label class="form-label">Odoo URL</label><input class="form-control" id="cc-odoo-url" placeholder="https://odoo.example.com"></div>
-          <div class="form-group"><label class="form-label">Odoo DB</label><input class="form-control" id="cc-odoo-db" placeholder="mydb"></div>
           <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" placeholder="admin"></div>
           <div class="form-group"><label class="form-label">Odoo Password</label><input type="password" class="form-control" id="cc-odoo-pass" placeholder="Leave blank to keep"></div>
           <div class="form-group"><label class="form-label">Oracle Base URL</label><input class="form-control" id="cc-oracle-url" placeholder="https://fusion.example.com"></div>
@@ -948,7 +904,6 @@ async function saveCCConfig() {
   const body = {
     country_name   : name,
     odoo_url       : document.getElementById('cc-odoo-url').value.trim() || null,
-    odoo_db        : document.getElementById('cc-odoo-db').value.trim() || null,
     odoo_username  : document.getElementById('cc-odoo-user').value.trim() || null,
     odoo_password  : document.getElementById('cc-odoo-pass').value || null,
     oracle_base_url: document.getElementById('cc-oracle-url').value.trim() || null,
@@ -969,213 +924,6 @@ async function deleteCCConfig(code) {
   if (!confirm(`Delete config for "${code}"?`)) return;
   await fetch(`/api/config/country-configs/${code}`, { method:'DELETE' });
   loadCountryConfigs();
-}
-
-// ── Odoo Database: Browse & Create ───────────────────────
-async function browseOdooDatabases(mode) {
-  const prefix  = mode === 'test' ? 'test' : 'prod';
-  const urlEl   = document.getElementById(`cred-${prefix}-odoo-url`);
-  const listEl  = document.getElementById(`odoo-db-list-${mode}`);
-  const url     = urlEl ? urlEl.value.trim() : '';
-  const dbInputId = `cred-${prefix}-odoo-db`;
-
-  listEl.style.display = '';
-  listEl.textContent = '';
-  const loading = document.createElement('span');
-  loading.style.cssText = 'color:var(--muted);font-size:12px';
-  loading.textContent = 'Loading databases…';
-  listEl.appendChild(loading);
-
-  try {
-    const res  = await fetch('/api/config/list-odoo-databases', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify(url ? { url } : {}),
-    });
-    const data = await res.json();
-
-    listEl.textContent = '';
-    if (!data.ok || !data.databases || data.databases.length === 0) {
-      const msg = document.createElement('div');
-      msg.className = 'test-result fail';
-      msg.style.fontSize = '12px';
-      msg.textContent = '✗ ' + (data.error || 'No databases found. Check the Odoo URL.');
-      listEl.appendChild(msg);
-      return;
-    }
-
-    const label = document.createElement('div');
-    label.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:4px';
-    label.textContent = 'Select a database:';
-    listEl.appendChild(label);
-
-    data.databases.forEach(dbName => {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm btn-outline';
-      btn.type = 'button';
-      btn.style.cssText = 'font-size:11px;padding:2px 8px;margin:2px';
-      btn.textContent = dbName;
-      btn.addEventListener('click', () => {
-        const input = document.getElementById(dbInputId);
-        if (input) input.value = dbName;
-        listEl.style.display = 'none';
-      });
-      listEl.appendChild(btn);
-    });
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'btn btn-sm';
-    closeBtn.type = 'button';
-    closeBtn.style.cssText = 'font-size:11px;padding:2px 8px;margin:2px;color:var(--muted)';
-    closeBtn.textContent = '✕ Close';
-    closeBtn.addEventListener('click', () => { listEl.style.display = 'none'; });
-    listEl.appendChild(closeBtn);
-  } catch (err) {
-    listEl.textContent = '';
-    const msg = document.createElement('div');
-    msg.className = 'test-result fail';
-    msg.style.fontSize = '12px';
-    msg.textContent = '✗ ' + err.message;
-    listEl.appendChild(msg);
-  }
-}
-
-function openCreateDbModal(mode) {
-  const prefix = mode === 'test' ? 'test' : 'prod';
-  const urlEl  = document.getElementById(`cred-${prefix}-odoo-url`);
-  const dbEl   = document.getElementById(`cred-${prefix}-odoo-db`);
-  const prefillUrl = urlEl ? urlEl.value.trim() : '';
-  const prefillDb  = dbEl  ? dbEl.value.trim()  : '';
-
-  const existing = document.getElementById('create-db-modal');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'create-db-modal';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:2000;display:flex;align-items:center;justify-content:center';
-
-  const box = document.createElement('div');
-  box.style.cssText = 'background:#fff;border-radius:8px;padding:28px 32px;max-width:480px;width:95%;box-shadow:0 8px 32px rgba(0,0,0,.18)';
-
-  const h3 = document.createElement('h3');
-  h3.style.cssText = 'margin:0 0 18px;font-size:16px';
-  h3.textContent = '＋ Create Odoo Database';
-  box.appendChild(h3);
-
-  const note = document.createElement('p');
-  note.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:16px';
-  note.appendChild(document.createTextNode('Creates a new database on the Odoo server via '));
-  const c1 = document.createElement('code'); c1.textContent = '/web/database/create'; note.appendChild(c1);
-  note.appendChild(document.createTextNode('. Requires the '));
-  const s1 = document.createElement('strong'); s1.textContent = 'Odoo master password'; note.appendChild(s1);
-  note.appendChild(document.createTextNode(' (set in '));
-  const c2 = document.createElement('code'); c2.textContent = 'odoo.conf'; note.appendChild(c2);
-  note.appendChild(document.createTextNode(' on the server).'));
-  box.appendChild(note);
-
-  function addField(labelText, id, type, placeholder, prefill) {
-    const grp = document.createElement('div');
-    grp.className = 'form-group';
-    const lbl = document.createElement('label');
-    lbl.className = 'form-label';
-    lbl.textContent = labelText;
-    const inp = document.createElement('input');
-    inp.className = 'form-control';
-    inp.id = id;
-    inp.type = type || 'text';
-    inp.placeholder = placeholder || '';
-    if (prefill) inp.value = prefill;
-    grp.appendChild(lbl);
-    grp.appendChild(inp);
-    box.appendChild(grp);
-  }
-
-  addField('Odoo Server URL', 'cdb-url', 'text', 'https://odoo.example.com', prefillUrl);
-  addField('Master Password *', 'cdb-master', 'password', 'Odoo master password (odoo.conf)', '');
-  addField('New Database Name *', 'cdb-name', 'text', 'e.g. test_db', prefillDb);
-  addField('Admin Login', 'cdb-admin-login', 'text', 'admin', 'admin');
-  addField('Admin Password *', 'cdb-admin-pass', 'password', 'New admin password for this DB', '');
-  addField('Language', 'cdb-lang', 'text', 'en_US', 'en_US');
-  addField('Country Code (optional)', 'cdb-country', 'text', 'e.g. AE', '');
-
-  const resultDiv = document.createElement('div');
-  resultDiv.id = 'cdb-result';
-  resultDiv.className = 'test-result hidden';
-  resultDiv.style.marginBottom = '12px';
-  box.appendChild(resultDiv);
-
-  const btnRow = document.createElement('div');
-  btnRow.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;margin-top:6px';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn btn-outline';
-  cancelBtn.type = 'button';
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', () => overlay.remove());
-  btnRow.appendChild(cancelBtn);
-
-  const submitBtn = document.createElement('button');
-  submitBtn.className = 'btn btn-primary';
-  submitBtn.id = 'cdb-submit-btn';
-  submitBtn.type = 'button';
-  submitBtn.textContent = '🛠 Create Database';
-  submitBtn.addEventListener('click', () => submitCreateDb(mode));
-  btnRow.appendChild(submitBtn);
-
-  box.appendChild(btnRow);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-}
-
-async function submitCreateDb(mode) {
-  const resultEl = document.getElementById('cdb-result');
-  const submitBtn = document.getElementById('cdb-submit-btn');
-  const url          = document.getElementById('cdb-url').value.trim();
-  const masterPassword = document.getElementById('cdb-master').value;
-  const dbName       = document.getElementById('cdb-name').value.trim();
-  const adminLogin   = document.getElementById('cdb-admin-login').value.trim() || 'admin';
-  const adminPassword = document.getElementById('cdb-admin-pass').value;
-  const lang         = document.getElementById('cdb-lang').value.trim() || 'en_US';
-  const countryCode  = document.getElementById('cdb-country').value.trim();
-
-  if (!masterPassword) { resultEl.className = 'test-result fail'; resultEl.textContent = '✗ Master password is required'; resultEl.classList.remove('hidden'); return; }
-  if (!dbName)         { resultEl.className = 'test-result fail'; resultEl.textContent = '✗ Database name is required';  resultEl.classList.remove('hidden'); return; }
-  if (!adminPassword)  { resultEl.className = 'test-result fail'; resultEl.textContent = '✗ Admin password is required'; resultEl.classList.remove('hidden'); return; }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Creating…';
-  resultEl.className = 'test-result';
-  resultEl.textContent = 'Sending request to Odoo server…';
-  resultEl.classList.remove('hidden');
-
-  try {
-    const res  = await fetch('/api/config/create-odoo-db', {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({ url: url || undefined, masterPassword, dbName, adminLogin, adminPassword, lang, countryCode: countryCode || undefined }),
-    });
-    const data = await res.json();
-
-    if (data.ok) {
-      resultEl.className = 'test-result ok';
-      resultEl.textContent = '✓ ' + data.message;
-      // Fill in the DB name field in the credentials form
-      const prefix  = mode === 'test' ? 'test' : 'prod';
-      const dbInput = document.getElementById(`cred-${prefix}-odoo-db`);
-      if (dbInput) dbInput.value = dbName;
-      submitBtn.textContent = '✓ Done';
-    } else {
-      resultEl.className = 'test-result fail';
-      resultEl.textContent = '✗ ' + (data.error || 'Database creation failed');
-      submitBtn.disabled = false;
-      submitBtn.textContent = '🛠 Create Database';
-    }
-  } catch (err) {
-    resultEl.className = 'test-result fail';
-    resultEl.textContent = '✗ ' + err.message;
-    submitBtn.disabled = false;
-    submitBtn.textContent = '🛠 Create Database';
-  }
 }
 </script>
 </body>
