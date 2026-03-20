@@ -222,10 +222,6 @@ async function loadUsers() {
   }
 }
 
-function escHtml(str) {
-  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
 function openAddModal() {
   editingId = null;
   document.getElementById('modal-title').textContent = 'Add User';

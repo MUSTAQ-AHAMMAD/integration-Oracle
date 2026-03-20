@@ -33,6 +33,9 @@ const OdooClient   = require('../odooClient');
 const OracleClient = require('../oracleClient');
 const db           = require('../db');
 
+// Mask applied to password fields in API responses
+const PASSWORD_MASK = '••••••••';
+
 // ── Oracle Fusion REST endpoint catalogue ─────────────────────────────────────
 // Derived from the Java middleware SOAP/REST service calls.
 // API version 11.13.18.05 matches the path used in oracleClient.js constructor.
@@ -291,7 +294,7 @@ router.put('/server-mode', (req, res) => {
 // Returns all stored credentials for both modes.
 // Passwords are masked; pass ?reveal=1 to receive the raw values (admin use only).
 router.get('/credentials', (req, res) => {
-  const mask = (value) => (value ? '••••••••' : null);
+  const mask = (value) => (value ? PASSWORD_MASK : null);
   const modes = ['test', 'production'];
 
   const result = {};
@@ -373,8 +376,8 @@ router.get('/country-configs', (req, res) => {
   const configs = db.listCountryConfigs();
   const safe = configs.map(c => ({
     ...c,
-    odoo_password   : c.odoo_password    ? '••••••••' : null,
-    oracle_password : c.oracle_password  ? '••••••••' : null,
+    odoo_password   : c.odoo_password    ? PASSWORD_MASK : null,
+    oracle_password : c.oracle_password  ? PASSWORD_MASK : null,
   }));
   res.json(safe);
 });
@@ -391,7 +394,7 @@ router.put('/country-configs/:code', (req, res) => {
 
   const existing = db.getCountryConfig(countryCode);
   const resolvePass = (incoming, field) => {
-    if (incoming === '••••••••') return existing ? existing[field] : null;
+    if (incoming === PASSWORD_MASK) return existing ? existing[field] : null;
     return incoming || null;
   };
 
