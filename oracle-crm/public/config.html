@@ -112,6 +112,32 @@
       </div>
     </div>
 
+    <!-- ── Import Credentials from Middleware ──────────────────────── -->
+    <div class="card" id="middleware-import-card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Import Credentials from Middleware
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+          Discover Oracle Fusion credentials stored in the Java middleware source files
+        </span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Click <strong>Discover</strong> to read Oracle credentials from the repository's middleware
+          configuration files (<code>Fusion_Environment.json</code>, <code>RestUtils.java</code>, etc.)
+          and pre-populate the credential form below.
+          The discovered credentials apply to the <strong>test server</strong> by default —
+          review them before saving.
+        </p>
+        <button class="btn btn-outline" id="btn-discover" onclick="discoverMiddlewareCredentials()">
+          🔍 Discover Middleware Credentials
+        </button>
+        <div id="middleware-result" style="margin-top:14px;display:none">
+          <div id="middleware-result-body"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Server Credentials Management ─────────────────────────── -->
     <div class="card">
       <div class="card-header">
@@ -632,6 +658,96 @@ async function saveCredentials(mode) {
   }
 }
 
+// ── Import credentials from middleware ────────────────────
+let _middlewareCreds = null;
+
+async function discoverMiddlewareCredentials() {
+  const btn    = document.getElementById('btn-discover');
+  const box    = document.getElementById('middleware-result');
+  const body   = document.getElementById('middleware-result-body');
+
+  btn.disabled    = true;
+  btn.textContent = 'Discovering…';
+  box.style.display = '';
+  body.innerHTML  = '<span style="color:var(--muted);font-size:13px">Scanning middleware files…</span>';
+
+  try {
+    const res  = await fetch('/api/config/middleware-credentials');
+    const data = await res.json();
+
+    if (!data.found || !data.oracle) {
+      body.innerHTML = '<div class="test-result fail">✗ No Oracle credentials found in middleware files. ' +
+        'Ensure the repository root contains <code>Fusion_Environment.json</code> and ' +
+        '<code>FusionRESTClient/</code>.</div>';
+      return;
+    }
+
+    const o      = data.oracle;
+    const srcs   = (data.sources || []).join(', ');
+    const urlVal = esc(o.baseUrl  || '');
+    const usrVal = esc(o.username || '');
+    const pwdVal = o.password || '';
+
+    body.innerHTML = `
+      <div class="test-result ok" style="margin-bottom:12px">
+        ✓ Oracle credentials discovered from: <strong>${esc(srcs)}</strong>
+      </div>
+      <div style="background:#f6f8fa;border:1px solid var(--border);border-radius:6px;padding:14px;font-size:13px;margin-bottom:14px">
+        <div style="margin-bottom:6px"><span style="color:var(--muted);min-width:90px;display:inline-block">Base URL</span>
+          <code>${urlVal || '<em>not found</em>'}</code></div>
+        <div style="margin-bottom:6px"><span style="color:var(--muted);min-width:90px;display:inline-block">Username</span>
+          <code>${usrVal || '<em>not found</em>'}</code></div>
+        <div><span style="color:var(--muted);min-width:90px;display:inline-block">Password</span>
+          <code>${pwdVal ? '(found – will be applied)' : '<em>not found in middleware</em>'}</code></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="applyMiddlewareCredentials('test')">
+          ✅ Apply to Test Mode
+        </button>
+        <button class="btn btn-outline" onclick="applyMiddlewareCredentials('production')">
+          Apply to Production Mode
+        </button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">
+        Applying pre-fills the credential form — review and click <strong>Save</strong> to persist.
+      </p>`;
+
+    // Store discovered data for apply step (script-scoped, not window-global)
+    _middlewareCreds = data.oracle;
+  } catch (err) {
+    body.innerHTML = `<div class="test-result fail">✗ Failed to read middleware files: ${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '🔍 Discover Middleware Credentials';
+  }
+}
+
+function applyMiddlewareCredentials(mode) {
+  const creds = _middlewareCreds;
+  if (!creds) return;
+
+  const prefix = mode === 'test' ? 'test' : 'prod';
+  const label  = mode === 'test' ? 'Test' : 'Production';
+
+  const setIfPresent = (id, value) => {
+    const el = document.getElementById(id);
+    if (el && value) el.value = value;
+  };
+
+  setIfPresent(`cred-${prefix}-oracle-url`,  creds.baseUrl);
+  setIfPresent(`cred-${prefix}-oracle-user`, creds.username);
+  setIfPresent(`cred-${prefix}-oracle-pass`, creds.password);
+
+  // Switch to the target tab so the user sees the pre-filled fields
+  showCredTab(mode);
+
+  const resultEl = document.getElementById(`cred-${prefix}-result`);
+  resultEl.className  = 'test-result ok';
+  resultEl.textContent = `✓ Oracle credentials pre-filled from middleware. Review and click Save ${label} Credentials.`;
+  resultEl.classList.remove('hidden');
+}
+
+// ── Import credentials from middleware ────────────────────
 // Initialise credentials panel – open the tab matching the current server mode
 const _initCredMode = localStorage.getItem('crm_server_mode') || 'production';
 loadCredentials().then(() => showCredTab(_initCredMode)).catch(() => showCredTab(_initCredMode));

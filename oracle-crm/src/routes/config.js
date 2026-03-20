@@ -3,11 +3,12 @@
 /**
  * routes/config.js
  *
- * GET  /api/config/status       – Oracle credentials status (legacy)
- * GET  /api/config/regions      – supported regions list
- * GET  /api/config/full         – complete Oracle + Odoo config with endpoint catalogue
- * POST /api/config/test-oracle  – live connectivity test against Oracle Fusion
- * POST /api/config/test-odoo    – live connectivity test against Odoo
+ * GET  /api/config/status                – Oracle credentials status (legacy)
+ * GET  /api/config/regions               – supported regions list
+ * GET  /api/config/full                  – complete Oracle + Odoo config with endpoint catalogue
+ * POST /api/config/test-oracle           – live connectivity test against Oracle Fusion
+ * POST /api/config/test-odoo             – live connectivity test against Odoo
+ * GET  /api/config/middleware-credentials – read Oracle credentials from Java middleware files
  *
  * The endpoint catalogues (ORACLE_ENDPOINTS, ODOO_ENDPOINTS) are derived
  * directly from the middleware Java classes so that the CRM UI reflects
@@ -29,9 +30,14 @@
 
 const express      = require('express');
 const router       = express.Router();
+const fs           = require('fs');
+const path         = require('path');
 const OdooClient   = require('../odooClient');
 const OracleClient = require('../oracleClient');
 const db           = require('../db');
+
+// Absolute path to the repository root (two levels above oracle-crm/src/routes/)
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 
 // Mask applied to password fields in API responses
 const PASSWORD_MASK = '••••••••';
@@ -418,6 +424,91 @@ router.delete('/country-configs/:code', (req, res) => {
   const countryCode = req.params.code.toUpperCase();
   db.deleteCountryConfig(countryCode);
   res.json({ ok: true });
+});
+
+// ── GET /api/config/middleware-credentials ────────────────────────────────────
+// Reads Oracle Fusion credentials from the Java middleware configuration files
+// stored in the repository:
+//   • Fusion_Environment.json     – Postman environment (base URL + username)
+//   • Integration_Environment.json – Postman environment (base URL + username)
+//   • FusionRESTClient/.../RestUtils.java            – hardcoded Basic-Auth pair
+//   • FusionRESTClient/.../FusionAvailableQtyService.java – FusionAppParams instance
+//
+// Note: the original Java middleware integrated with VendHQ (not Odoo), so
+// no Odoo credentials are present in those files.
+router.get('/middleware-credentials', (req, res) => {
+  const oracle  = {};
+  const sources = [];
+
+  // ── 1. Fusion_Environment.json ───────────────────────────────────────────
+  try {
+    const envFile = path.join(REPO_ROOT, 'Fusion_Environment.json');
+    const env     = JSON.parse(fs.readFileSync(envFile, 'utf8'));
+    const vals    = {};
+    (env.values || []).forEach(v => { vals[v.key] = v.value; });
+
+    if (vals.fusion_base_url) oracle.baseUrl  = vals.fusion_base_url;
+    if (vals.fusion_username) oracle.username = vals.fusion_username;
+    sources.push('Fusion_Environment.json');
+  } catch (_) { /* file absent or malformed – skip */ }
+
+  // ── 2. Integration_Environment.json ─────────────────────────────────────
+  try {
+    const envFile = path.join(REPO_ROOT, 'Integration_Environment.json');
+    const env     = JSON.parse(fs.readFileSync(envFile, 'utf8'));
+    const vals    = {};
+    (env.values || []).forEach(v => { vals[v.key] = v.value; });
+
+    // Only override if not already set by Fusion_Environment.json
+    if (!oracle.baseUrl  && vals.fusion_base_url) oracle.baseUrl  = vals.fusion_base_url;
+    if (!oracle.username && vals.fusion_username) oracle.username = vals.fusion_username;
+    // Ignore template placeholder values (e.g. "YourFusionPassword", "example123")
+    if (vals.fusion_password && !/^(your|example|placeholder|test|change.?me)/i.test(vals.fusion_password)) {
+      oracle.password = vals.fusion_password;
+    }
+    sources.push('Integration_Environment.json');
+  } catch (_) { /* file absent or malformed – skip */ }
+
+  // ── 3. RestUtils.java – hardcoded Basic-Auth username:password ────────────
+  try {
+    const javaFile = path.join(
+      REPO_ROOT,
+      'FusionRESTClient', 'src', 'com', 'oracle', 'xmlns', 'utils', 'RestUtils.java'
+    );
+    const src = fs.readFileSync(javaFile, 'utf8');
+    // Matches the Java Basic-Auth string construction pattern:
+    //   String authString = "USERNAME" + ":" + "PASSWORD";
+    // Only the first match in the file is used (the two occurrences in RestUtils.java
+    // are identical – both build the same Basic-Auth header in doPost/doGet).
+    const m = src.match(/"([^"]+)"\s*\+\s*":"\s*\+\s*"([^"]+)"/);
+    if (m) {
+      // Only apply if no better username/password already found
+      if (!oracle.username) oracle.username = m[1];
+      if (!oracle.password) oracle.password = m[2];
+      sources.push('RestUtils.java');
+    }
+  } catch (_) { /* file absent – skip */ }
+
+  // ── 4. FusionAvailableQtyService.java – FusionAppParams(hostname, region) ─
+  try {
+    const javaFile = path.join(
+      REPO_ROOT,
+      'FusionRESTClient', 'src', 'innovate', 'tamergroup', 'fusion', 'rest',
+      'services', 'FusionAvailableQtyService.java'
+    );
+    const src = fs.readFileSync(javaFile, 'utf8');
+    // Matches:  new FusionAppParams("ehxk-test", "em2")
+    // FusionAvailableQtyService.java contains exactly one FusionAppParams call
+    // in its main() test method; the first match is the hostname+region pair.
+    const m = src.match(/new FusionAppParams\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/);
+    if (m && !oracle.baseUrl) {
+      oracle.baseUrl = `https://${m[1]}.fa.${m[2]}.oraclecloud.com`;
+      sources.push('FusionAvailableQtyService.java');
+    }
+  } catch (_) { /* file absent – skip */ }
+
+  const found = !!(oracle.baseUrl || oracle.username || oracle.password);
+  res.json({ found, oracle: found ? oracle : null, sources });
 });
 
 module.exports = router;
