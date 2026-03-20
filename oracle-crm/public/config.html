@@ -632,9 +632,20 @@ async function saveCredentials(mode) {
   }
 }
 
-// Initialise credentials panel
-loadCredentials().then(() => showCredTab('test')).catch(() => showCredTab('test'));
+// Initialise credentials panel – open the tab matching the current server mode
+const _initCredMode = localStorage.getItem('crm_server_mode') || 'production';
+loadCredentials().then(() => showCredTab(_initCredMode)).catch(() => showCredTab(_initCredMode));
 loadCountryConfigs();
+
+// When mode is switched from the topbar, re-open credentials to the new mode
+window.onServerModeChanged = function(newMode) {
+  showCredTab(newMode);
+  // Reload config status for new mode
+  fetch('/api/config/full')
+    .then(r => r.json())
+    .then(d => { renderOraclePanel(d.oracle); renderOdooPanel(d.odoo); })
+    .catch(() => {});
+};
 
 // ── Country Config CRUD ────────────────────────────────────────────────────────────────────────────────
 
