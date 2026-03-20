@@ -2,6 +2,49 @@
  * app.js – shared UI helpers
  */
 
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+function requireLogin() {
+  const token = localStorage.getItem('crm_token');
+  if (!token) {
+    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+    return false;
+  }
+  return true;
+}
+
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('crm_user') || 'null'); }
+  catch(_) { return null; }
+}
+
+function logout() {
+  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  localStorage.removeItem('crm_token');
+  localStorage.removeItem('crm_user');
+  window.location.href = '/login.html';
+}
+
+// Intercept all fetch calls to add Authorization header and handle 401s
+(function() {
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    const token = localStorage.getItem('crm_token');
+    if (token && typeof url === 'string' && url.startsWith('/api/')) {
+      opts.headers = Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + token });
+    }
+    return _origFetch.call(this, url, opts).then(function(res) {
+      if (res.status === 401) {
+        localStorage.removeItem('crm_token');
+        localStorage.removeItem('crm_user');
+        window.location.href = '/login.html';
+      }
+      return res;
+    });
+  };
+})();
+
 // ── Topbar meta: server switcher + last push/pull dates ───────────────────────
 
 function _fmtDate(isoString) {
@@ -97,6 +140,17 @@ document.addEventListener('DOMContentLoaded', () => {
       a.classList.add('active');
     }
   });
+
+  // Populate sidebar user info
+  const u = getStoredUser();
+  if (u) {
+    const av = document.getElementById('sidebar-avatar');
+    const un = document.getElementById('sidebar-username');
+    const rl = document.getElementById('sidebar-role');
+    if (av) av.textContent = (u.display_name || u.username || '?')[0].toUpperCase();
+    if (un) un.textContent = u.display_name || u.username;
+    if (rl) rl.textContent = u.role || '';
+  }
 
   // Fetch Oracle config status and update sidebar dot
   fetch('/api/config/status')

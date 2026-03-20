@@ -176,6 +176,39 @@ function applyMigrations(db) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS country_configs (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      country_code TEXT    NOT NULL UNIQUE,
+      country_name TEXT    NOT NULL,
+      odoo_url     TEXT,
+      odoo_db      TEXT,
+      odoo_username TEXT,
+      odoo_password TEXT,
+      oracle_base_url TEXT,
+      oracle_username TEXT,
+      oracle_password TEXT,
+      enabled      INTEGER NOT NULL DEFAULT 1,
+      created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      username     TEXT    NOT NULL UNIQUE,
+      email        TEXT    UNIQUE,
+      password_hash TEXT   NOT NULL,
+      role         TEXT    NOT NULL DEFAULT 'operator',
+      display_name TEXT,
+      avatar_data  TEXT,
+      created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      last_login   TEXT
+    )
+  `).run();
 }
 
 // ── Odoo Sales helpers ────────────────────────────────────────────────────────
@@ -739,6 +772,103 @@ function getLastFetchInfo() {
   };
 }
 
+// ── Country Config helpers ────────────────────────────────────────────────────
+
+function listCountryConfigs() {
+  return getDb().prepare('SELECT * FROM country_configs ORDER BY country_code').all();
+}
+
+function getCountryConfig(countryCode) {
+  return getDb().prepare('SELECT * FROM country_configs WHERE country_code = ?').get(countryCode) || null;
+}
+
+function upsertCountryConfig({ countryCode, countryName, odooUrl, odooDb, odooUsername, odooPassword, oracleBaseUrl, oracleUsername, oraclePassword, enabled = 1 }) {
+  getDb().prepare(`
+    INSERT INTO country_configs (country_code, country_name, odoo_url, odoo_db, odoo_username, odoo_password, oracle_base_url, oracle_username, oracle_password, enabled, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(country_code) DO UPDATE SET
+      country_name    = excluded.country_name,
+      odoo_url        = excluded.odoo_url,
+      odoo_db         = excluded.odoo_db,
+      odoo_username   = excluded.odoo_username,
+      odoo_password   = excluded.odoo_password,
+      oracle_base_url = excluded.oracle_base_url,
+      oracle_username = excluded.oracle_username,
+      oracle_password = excluded.oracle_password,
+      enabled         = excluded.enabled,
+      updated_at      = datetime('now')
+  `).run(countryCode, countryName, odooUrl || null, odooDb || null, odooUsername || null, odooPassword || null, oracleBaseUrl || null, oracleUsername || null, oraclePassword || null, enabled ? 1 : 0);
+}
+
+function deleteCountryConfig(countryCode) {
+  getDb().prepare('DELETE FROM country_configs WHERE country_code = ?').run(countryCode);
+}
+
+function getCredentialsForCountry(countryCode) {
+  const defaults = getActiveCredentials();
+  if (!countryCode) return defaults;
+  const cc = getCountryConfig(countryCode);
+  if (!cc || !cc.enabled) return defaults;
+  return {
+    mode: defaults.mode,
+    oracle: {
+      baseUrl : cc.oracle_base_url || defaults.oracle.baseUrl,
+      username: cc.oracle_username || defaults.oracle.username,
+      password: cc.oracle_password || defaults.oracle.password,
+    },
+    odoo: {
+      url     : cc.odoo_url      || defaults.odoo.url,
+      db      : cc.odoo_db       || defaults.odoo.db,
+      username: cc.odoo_username || defaults.odoo.username,
+      password: cc.odoo_password || defaults.odoo.password,
+    },
+  };
+}
+
+// ── User helpers ──────────────────────────────────────────────────────────────
+
+function createUser({ username, email, passwordHash, role = 'operator', displayName }) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO users (username, email, password_hash, role, display_name)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(username, email || null, passwordHash, role, displayName || null);
+  return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+}
+
+function getUserByUsername(username) {
+  return getDb().prepare('SELECT * FROM users WHERE username = ?').get(username) || null;
+}
+
+function getUserById(id) {
+  return getDb().prepare('SELECT * FROM users WHERE id = ?').get(id) || null;
+}
+
+function listUsers() {
+  return getDb().prepare('SELECT id, username, email, role, display_name, created_at, last_login FROM users ORDER BY created_at').all();
+}
+
+function updateUser(id, fields) {
+  const db = getDb();
+  const allowed = ['email', 'role', 'display_name', 'avatar_data', 'password_hash'];
+  const sets = Object.keys(fields).filter(k => allowed.includes(k)).map(k => `${k} = ?`).join(', ');
+  if (!sets) return;
+  const vals = Object.keys(fields).filter(k => allowed.includes(k)).map(k => fields[k]);
+  db.prepare(`UPDATE users SET ${sets}, updated_at = datetime('now') WHERE id = ?`).run(...vals, id);
+}
+
+function updateUserLastLogin(id) {
+  getDb().prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(id);
+}
+
+function deleteUser(id) {
+  getDb().prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+function countAdmins() {
+  return getDb().prepare("SELECT COUNT(*) AS cnt FROM users WHERE role = 'admin'").get().cnt;
+}
+
 module.exports = {
   getDb,
   upsertSales,
@@ -765,4 +895,17 @@ module.exports = {
   setAppSetting,
   getActiveCredentials,
   getLastFetchInfo,
+  listCountryConfigs,
+  getCountryConfig,
+  upsertCountryConfig,
+  deleteCountryConfig,
+  getCredentialsForCountry,
+  createUser,
+  getUserByUsername,
+  getUserById,
+  listUsers,
+  updateUser,
+  updateUserLastLogin,
+  deleteUser,
+  countAdmins,
 };

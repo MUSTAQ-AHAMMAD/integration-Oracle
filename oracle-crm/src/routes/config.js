@@ -368,4 +368,53 @@ router.get('/activity-summary', (req, res) => {
   });
 });
 
+// ── GET /api/config/country-configs ──────────────────────────────────────────
+router.get('/country-configs', (req, res) => {
+  const configs = db.listCountryConfigs();
+  const safe = configs.map(c => ({
+    ...c,
+    odoo_password   : c.odoo_password    ? '••••••••' : null,
+    oracle_password : c.oracle_password  ? '••••••••' : null,
+  }));
+  res.json(safe);
+});
+
+// ── PUT /api/config/country-configs/:code ─────────────────────────────────────
+router.put('/country-configs/:code', (req, res) => {
+  const countryCode = req.params.code.toUpperCase();
+  const {
+    country_name, odoo_url, odoo_db, odoo_username, odoo_password,
+    oracle_base_url, oracle_username, oracle_password, enabled,
+  } = req.body || {};
+
+  if (!country_name) return res.status(400).json({ error: 'country_name is required' });
+
+  const existing = db.getCountryConfig(countryCode);
+  const resolvePass = (incoming, field) => {
+    if (incoming === '••••••••') return existing ? existing[field] : null;
+    return incoming || null;
+  };
+
+  db.upsertCountryConfig({
+    countryCode,
+    countryName    : country_name,
+    odooUrl        : odoo_url        || null,
+    odooDb         : odoo_db         || null,
+    odooUsername   : odoo_username   || null,
+    odooPassword   : resolvePass(odoo_password, 'odoo_password'),
+    oracleBaseUrl  : oracle_base_url || null,
+    oracleUsername : oracle_username || null,
+    oraclePassword : resolvePass(oracle_password, 'oracle_password'),
+    enabled        : enabled !== undefined ? (enabled ? 1 : 0) : 1,
+  });
+  res.json({ ok: true, countryCode });
+});
+
+// ── DELETE /api/config/country-configs/:code ──────────────────────────────────
+router.delete('/country-configs/:code', (req, res) => {
+  const countryCode = req.params.code.toUpperCase();
+  db.deleteCountryConfig(countryCode);
+  res.json({ ok: true });
+});
+
 module.exports = router;

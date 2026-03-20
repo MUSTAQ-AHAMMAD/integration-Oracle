@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oracle CRM – Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      padding: 16px;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+    .login-header {
+      background: linear-gradient(135deg, #C74634, #a33829);
+      padding: 36px 40px 28px;
+      text-align: center;
+      color: #fff;
+    }
+    .login-header .logo-icon {
+      width: 56px; height: 56px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+    }
+    .login-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .login-header p  { font-size: 13px; opacity: 0.85; }
+    .login-body { padding: 36px 40px 40px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .input-wrap { position: relative; }
+    .input-wrap input {
+      width: 100%;
+      padding: 11px 40px 11px 14px;
+      border: 1.5px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #111827;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      background: #fff;
+    }
+    .input-wrap input:focus {
+      border-color: #C74634;
+      box-shadow: 0 0 0 3px rgba(199,70,52,0.12);
+    }
+    .input-wrap .toggle-pass {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; font-size: 16px;
+      color: #9CA3AF; padding: 0; line-height: 1;
+    }
+    .remember-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 24px; font-size: 13px; color: #6B7280;
+    }
+    .remember-row input[type=checkbox] { width: 15px; height: 15px; accent-color: #C74634; cursor: pointer; }
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #C74634, #a33829);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      letter-spacing: .3px;
+    }
+    .btn-login:hover { opacity: .92; }
+    .btn-login:active { transform: scale(.99); }
+    .btn-login:disabled { opacity: .6; cursor: not-allowed; }
+    .alert {
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .alert.show { display: flex; align-items: center; gap: 8px; }
+    .alert-error { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+    .footer-note {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #9CA3AF;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon">🔷</div>
+        <h1>Oracle CRM</h1>
+        <p>Integration Portal – Sign in to continue</p>
+      </div>
+      <div class="login-body">
+        <div id="alert" class="alert alert-error">
+          <span>⚠️</span>
+          <span id="alert-msg">Invalid credentials</span>
+        </div>
+
+        <form id="login-form" autocomplete="on">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-wrap">
+              <input type="text" id="username" name="username" autocomplete="username"
+                     placeholder="Enter your username" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <input type="password" id="password" name="password" autocomplete="current-password"
+                     placeholder="Enter your password" required>
+              <button type="button" class="toggle-pass" id="toggle-pass" title="Show/hide password">👁</button>
+            </div>
+          </div>
+          <div class="remember-row">
+            <input type="checkbox" id="remember" name="remember">
+            <label for="remember" style="cursor:pointer">Remember me</label>
+          </div>
+          <button type="submit" class="btn-login" id="btn-login">Sign In</button>
+        </form>
+
+        <p class="footer-note">Oracle CRM Middleware v1.0 &nbsp;•&nbsp; Secure Access</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('crm_token')) {
+      const params = new URLSearchParams(window.location.search);
+      window.location.replace(params.get('redirect') || '/');
+    }
+
+    document.getElementById('toggle-pass').addEventListener('click', function() {
+      const pw = document.getElementById('password');
+      if (pw.type === 'password') { pw.type = 'text'; this.textContent = '🙈'; }
+      else                        { pw.type = 'password'; this.textContent = '👁'; }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const alert  = document.getElementById('alert');
+      const btn    = document.getElementById('btn-login');
+      const uname  = document.getElementById('username').value.trim();
+      const passwd = document.getElementById('password').value;
+
+      alert.classList.remove('show');
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const res  = await fetch('/api/auth/login', {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ username: uname, password: passwd }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          document.getElementById('alert-msg').textContent = data.error || 'Login failed';
+          alert.classList.add('show');
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          return;
+        }
+        localStorage.setItem('crm_token', data.token);
+        localStorage.setItem('crm_user',  JSON.stringify(data.user));
+        const params = new URLSearchParams(window.location.search);
+        window.location.replace(params.get('redirect') || '/');
+      } catch (err) {
+        document.getElementById('alert-msg').textContent = 'Network error – please try again';
+        alert.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

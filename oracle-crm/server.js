@@ -1,61 +1,69 @@
 'use strict';
 
 require('dotenv').config();
-const express   = require('express');
-const morgan    = require('morgan');
-const rateLimit = require('express-rate-limit');
-const path      = require('path');
+const express    = require('express');
+const path       = require('path');
+const morgan     = require('morgan');
+const rateLimit  = require('express-rate-limit');
+const logger     = require('./src/logger');
+const db         = require('./src/db');
+const bcrypt     = require('bcryptjs');
 
-const logger       = require('./src/logger');
 const salesRoutes  = require('./src/routes/sales');
 const configRoutes = require('./src/routes/config');
 const odooRoutes   = require('./src/routes/odoo');
+const authRoutes   = require('./src/routes/auth');
+const usersRoutes  = require('./src/routes/users');
+const { requireAuth } = require('./src/middleware/auth');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Rate limiting ────────────────────────────────────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,                  // max 200 requests per window per IP
+  windowMs: 15 * 60 * 1000,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
 });
 
-// ── Middleware ───────────────────────────────────────────────────────────────
-// Use morgan with a stream piped to winston so all HTTP logs go through the
-// single structured logger – keeps the CRM responsive even during pipelines.
-app.use(morgan('combined', {
-  stream: { write: msg => logger.info(msg.trim(), { source: 'http' }) },
-}));
+app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim(), { source: 'http' }) } }));
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// ── Static frontend ──────────────────────────────────────────────────────────
+// Static files (public HTML/CSS/JS – no auth required)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── API routes ───────────────────────────────────────────────────────────────
-app.use('/api/sales',  salesRoutes);
-app.use('/api/config', configRoutes);
-app.use('/api/odoo',   odooRoutes);
+// Auth routes (public)
+app.use('/api/auth', authRoutes);
 
-// ── SPA fallback ─────────────────────────────────────────────────────────────
-app.get('*', (req, res) => {
+// Protected API routes
+app.use('/api/sales',  requireAuth, salesRoutes);
+app.use('/api/config', requireAuth, configRoutes);
+app.use('/api/odoo',   requireAuth, odooRoutes);
+app.use('/api/users',  usersRoutes);  // admin check is inside
+
+// SPA fallback – serve index.html for unknown routes (except /api/*)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ── Global error handler ─────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-  logger.error('Unhandled express error', { err: err.message, stack: err.stack });
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Seed default admin user
+async function seedAdminUser() {
+  try {
+    const users = db.listUsers();
+    if (users.length === 0) {
+      const hash = await bcrypt.hash('Admin@1234', 10);
+      db.createUser({ username: 'admin', email: 'admin@oracle-crm.local', passwordHash: hash, role: 'admin', displayName: 'Administrator' });
+      logger.info('Default admin user created (username: admin, password: Admin@1234) – CHANGE THIS IMMEDIATELY');
+    }
+  } catch (err) {
+    logger.warn('Could not seed admin user', { err: err.message });
+  }
+}
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  logger.info(`Oracle CRM running on http://localhost:${PORT}`);
-  logger.info(`Oracle Fusion URL: ${process.env.FUSION_BASE_URL || '(not configured – set in .env)'}`);
-  logger.info(`Odoo URL: ${process.env.ODOO_URL || '(not configured – set ODOO_URL in .env)'}`);
+app.listen(PORT, async () => {
+  await seedAdminUser();
+  logger.info(`Oracle CRM server listening on port ${PORT}`);
 });
