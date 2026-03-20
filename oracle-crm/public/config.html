@@ -180,6 +180,10 @@
                 <input class="form-control" id="cred-test-odoo-url" placeholder="https://test.odoo.com">
               </div>
               <div class="form-group">
+                <label class="form-label">API URL <span style="font-size:11px;color:var(--muted)">(optional – override for JSONRPC calls)</span></label>
+                <input class="form-control" id="cred-test-odoo-api-url" placeholder="https://api.test.odoo.com">
+              </div>
+              <div class="form-group">
                 <label class="form-label">Username</label>
                 <input class="form-control" id="cred-test-odoo-user" placeholder="admin@test.com">
               </div>
@@ -217,6 +221,10 @@
               <div class="form-group">
                 <label class="form-label">URL</label>
                 <input class="form-control" id="cred-prod-odoo-url" placeholder="https://mycompany.odoo.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">API URL <span style="font-size:11px;color:var(--muted)">(optional – override for JSONRPC calls)</span></label>
+                <input class="form-control" id="cred-prod-odoo-api-url" placeholder="https://api.mycompany.odoo.com">
               </div>
               <div class="form-group">
                 <label class="form-label">Username</label>
@@ -594,15 +602,17 @@ async function loadCredentials() {
 
     const setVal = (id, value) => { const el = document.getElementById(id); if (el && value) el.value = value; };
 
-    setVal('cred-test-oracle-url',  data.test?.oracle?.baseUrl);
-    setVal('cred-test-oracle-user', data.test?.oracle?.username);
-    setVal('cred-test-odoo-url',    data.test?.odoo?.url);
-    setVal('cred-test-odoo-user',   data.test?.odoo?.username);
+    setVal('cred-test-oracle-url',      data.test?.oracle?.baseUrl);
+    setVal('cred-test-oracle-user',     data.test?.oracle?.username);
+    setVal('cred-test-odoo-url',        data.test?.odoo?.url);
+    setVal('cred-test-odoo-api-url',    data.test?.odoo?.apiUrl);
+    setVal('cred-test-odoo-user',       data.test?.odoo?.username);
 
-    setVal('cred-prod-oracle-url',  data.production?.oracle?.baseUrl);
-    setVal('cred-prod-oracle-user', data.production?.oracle?.username);
-    setVal('cred-prod-odoo-url',    data.production?.odoo?.url);
-    setVal('cred-prod-odoo-user',   data.production?.odoo?.username);
+    setVal('cred-prod-oracle-url',      data.production?.oracle?.baseUrl);
+    setVal('cred-prod-oracle-user',     data.production?.oracle?.username);
+    setVal('cred-prod-odoo-url',        data.production?.odoo?.url);
+    setVal('cred-prod-odoo-api-url',    data.production?.odoo?.apiUrl);
+    setVal('cred-prod-odoo-user',       data.production?.odoo?.username);
   } catch (_) {}
 }
 
@@ -621,8 +631,9 @@ async function saveCredentials(mode) {
       password: passOrUndef(gv(`cred-${prefix}-oracle-pass`)),
     },
     odoo: {
-      url     : gv(`cred-${prefix}-odoo-url`)  || undefined,
-      username: gv(`cred-${prefix}-odoo-user`) || undefined,
+      url     : gv(`cred-${prefix}-odoo-url`)      || undefined,
+      apiUrl  : gv(`cred-${prefix}-odoo-api-url`)  || undefined,
+      username: gv(`cred-${prefix}-odoo-user`)      || undefined,
       password: passOrUndef(gv(`cred-${prefix}-odoo-pass`)),
     },
   };
@@ -891,6 +902,7 @@ function openCCModal(code, existing) {
           <div class="form-group"><label class="form-label">Country Code</label><input class="form-control" id="cc-code" value="${escHtml(code||ex.country_code||'')}" ${code ? 'disabled' : ''} placeholder="e.g. BH" maxlength="3"></div>
           <div class="form-group"><label class="form-label">Country Name *</label><input class="form-control" id="cc-name" value="${escHtml(ex.country_name||'')}" placeholder="e.g. Bahrain"></div>
           <div class="form-group" style="grid-column:1/-1"><label class="form-label">Odoo URL</label><input class="form-control" id="cc-odoo-url" value="${escHtml(ex.odoo_url||'')}" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com"></div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Odoo API URL <span style="font-size:11px;color:var(--muted)">(optional – separate base URL for JSONRPC API calls)</span></label><input class="form-control" id="cc-odoo-api-url" value="${escHtml(ex.odoo_api_url||'')}" placeholder="e.g. https://api.ibqpos.com"></div>
           <div class="form-group" style="grid-column:1/-1">
             <label class="form-label">Odoo Auth Type</label>
             <select class="form-control" id="cc-auth-type" onchange="ccToggleAuthFields()">
@@ -946,6 +958,7 @@ async function saveCCConfig() {
   const body = {
     country_name   : name,
     odoo_url       : document.getElementById('cc-odoo-url').value.trim() || null,
+    odoo_api_url   : document.getElementById('cc-odoo-api-url').value.trim() || null,
     odoo_auth_type : authType,
     odoo_username  : document.getElementById('cc-odoo-user').value.trim() || null,
     odoo_password  : document.getElementById('cc-odoo-pass').value || null,

@@ -281,6 +281,7 @@ router.post('/test-odoo', async (req, res) => {
   const odooDb   = creds.odoo.db;
   const username = creds.odoo.username;
   const password = creds.odoo.password;
+  const apiUrl   = creds.odoo.apiUrl || null;
 
   if (!url || !odooDb || !username || !password) {
     return res.status(400).json({
@@ -291,7 +292,7 @@ router.post('/test-odoo', async (req, res) => {
   }
 
   try {
-    const client = new OdooClient(url, odooDb, username, password);
+    const client = new OdooClient(url, odooDb, username, password, apiUrl);
     const uid    = await client.authenticate();
     res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server)`, uid });
   } catch (err) {
@@ -340,6 +341,7 @@ router.get('/credentials', (req, res) => {
         password : mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
         authType : db.getAppSetting(`odoo_${m}_auth_type`) || (m === 'production' ? process.env.ODOO_AUTH_TYPE  || 'jsonrpc' : 'jsonrpc'),
         apiKey   : mask(db.getAppSetting(`odoo_${m}_api_key`)  || (m === 'production' ? process.env.ODOO_API_KEY  : null)),
+        apiUrl   : db.getAppSetting(`odoo_${m}_api_url`)   || (m === 'production' ? process.env.ODOO_API_URL   || null : null),
       },
     };
   }
@@ -377,6 +379,7 @@ router.put('/credentials', (req, res) => {
     persist(`odoo_${mode}_password`,  odoo.password);
     persist(`odoo_${mode}_auth_type`, odoo.authType);
     persist(`odoo_${mode}_api_key`,   odoo.apiKey);
+    persist(`odoo_${mode}_api_url`,   odoo.apiUrl);
   }
 
   res.json({ ok: true, mode });
@@ -418,7 +421,7 @@ router.get('/country-configs', (req, res) => {
 router.put('/country-configs/:code', (req, res) => {
   const countryCode = req.params.code.toUpperCase();
   const {
-    country_name, odoo_url, odoo_username, odoo_password,
+    country_name, odoo_url, odoo_api_url, odoo_username, odoo_password,
     odoo_auth_type, odoo_api_key,
     oracle_base_url, oracle_username, oracle_password, enabled,
   } = req.body || {};
@@ -440,6 +443,7 @@ router.put('/country-configs/:code', (req, res) => {
     countryCode,
     countryName    : country_name,
     odooUrl        : odoo_url        || null,
+    odooApiUrl     : odoo_api_url    || null,
     odooUsername   : odoo_username   || null,
     odooPassword   : resolvePass(odoo_password, 'odoo_password'),
     odooAuthType   : odoo_auth_type  || 'jsonrpc',

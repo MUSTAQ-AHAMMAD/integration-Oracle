@@ -37,12 +37,18 @@ const _httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 16 });
 
 class OdooClient {
   /**
-   * @param {string} url       Base URL  (no trailing slash)
-   * @param {string} db        Database name
-   * @param {string} username  Username / email
-   * @param {string} password  Password or API key
+   * @param {string} url        Base URL  (no trailing slash)
+   * @param {string} db         Database name
+   * @param {string} username   Username / email
+   * @param {string} password   Password or API key
+   * @param {string} [apiUrl]   Optional separate base URL used exclusively for JSONRPC
+   *                            API calls.  When the Odoo web-facing URL and the JSONRPC
+   *                            API endpoint are on different domains (e.g. the API is
+   *                            exposed on api.mycompany.com while the UI lives on
+   *                            www.mycompany.com) set this to the API base URL.
+   *                            If omitted, `url` is used for both display and API calls.
    */
-  constructor(url, db, username, password) {
+  constructor(url, db, username, password, apiUrl) {
     this.url      = url.replace(/\/$/, '');
     // Auto-infer db from URL if not provided (e.g. https://mycompany.odoo.com → 'mycompany').
     // Falls back to empty string rather than null so downstream code that requires a string stays safe.
@@ -50,9 +56,12 @@ class OdooClient {
     this.username = username;
     this.password = password;
     this.uid      = null;
+    // apiUrl overrides the HTTP base for all JSONRPC calls when the API is
+    // hosted on a different domain than the main Odoo URL.
+    this.apiUrl   = (apiUrl || url).replace(/\/$/, '');
 
     this.http = axios.create({
-      baseURL    : this.url,
+      baseURL    : this.apiUrl,
       timeout    : 60_000,
       headers    : {
         'Content-Type': 'application/json',
