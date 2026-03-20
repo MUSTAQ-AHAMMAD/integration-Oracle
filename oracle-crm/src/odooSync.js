@@ -31,6 +31,7 @@
 
 const { randomUUID }  = require('crypto');
 const OdooClient      = require('./odooClient');
+const OdooRestClient  = require('./odooRestClient');
 const OraclePushService = require('./pushOracle');
 const db              = require('./db');
 const logger          = require('./logger').child('OdooSync');
@@ -50,6 +51,22 @@ const DEFAULT_CURRENCY  = process.env.ODOO_DEFAULT_CURRENCY || 'AED';
 
 function buildOdooClient(country) {
   const creds    = db.getCredentialsForCountry(country);
+  const authType = (creds.odoo.authType || 'jsonrpc').toLowerCase();
+
+  // REST-based client (x-api-key or bearer token authentication)
+  if (authType === 'x-api-key' || authType === 'bearer') {
+    const url    = creds.odoo.url;
+    const apiKey = creds.odoo.apiKey;
+    if (!url || !apiKey) {
+      throw new Error(
+        `Odoo REST connection not configured for ${creds.mode} server. ` +
+        `Set Odoo URL and API key via the Configuration → Country Configurations page.`
+      );
+    }
+    return new OdooRestClient(url, authType, apiKey);
+  }
+
+  // Default: standard JSONRPC client
   const url      = creds.odoo.url;
   const username = creds.odoo.username;
   const password = creds.odoo.password;

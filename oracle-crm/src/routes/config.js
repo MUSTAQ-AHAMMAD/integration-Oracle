@@ -247,9 +247,36 @@ router.post('/test-oracle', async (req, res) => {
 });
 
 // ── POST /api/config/test-odoo ────────────────────────────────────────────────
-// Authenticates with Odoo and returns the uid to confirm credentials work.
+// Tests the Odoo connection for the global or a specific country config.
+// Body (optional): { country: 'BH' }  – if provided, uses the country's creds.
 router.post('/test-odoo', async (req, res) => {
-  const creds    = db.getActiveCredentials();
+  const country  = (req.body && req.body.country) ? String(req.body.country).toUpperCase() : null;
+  const creds    = country ? db.getCredentialsForCountry(country) : db.getActiveCredentials();
+  const authType = (creds.odoo.authType || 'jsonrpc').toLowerCase();
+
+  if (authType === 'x-api-key' || authType === 'bearer') {
+    // REST-based connectivity test
+    const url    = creds.odoo.url;
+    const apiKey = creds.odoo.apiKey;
+    if (!url || !apiKey) {
+      return res.status(400).json({
+        ok   : false,
+        error: 'REST Odoo credentials not configured. Set Odoo URL and API key in Country Configurations.',
+      });
+    }
+    try {
+      const OdooRestClient = require('../odooRestClient');
+      const client = new OdooRestClient(url, authType, apiKey);
+      // Fetch a small sample to verify connectivity
+      await client.searchSalesOrders([], null, { limit: 1 });
+      res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url})` });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+    return;
+  }
+
+  // Standard JSONRPC path
   const url      = creds.odoo.url;
   const odooDb   = creds.odoo.db;
   const username = creds.odoo.username;
@@ -308,9 +335,11 @@ router.get('/credentials', (req, res) => {
         password: mask(db.getAppSetting(`oracle_${m}_password`) || (m === 'production' ? process.env.FUSION_PASSWORD : null)),
       },
       odoo: {
-        url     : db.getAppSetting(`odoo_${m}_url`)      || (m === 'production' ? process.env.ODOO_URL      || null : null),
-        username: db.getAppSetting(`odoo_${m}_username`) || (m === 'production' ? process.env.ODOO_USERNAME  || null : null),
-        password: mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
+        url      : db.getAppSetting(`odoo_${m}_url`)       || (m === 'production' ? process.env.ODOO_URL       || null : null),
+        username : db.getAppSetting(`odoo_${m}_username`)  || (m === 'production' ? process.env.ODOO_USERNAME   || null : null),
+        password : mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
+        authType : db.getAppSetting(`odoo_${m}_auth_type`) || (m === 'production' ? process.env.ODOO_AUTH_TYPE  || 'jsonrpc' : 'jsonrpc'),
+        apiKey   : mask(db.getAppSetting(`odoo_${m}_api_key`)  || (m === 'production' ? process.env.ODOO_API_KEY  : null)),
       },
     };
   }
@@ -343,9 +372,11 @@ router.put('/credentials', (req, res) => {
     persist(`oracle_${mode}_password`,  oracle.password);
   }
   if (odoo) {
-    persist(`odoo_${mode}_url`,      odoo.url);
-    persist(`odoo_${mode}_username`, odoo.username);
-    persist(`odoo_${mode}_password`, odoo.password);
+    persist(`odoo_${mode}_url`,       odoo.url);
+    persist(`odoo_${mode}_username`,  odoo.username);
+    persist(`odoo_${mode}_password`,  odoo.password);
+    persist(`odoo_${mode}_auth_type`, odoo.authType);
+    persist(`odoo_${mode}_api_key`,   odoo.apiKey);
   }
 
   res.json({ ok: true, mode });
@@ -377,6 +408,7 @@ router.get('/country-configs', (req, res) => {
   const safe = configs.map(c => ({
     ...c,
     odoo_password   : c.odoo_password    ? PASSWORD_MASK : null,
+    odoo_api_key    : c.odoo_api_key     ? PASSWORD_MASK : null,
     oracle_password : c.oracle_password  ? PASSWORD_MASK : null,
   }));
   res.json(safe);
@@ -387,10 +419,16 @@ router.put('/country-configs/:code', (req, res) => {
   const countryCode = req.params.code.toUpperCase();
   const {
     country_name, odoo_url, odoo_username, odoo_password,
+    odoo_auth_type, odoo_api_key,
     oracle_base_url, oracle_username, oracle_password, enabled,
   } = req.body || {};
 
   if (!country_name) return res.status(400).json({ error: 'country_name is required' });
+
+  const validAuthTypes = ['jsonrpc', 'x-api-key', 'bearer'];
+  if (odoo_auth_type && !validAuthTypes.includes(odoo_auth_type)) {
+    return res.status(400).json({ error: `odoo_auth_type must be one of: ${validAuthTypes.join(', ')}` });
+  }
 
   const existing = db.getCountryConfig(countryCode);
   const resolvePass = (incoming, field) => {
@@ -404,6 +442,8 @@ router.put('/country-configs/:code', (req, res) => {
     odooUrl        : odoo_url        || null,
     odooUsername   : odoo_username   || null,
     odooPassword   : resolvePass(odoo_password, 'odoo_password'),
+    odooAuthType   : odoo_auth_type  || 'jsonrpc',
+    odooApiKey     : resolvePass(odoo_api_key,  'odoo_api_key'),
     oracleBaseUrl  : oracle_base_url || null,
     oracleUsername : oracle_username || null,
     oraclePassword : resolvePass(oracle_password, 'oracle_password'),
