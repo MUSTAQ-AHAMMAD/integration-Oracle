@@ -166,6 +166,16 @@ function applyMigrations(db) {
     db.exec('CREATE INDEX IF NOT EXISTS idx_odoo_sales_country  ON odoo_sales(country)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_push_jobs_type      ON push_jobs(job_type)');
   } catch (_) { /* already exists */ }
+
+  // app_settings – persistent key/value store for server-mode and credentials.
+  // Values are never committed to source control; all writes go through setAppSetting().
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key        TEXT PRIMARY KEY,
+      value      TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
 }
 
 // ── Odoo Sales helpers ────────────────────────────────────────────────────────
@@ -653,6 +663,82 @@ function getPushDateSummary({ country, storeId, limit = 500 } = {}) {
   return rows;
 }
 
+// ── App Settings helpers ──────────────────────────────────────────────────────
+
+/**
+ * Retrieve a single application setting by key.
+ * @param {string} key
+ * @param {*}      [defaultVal=null]
+ * @returns {string|*}
+ */
+function getAppSetting(key, defaultVal = null) {
+  const db  = getDb();
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+  return row ? row.value : defaultVal;
+}
+
+/**
+ * Persist an application setting.  Creates or replaces the row atomically.
+ * @param {string} key
+ * @param {string} value
+ */
+function setAppSetting(key, value) {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO app_settings (key, value, updated_at)
+     VALUES (?, ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+  ).run(key, value == null ? null : String(value));
+}
+
+/**
+ * Return the currently active Oracle and Odoo credentials based on `server_mode`.
+ * DB values take precedence over environment variables so that credentials
+ * entered through the UI are always used when available.
+ *
+ * @returns {{
+ *   mode: 'test'|'production',
+ *   oracle: { baseUrl: string|null, username: string|null, password: string|null },
+ *   odoo:   { url: string|null, db: string|null, username: string|null, password: string|null }
+ * }}
+ */
+function getActiveCredentials() {
+  const mode = getAppSetting('server_mode', 'production');
+
+  const oracleBaseUrl  = getAppSetting(`oracle_${mode}_base_url`)  || (mode === 'production' ? process.env.FUSION_BASE_URL  || null : null);
+  const oracleUsername = getAppSetting(`oracle_${mode}_username`)  || (mode === 'production' ? process.env.FUSION_USERNAME  || null : null);
+  const oraclePassword = getAppSetting(`oracle_${mode}_password`)  || (mode === 'production' ? process.env.FUSION_PASSWORD  || null : null);
+
+  const odooUrl      = getAppSetting(`odoo_${mode}_url`)      || (mode === 'production' ? process.env.ODOO_URL      || null : null);
+  const odooDb       = getAppSetting(`odoo_${mode}_db`)       || (mode === 'production' ? process.env.ODOO_DB       || null : null);
+  const odooUsername = getAppSetting(`odoo_${mode}_username`) || (mode === 'production' ? process.env.ODOO_USERNAME || null : null);
+  const odooPassword = getAppSetting(`odoo_${mode}_password`) || (mode === 'production' ? process.env.ODOO_PASSWORD || null : null);
+
+  return {
+    mode,
+    oracle: { baseUrl: oracleBaseUrl, username: oracleUsername, password: oraclePassword },
+    odoo  : { url: odooUrl, db: odooDb, username: odooUsername, password: odooPassword },
+  };
+}
+
+/**
+ * Date/time of the most recently completed FETCH (pull) job.
+ * @returns {{ last_pull_at: string|null, last_pull_date_from: string|null, last_pull_date_to: string|null }}
+ */
+function getLastFetchInfo() {
+  const db  = getDb();
+  const row = db.prepare(
+    `SELECT finished_at, date_from, date_to FROM push_jobs
+     WHERE job_type = 'FETCH' AND status = 'DONE' ORDER BY finished_at DESC LIMIT 1`
+  ).get();
+  if (!row) return { last_pull_at: null, last_pull_date_from: null, last_pull_date_to: null };
+  return {
+    last_pull_at        : row.finished_at,
+    last_pull_date_from : row.date_from,
+    last_pull_date_to   : row.date_to,
+  };
+}
+
 module.exports = {
   getDb,
   upsertSales,
@@ -675,4 +761,8 @@ module.exports = {
   getPushReport,
   getPullReport,
   getPushDateSummary,
+  getAppSetting,
+  setAppSetting,
+  getActiveCredentials,
+  getLastFetchInfo,
 };

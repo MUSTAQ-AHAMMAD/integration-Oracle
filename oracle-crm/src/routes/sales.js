@@ -11,16 +11,18 @@ const express    = require('express');
 const router     = express.Router();
 const { computeSalePreview } = require('../calculations');
 const OraclePushService      = require('../pushOracle');
+const db                     = require('../db');
 
-function getOracleService(req) {
-  const baseUrl  = process.env.FUSION_BASE_URL;
-  const username = process.env.FUSION_USERNAME;
-  const password = process.env.FUSION_PASSWORD;
+function getOracleService() {
+  const creds    = db.getActiveCredentials();
+  const baseUrl  = creds.oracle.baseUrl;
+  const username = creds.oracle.username;
+  const password = creds.oracle.password;
 
   if (!baseUrl || !username || !password) {
     throw new Error(
-      'Oracle Fusion credentials not configured. ' +
-      'Set FUSION_BASE_URL, FUSION_USERNAME, and FUSION_PASSWORD in .env'
+      `Oracle Fusion credentials not configured for ${creds.mode} server. ` +
+      'Set credentials via the Configuration page.'
     );
   }
   return new OraclePushService(baseUrl, username, password);

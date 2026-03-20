@@ -2,6 +2,92 @@
  * app.js – shared UI helpers
  */
 
+// ── Topbar meta: server switcher + last push/pull dates ───────────────────────
+
+function _fmtDate(isoString) {
+  if (!isoString) return null;
+  try {
+    return new Date(isoString).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' });
+  } catch (_) { return isoString; }
+}
+
+async function _loadTopbarMeta() {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+
+  // Build container
+  const meta = document.createElement('div');
+  meta.id        = 'topbar-meta';
+  meta.className = 'topbar-meta';
+  topbar.appendChild(meta);
+
+  // ── Server mode switcher ──────────────────────────────────────────────────
+  const switcher = document.createElement('div');
+  switcher.className = 'server-switcher';
+  switcher.innerHTML =
+    '<button id="sw-test" onclick="switchServerMode(\'test\')">🔵 Test</button>' +
+    '<button id="sw-prod" onclick="switchServerMode(\'production\')">🟢 Production</button>';
+  meta.appendChild(switcher);
+
+  // ── Activity pills ────────────────────────────────────────────────────────
+  const pushPill = document.createElement('span');
+  pushPill.id        = 'tb-push-pill';
+  pushPill.className = 'activity-pill push';
+  pushPill.innerHTML =
+    '<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg> ' +
+    'Last Push: <strong id="tb-push-date">–</strong>';
+
+  const pullPill = document.createElement('span');
+  pullPill.id        = 'tb-pull-pill';
+  pullPill.className = 'activity-pill pull';
+  pullPill.innerHTML =
+    '<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> ' +
+    'Last Pull: <strong id="tb-pull-date">–</strong>';
+
+  meta.appendChild(pushPill);
+  meta.appendChild(pullPill);
+
+  // ── Load data ─────────────────────────────────────────────────────────────
+  try {
+    const [modeRes, actRes] = await Promise.all([
+      fetch('/api/config/server-mode').then(r => r.json()),
+      fetch('/api/config/activity-summary').then(r => r.json()),
+    ]);
+
+    // Update switcher state
+    const mode = modeRes.mode || 'production';
+    _applyServerModeUI(mode);
+
+    // Update activity pills
+    const pushDate = _fmtDate(actRes.lastPush && actRes.lastPush.at);
+    const pullDate = _fmtDate(actRes.lastPull && actRes.lastPull.at);
+    document.getElementById('tb-push-date').textContent = pushDate || '–';
+    document.getElementById('tb-pull-date').textContent = pullDate || '–';
+  } catch (_) { /* non-critical – keep defaults */ }
+}
+
+function _applyServerModeUI(mode) {
+  const swTest = document.getElementById('sw-test');
+  const swProd = document.getElementById('sw-prod');
+  if (!swTest || !swProd) return;
+
+  swTest.className = (mode === 'test')       ? 'active-test' : '';
+  swProd.className = (mode === 'production') ? 'active-prod' : '';
+}
+
+async function switchServerMode(mode) {
+  try {
+    await fetch('/api/config/server-mode', {
+      method : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ mode }),
+    });
+    _applyServerModeUI(mode);
+  } catch (err) {
+    console.warn('Failed to switch server mode:', err);
+  }
+}
+
 // Mark active sidebar link based on current page
 document.addEventListener('DOMContentLoaded', () => {
   const path = window.location.pathname;
@@ -28,6 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })
     .catch(() => {});
+
+  // Inject server-switcher and activity dates into topbar
+  _loadTopbarMeta().catch(() => {});
 });
 
 // Format a number as currency
