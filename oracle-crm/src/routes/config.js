@@ -31,6 +31,7 @@ const express      = require('express');
 const router       = express.Router();
 const OdooClient   = require('../odooClient');
 const OracleClient = require('../oracleClient');
+const db           = require('../db');
 
 // ── Oracle Fusion REST endpoint catalogue ─────────────────────────────────────
 // Derived from the Java middleware SOAP/REST service calls.
@@ -155,15 +156,13 @@ const ODOO_ENDPOINTS = [
 
 // ── GET /api/config/status ────────────────────────────────────────────────────
 router.get('/status', (req, res) => {
-  const configured = !!(
-    process.env.FUSION_BASE_URL &&
-    process.env.FUSION_USERNAME &&
-    process.env.FUSION_PASSWORD
-  );
+  const creds      = db.getActiveCredentials();
+  const configured = !!(creds.oracle.baseUrl && creds.oracle.username && creds.oracle.password);
   res.json({
     configured,
-    baseUrl : configured ? process.env.FUSION_BASE_URL : null,
-    username: configured ? process.env.FUSION_USERNAME : null,
+    baseUrl : configured ? creds.oracle.baseUrl    : null,
+    username: configured ? creds.oracle.username   : null,
+    mode    : creds.mode,
     regions : (process.env.REGIONS || 'AE,KW,OM,SA,BH,QA').split(','),
   });
 });
@@ -177,31 +176,24 @@ router.get('/regions', (req, res) => {
 // ── GET /api/config/full ──────────────────────────────────────────────────────
 // Returns complete configuration: Oracle + Odoo status, all endpoints, regions.
 router.get('/full', (req, res) => {
-  const oracleConfigured = !!(
-    process.env.FUSION_BASE_URL &&
-    process.env.FUSION_USERNAME &&
-    process.env.FUSION_PASSWORD
-  );
-  const odooConfigured = !!(
-    process.env.ODOO_URL      &&
-    process.env.ODOO_DB       &&
-    process.env.ODOO_USERNAME &&
-    process.env.ODOO_PASSWORD
-  );
+  const creds          = db.getActiveCredentials();
+  const oracleConfigured = !!(creds.oracle.baseUrl && creds.oracle.username && creds.oracle.password);
+  const odooConfigured   = !!(creds.odoo.url && creds.odoo.db && creds.odoo.username && creds.odoo.password);
 
   res.json({
+    mode  : creds.mode,
     oracle: {
       configured : oracleConfigured,
-      baseUrl    : oracleConfigured ? process.env.FUSION_BASE_URL : null,
-      username   : oracleConfigured ? process.env.FUSION_USERNAME : null,
+      baseUrl    : oracleConfigured ? creds.oracle.baseUrl    : null,
+      username   : oracleConfigured ? creds.oracle.username   : null,
       apiVersion : '11.13.18.05',
       endpoints  : ORACLE_ENDPOINTS,
     },
     odoo: {
       configured  : odooConfigured,
-      url         : odooConfigured ? process.env.ODOO_URL      : null,
-      db          : odooConfigured ? process.env.ODOO_DB        : null,
-      username    : odooConfigured ? process.env.ODOO_USERNAME  : null,
+      url         : odooConfigured ? creds.odoo.url       : null,
+      db          : odooConfigured ? creds.odoo.db        : null,
+      username    : odooConfigured ? creds.odoo.username  : null,
       jsonrpcPath : '/jsonrpc',
       endpoints   : ODOO_ENDPOINTS,
     },
@@ -212,15 +204,16 @@ router.get('/full', (req, res) => {
 // ── POST /api/config/test-oracle ──────────────────────────────────────────────
 // Makes a lightweight GET /customers call to verify Oracle Fusion credentials.
 router.post('/test-oracle', async (req, res) => {
-  const baseUrl  = process.env.FUSION_BASE_URL;
-  const username = process.env.FUSION_USERNAME;
-  const password = process.env.FUSION_PASSWORD;
+  const creds   = db.getActiveCredentials();
+  const baseUrl  = creds.oracle.baseUrl;
+  const username = creds.oracle.username;
+  const password = creds.oracle.password;
 
   if (!baseUrl || !username || !password) {
     return res.status(400).json({
       ok   : false,
       error: 'Oracle Fusion credentials not configured. ' +
-             'Set FUSION_BASE_URL, FUSION_USERNAME, FUSION_PASSWORD in .env',
+             'Set credentials via the Configuration page (Server Credentials section).',
     });
   }
 
@@ -230,18 +223,18 @@ router.post('/test-oracle', async (req, res) => {
     // possible call: it never creates data and always returns quickly.
     // HTTP 200 (empty items) or 404 both confirm the credentials are accepted.
     await client.getCustomer('__connectivity_test__');
-    res.json({ ok: true, message: 'Oracle Fusion connection successful' });
+    res.json({ ok: true, message: `Oracle Fusion connection successful (${creds.mode} server)` });
   } catch (err) {
     const status = err.response ? err.response.status : null;
     // 200 with empty items → credentials good, record not found (expected)
     // 404 → endpoint found, auth accepted
     if (status === 404) {
-      return res.json({ ok: true, message: 'Oracle Fusion connection successful (credentials accepted)' });
+      return res.json({ ok: true, message: `Oracle Fusion connection successful – credentials accepted (${creds.mode} server)` });
     }
     if (status === 401 || status === 403) {
       return res.status(401).json({
         ok   : false,
-        error: 'Oracle Fusion authentication failed – check FUSION_USERNAME and FUSION_PASSWORD',
+        error: 'Oracle Fusion authentication failed – check username and password for the active server.',
       });
     }
     res.status(500).json({ ok: false, error: err.message });
@@ -251,26 +244,128 @@ router.post('/test-oracle', async (req, res) => {
 // ── POST /api/config/test-odoo ────────────────────────────────────────────────
 // Authenticates with Odoo and returns the uid to confirm credentials work.
 router.post('/test-odoo', async (req, res) => {
-  const url      = process.env.ODOO_URL;
-  const db       = process.env.ODOO_DB;
-  const username = process.env.ODOO_USERNAME;
-  const password = process.env.ODOO_PASSWORD;
+  const creds    = db.getActiveCredentials();
+  const url      = creds.odoo.url;
+  const odooDb   = creds.odoo.db;
+  const username = creds.odoo.username;
+  const password = creds.odoo.password;
 
-  if (!url || !db || !username || !password) {
+  if (!url || !odooDb || !username || !password) {
     return res.status(400).json({
       ok   : false,
       error: 'Odoo credentials not configured. ' +
-             'Set ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD in .env',
+             'Set credentials via the Configuration page (Server Credentials section).',
     });
   }
 
   try {
-    const client = new OdooClient(url, db, username, password);
+    const client = new OdooClient(url, odooDb, username, password);
     const uid    = await client.authenticate();
-    res.json({ ok: true, message: `Odoo connection successful (uid=${uid})`, uid });
+    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server)`, uid });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ── GET /api/config/server-mode ───────────────────────────────────────────────
+// Returns the current server mode (test | production).
+router.get('/server-mode', (req, res) => {
+  const mode       = db.getAppSetting('server_mode', 'production');
+  const switchedAt = db.getAppSetting('server_mode_switched_at', null);
+  res.json({ mode, switchedAt });
+});
+
+// ── PUT /api/config/server-mode ───────────────────────────────────────────────
+// Switch server mode.  Body: { mode: 'test' | 'production' }
+router.put('/server-mode', (req, res) => {
+  const { mode } = req.body || {};
+  if (mode !== 'test' && mode !== 'production') {
+    return res.status(400).json({ error: 'mode must be "test" or "production"' });
+  }
+  db.setAppSetting('server_mode', mode);
+  db.setAppSetting('server_mode_switched_at', new Date().toISOString());
+  res.json({ ok: true, mode });
+});
+
+// ── GET /api/config/credentials ───────────────────────────────────────────────
+// Returns all stored credentials for both modes.
+// Passwords are masked; pass ?reveal=1 to receive the raw values (admin use only).
+router.get('/credentials', (req, res) => {
+  const mask = (value) => (value ? '••••••••' : null);
+  const modes = ['test', 'production'];
+
+  const result = {};
+  for (const m of modes) {
+    result[m] = {
+      oracle: {
+        baseUrl : db.getAppSetting(`oracle_${m}_base_url`)  || (m === 'production' ? process.env.FUSION_BASE_URL  || null : null),
+        username: db.getAppSetting(`oracle_${m}_username`)  || (m === 'production' ? process.env.FUSION_USERNAME  || null : null),
+        password: mask(db.getAppSetting(`oracle_${m}_password`) || (m === 'production' ? process.env.FUSION_PASSWORD : null)),
+      },
+      odoo: {
+        url     : db.getAppSetting(`odoo_${m}_url`)      || (m === 'production' ? process.env.ODOO_URL      || null : null),
+        db      : db.getAppSetting(`odoo_${m}_db`)       || (m === 'production' ? process.env.ODOO_DB       || null : null),
+        username: db.getAppSetting(`odoo_${m}_username`) || (m === 'production' ? process.env.ODOO_USERNAME  || null : null),
+        password: mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
+      },
+    };
+  }
+
+  res.json(result);
+});
+
+// ── PUT /api/config/credentials ───────────────────────────────────────────────
+// Save credentials for a specific mode.
+// Body: { mode: 'test'|'production', oracle?: {...}, odoo?: {...} }
+// Empty-string values are ignored (keeps existing value); null explicitly clears.
+router.put('/credentials', (req, res) => {
+  const { mode, oracle, odoo } = req.body || {};
+  if (mode !== 'test' && mode !== 'production') {
+    return res.status(400).json({ error: 'mode must be "test" or "production"' });
+  }
+
+  const persist = (key, value) => {
+    if (value === undefined) return; // field not sent → leave unchanged
+    if (value === null || value === '') {
+      db.setAppSetting(key, null);
+    } else {
+      db.setAppSetting(key, value);
+    }
+  };
+
+  if (oracle) {
+    persist(`oracle_${mode}_base_url`,  oracle.baseUrl);
+    persist(`oracle_${mode}_username`,  oracle.username);
+    persist(`oracle_${mode}_password`,  oracle.password);
+  }
+  if (odoo) {
+    persist(`odoo_${mode}_url`,      odoo.url);
+    persist(`odoo_${mode}_db`,       odoo.db);
+    persist(`odoo_${mode}_username`, odoo.username);
+    persist(`odoo_${mode}_password`, odoo.password);
+  }
+
+  res.json({ ok: true, mode });
+});
+
+// ── GET /api/config/activity-summary ─────────────────────────────────────────
+// Returns last push (Oracle) and last pull (Odoo fetch) timestamps.
+router.get('/activity-summary', (req, res) => {
+  const push  = db.getLastPushInfo();
+  const fetch = db.getLastFetchInfo();
+  res.json({
+    lastPush : {
+      at       : push.last_pushed_at,
+      date     : push.last_pushed_date,
+      country  : push.country,
+      storeName: push.store_name,
+    },
+    lastPull : {
+      at      : fetch.last_pull_at,
+      dateFrom: fetch.last_pull_date_from,
+      dateTo  : fetch.last_pull_date_to,
+    },
+  });
 });
 
 module.exports = router;

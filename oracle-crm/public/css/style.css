@@ -232,3 +232,32 @@ tr:hover td { background: #fafafa; }
   .sidebar { position: static; width: 100%; height: auto; }
   .main-content { margin-left: 0; }
 }
+
+/* ── Server mode switcher & activity highlights ──────────────────────── */
+.topbar-meta {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  font-size: 12px;
+}
+.server-switcher {
+  display: flex; align-items: center; gap: 0; border-radius: 20px;
+  border: 1.5px solid var(--border); overflow: hidden; background: var(--bg);
+}
+.server-switcher button {
+  padding: 4px 14px; border: none; background: transparent; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--muted); transition: all .15s;
+  white-space: nowrap;
+}
+.server-switcher button.active-test {
+  background: #17a2b8; color: #fff; border-radius: 20px 0 0 20px;
+}
+.server-switcher button.active-prod {
+  background: var(--success); color: #fff; border-radius: 0 20px 20px 0;
+}
+.activity-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+}
+.activity-pill.push { background: #d1e7dd; color: #0a3622; }
+.activity-pill.pull { background: #cff4fc; color: #055160; }
+.activity-pill svg  { flex-shrink: 0; }

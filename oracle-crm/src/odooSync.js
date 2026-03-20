@@ -47,25 +47,27 @@ const LINE_FETCH_CONCURRENCY = Number(process.env.ODOO_LINE_FETCH_CONCURRENCY) |
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
 function buildOdooClient() {
-  const url      = process.env.ODOO_URL;
-  const odoo_db  = process.env.ODOO_DB;
-  const username = process.env.ODOO_USERNAME;
-  const password = process.env.ODOO_PASSWORD;
+  const creds = db.getActiveCredentials();
+  const url      = creds.odoo.url;
+  const odoo_db  = creds.odoo.db;
+  const username = creds.odoo.username;
+  const password = creds.odoo.password;
   if (!url || !odoo_db || !username || !password) {
     throw new Error(
-      'Odoo connection not configured. Set ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD in .env'
+      `Odoo connection not configured for ${creds.mode} server. Set credentials via the Configuration page.`
     );
   }
   return new OdooClient(url, odoo_db, username, password);
 }
 
 function buildOracleService() {
-  const baseUrl  = process.env.FUSION_BASE_URL;
-  const username = process.env.FUSION_USERNAME;
-  const password = process.env.FUSION_PASSWORD;
+  const creds = db.getActiveCredentials();
+  const baseUrl  = creds.oracle.baseUrl;
+  const username = creds.oracle.username;
+  const password = creds.oracle.password;
   if (!baseUrl || !username || !password) {
     throw new Error(
-      'Oracle Fusion credentials not configured. Set FUSION_BASE_URL, FUSION_USERNAME, FUSION_PASSWORD in .env'
+      `Oracle Fusion credentials not configured for ${creds.mode} server. Set credentials via the Configuration page.`
     );
   }
   return new OraclePushService(baseUrl, username, password);
