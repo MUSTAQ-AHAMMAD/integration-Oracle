@@ -473,6 +473,10 @@ fetch('/api/config/full')
     renderOdooPanel(d.odoo);
     if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
     if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
+    // Auto-import Oracle credentials from middleware files on first load
+    if (!d.oracle.configured) {
+      autoImportMiddlewareCredentials();
+    }
   })
   .catch(err => {
     document.getElementById('oracle-meta').textContent = 'Failed to load config: ' + err.message;
@@ -661,6 +665,38 @@ async function saveCredentials(mode) {
 // ── Import credentials from middleware ────────────────────
 let _middlewareCreds = null;
 
+/**
+ * Silently import Oracle credentials from middleware files into the DB.
+ * Called automatically on page load when Oracle is not yet configured.
+ */
+async function autoImportMiddlewareCredentials() {
+  try {
+    const res = await fetch('/api/config/import-middleware-credentials', { method: 'POST' });
+    if (!res.ok) {
+      console.warn('[oracle-crm] Auto-import of middleware credentials failed with HTTP', res.status);
+      return;
+    }
+    const data = await res.json().catch(() => null);
+    if (!data || !data.ok) {
+      console.warn('[oracle-crm] Auto-import of middleware credentials returned non-ok response', data);
+      return;
+    }
+    console.info('[oracle-crm] Oracle credentials auto-imported from middleware files:', data.sources);
+    // Reload the page panels to reflect the newly imported credentials
+    fetch('/api/config/full')
+      .then(r => r.json())
+      .then(d => {
+        renderOraclePanel(d.oracle);
+        renderOdooPanel(d.odoo);
+        if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+        loadCredentials().catch(() => {});
+      })
+      .catch(() => {});
+  } catch (err) {
+    console.warn('[oracle-crm] Auto-import of middleware credentials threw an error:', err.message);
+  }
+}
+
 async function discoverMiddlewareCredentials() {
   const btn    = document.getElementById('btn-discover');
   const box    = document.getElementById('middleware-result');
@@ -672,7 +708,15 @@ async function discoverMiddlewareCredentials() {
   body.innerHTML  = '<span style="color:var(--muted);font-size:13px">Scanning middleware files…</span>';
 
   try {
-    const res  = await fetch('/api/config/middleware-credentials');
+    const res = await fetch('/api/config/middleware-credentials');
+    if (!res.ok) {
+      const ct      = res.headers.get('content-type') || '';
+      const errMsg  = ct.includes('application/json')
+        ? ((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`)
+        : `HTTP ${res.status}`;
+      body.innerHTML = `<div class="test-result fail">✗ Failed to read middleware files: ${esc(errMsg)}</div>`;
+      return;
+    }
     const data = await res.json();
 
     if (!data.found || !data.oracle) {
@@ -701,15 +745,15 @@ async function discoverMiddlewareCredentials() {
           <code>${pwdVal ? '(found – will be applied)' : '<em>not found in middleware</em>'}</code></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="applyMiddlewareCredentials('test')">
-          ✅ Apply to Test Mode
+        <button class="btn btn-primary" onclick="importAndApplyMiddlewareCredentials('test')">
+          ✅ Import to Test Mode
         </button>
-        <button class="btn btn-outline" onclick="applyMiddlewareCredentials('production')">
-          Apply to Production Mode
+        <button class="btn btn-outline" onclick="importAndApplyMiddlewareCredentials('production')">
+          Import to Production Mode
         </button>
       </div>
       <p style="font-size:12px;color:var(--muted);margin-top:8px">
-        Applying pre-fills the credential form — review and click <strong>Save</strong> to persist.
+        Importing saves credentials directly to the database for the selected mode.
       </p>`;
 
     // Store discovered data for apply step (script-scoped, not window-global)
@@ -719,6 +763,52 @@ async function discoverMiddlewareCredentials() {
   } finally {
     btn.disabled    = false;
     btn.textContent = '🔍 Discover Middleware Credentials';
+  }
+}
+
+/**
+ * POST to /api/config/import-middleware-credentials to persist credentials for
+ * the given mode, then refresh the credentials form and status panels.
+ */
+async function importAndApplyMiddlewareCredentials(mode) {
+  const box  = document.getElementById('middleware-result');
+  const body = document.getElementById('middleware-result-body');
+  body.innerHTML += `<p style="font-size:12px;color:var(--muted)">Importing…</p>`;
+
+  try {
+    const res  = await fetch('/api/config/import-middleware-credentials', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ modes: [mode] }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      body.innerHTML += `<div class="test-result fail">✗ Import failed: ${esc(errData.error || 'HTTP ' + res.status)}</div>`;
+      return;
+    }
+    const data = await res.json();
+    if (!data.ok) {
+      body.innerHTML += `<div class="test-result fail">✗ ${esc(data.error || 'Import failed')}</div>`;
+      return;
+    }
+
+    body.innerHTML += `<div class="test-result ok">✓ Oracle credentials imported into ${esc(mode)} mode. Page will refresh…</div>`;
+
+    // Reload status panels and credential form
+    setTimeout(() => {
+      fetch('/api/config/full')
+        .then(r => r.json())
+        .then(d => {
+          renderOraclePanel(d.oracle);
+          renderOdooPanel(d.odoo);
+          if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+          loadCredentials().then(() => showCredTab(mode)).catch(() => showCredTab(mode));
+          box.style.display = 'none';
+        })
+        .catch(() => {});
+    }, 800);
+  } catch (err) {
+    body.innerHTML += `<div class="test-result fail">✗ Import failed: ${esc(err.message)}</div>`;
   }
 }
 

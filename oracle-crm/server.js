@@ -8,6 +8,7 @@ const rateLimit  = require('express-rate-limit');
 const logger     = require('./src/logger');
 const db         = require('./src/db');
 const bcrypt     = require('bcryptjs');
+const { readMiddlewareCredentials } = require('./src/middlewareCredentials');
 
 const salesRoutes  = require('./src/routes/sales');
 const configRoutes = require('./src/routes/config');
@@ -63,7 +64,34 @@ async function seedAdminUser() {
   }
 }
 
+/**
+ * Auto-import Oracle Fusion credentials from Java middleware files into the
+ * database if they have not been set yet.  Both test and production credential
+ * slots are populated when empty.
+ */
+function seedCredentialsFromMiddleware() {
+  try {
+    const { oracle, found } = readMiddlewareCredentials();
+    if (!found) return;
+
+    // Persist for each mode only when the slot is empty
+    for (const mode of ['production', 'test']) {
+      if (!db.getAppSetting(`oracle_${mode}_base_url`)  && oracle.baseUrl)
+        db.setAppSetting(`oracle_${mode}_base_url`,  oracle.baseUrl);
+      if (!db.getAppSetting(`oracle_${mode}_username`) && oracle.username)
+        db.setAppSetting(`oracle_${mode}_username`, oracle.username);
+      if (!db.getAppSetting(`oracle_${mode}_password`) && oracle.password)
+        db.setAppSetting(`oracle_${mode}_password`, oracle.password);
+    }
+
+    logger.info('Oracle credentials auto-imported from middleware files into DB');
+  } catch (err) {
+    logger.warn('Could not auto-import Oracle credentials from middleware files', { err: err.message });
+  }
+}
+
 app.listen(PORT, async () => {
   await seedAdminUser();
+  seedCredentialsFromMiddleware();
   logger.info(`Oracle CRM server listening on port ${PORT}`);
 });
