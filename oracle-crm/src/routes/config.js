@@ -495,7 +495,7 @@ router.post('/test-odoo', async (req, res) => {
 // ── POST /api/config/test-endpoint ────────────────────────────────────────────
 // Test an individual REST API endpoint with optional credentials override.
 // Body: {
-//   url:      string  – base URL (required)
+//   url:      string  – base URL or full REST URL (required)
 //   apiKey:   string  – API key / bearer token (required)
 //   authType: string  – 'x-api-key' | 'bearer' (default: 'x-api-key')
 //   path:     string  – API path to test (default: /api/vSales/Sale_detail)
@@ -521,17 +521,24 @@ router.post('/test-endpoint', async (req, res) => {
   if (!apiKey) return res.status(400).json({ ok: false, error: 'apiKey is required' });
 
   const OdooRestClient = require('../odooRestClient');
-  const testPath = endpointPath || OdooRestClient.getDefaultPaths().saleDetail;
+
+  // Normalise the URL so that a full REST API URL
+  // (e.g. https://www.ibqpos.com/api/vSales/Sale_detail/) is used correctly.
+  // Without normalisation the extracted path would be appended to the full URL,
+  // producing a double-path like /api/vSales/Sale_detail/api/vSales/Sale_detail/.
+  // The extracted path becomes the effective test path when no explicit path was given.
+  const { url: baseUrl, extractedPath } = normalizeOdooUrl(url);
+  const effectivePath = endpointPath || extractedPath || OdooRestClient.getDefaultPaths().saleDetail;
 
   try {
-    const client = new OdooRestClient(url, authType, apiKey);
+    const client = new OdooRestClient(baseUrl, authType, apiKey);
     // Use the public testPath helper to probe any arbitrary endpoint path
-    const rows = await client.testPath(testPath);
+    const rows = await client.testPath(effectivePath);
     res.json({
       ok     : true,
       message: `Endpoint reachable – received ${Array.isArray(rows) ? rows.length : '?'} record(s)`,
-      url,
-      path   : testPath,
+      url    : baseUrl,
+      path   : effectivePath,
       count  : Array.isArray(rows) ? rows.length : null,
     });
   } catch (err) {
@@ -539,7 +546,7 @@ router.post('/test-endpoint', async (req, res) => {
     if (status === 401 || status === 403) {
       return res.status(200).json({ ok: false, error: `Authentication failed (HTTP ${status}) – check API key` });
     }
-    res.status(200).json({ ok: false, error: err.message, url, path: testPath });
+    res.status(200).json({ ok: false, error: err.message, url: baseUrl, path: effectivePath });
   }
 });
 

@@ -955,17 +955,24 @@ function autoDetectOdooAuthType(mode) {
       hintEl.innerHTML = 'ℹ️ REST API URL detected — auth type switched to <strong>x-api-key</strong>. Enter your API key below.';
       hintEl.style.display = '';
     }
-    // Auto-populate the Sale Detail Path from the URL's path component so the
-    // REST client calls exactly the endpoint the user entered (e.g.
-    // /api/vSales/Sale_detail/jsonrpc instead of the default /api/vSales/Sale_detail).
     try {
       const parsed    = new URL(url);
-      const salePathEl = document.getElementById(`cred-${prefix}-odoo-sale-path`);
-      if (salePathEl && parsed.pathname && /^\/api\//i.test(parsed.pathname) && !salePathEl.value) {
-        salePathEl.value = parsed.pathname;
-        // Open the REST Endpoint Paths details panel so the user sees the auto-detected path
-        const detailsEl = salePathEl.closest('details');
-        if (detailsEl) detailsEl.open = true;
+      if (parsed.pathname && /^\/api\//i.test(parsed.pathname)) {
+        // Auto-populate the Sale Detail Path from the URL's path component so the
+        // REST client calls exactly the endpoint the user entered (e.g.
+        // /api/vSales/Sale_detail/ instead of the default /api/vSales/Sale_detail).
+        const salePathEl = document.getElementById(`cred-${prefix}-odoo-sale-path`);
+        if (salePathEl && !salePathEl.value) {
+          salePathEl.value = parsed.pathname;
+          // Open the REST Endpoint Paths details panel so the user sees the auto-detected path
+          const detailsEl = salePathEl.closest('details');
+          if (detailsEl) detailsEl.open = true;
+        }
+        // Normalise the URL field to just the base URL (origin) so that subsequent
+        // tests and saves use the correct base URL rather than the full REST path.
+        // Without this the full URL would be used as the axios baseURL, causing
+        // double-path construction (e.g. /api/vSales/Sale_detail/api/vSales/Sale_detail/).
+        urlEl.value = parsed.origin;
       }
     } catch (_) { /* invalid URL – skip */ }
   } else if (hintEl && !/\/api\//i.test(url)) {
