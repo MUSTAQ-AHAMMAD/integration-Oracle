@@ -826,7 +826,7 @@ function autoDetectOdooAuthType(mode) {
 
 /**
  * Quick Fix: scroll to credentials panel, open the active mode tab,
- * switch auth type to x-api-key, normalise the URL to base URL, and
+ * switch auth type to x-api-key, normalize the URL to base URL, and
  * focus the API key field so the user can complete REST configuration.
  */
 function quickFixOdooRestAuth() {
@@ -848,7 +848,7 @@ function quickFixOdooRestAuth() {
   // Normalize the URL to the base URL (strip any /api/… suffix)
   const urlEl = document.getElementById(`cred-${prefix}-odoo-url`);
   if (urlEl && urlEl.value && /\/api\//i.test(urlEl.value)) {
-    try { urlEl.value = new URL(urlEl.value).origin; } catch (_) {}
+    try { urlEl.value = new URL(urlEl.value).origin; } catch (_) { /* keep as-is if URL is not parseable */ }
   } else if (urlEl && !urlEl.value && _odooConfig && _odooConfig.url) {
     urlEl.value = _odooBaseUrl(_odooConfig.url);
   }
