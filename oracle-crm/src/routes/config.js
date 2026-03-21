@@ -391,7 +391,27 @@ router.post('/test-odoo', async (req, res) => {
   const apiUrl   = creds.odoo.apiUrl || null;
   const version  = creds.odoo.version || 0;
 
-  if (!rawUrl || !odooDb || !username || !password) {
+  // Normalize the URL before any other checks so that a REST API path in the
+  // saved URL is caught early and results in an actionable error message.
+  const { url, wasNormalized, originalUrl } = normalizeOdooUrl(rawUrl || '');
+
+  // If the saved URL contains a REST API path (/api/…) and auth type is JSONRPC,
+  // JSONRPC authentication will never succeed.  Return an actionable error now
+  // so the user knows exactly what to fix instead of seeing a generic HTTP 400.
+  if (wasNormalized) {
+    return res.status(200).json({
+      ok   : false,
+      error: `The saved Odoo URL "${originalUrl}" contains a REST API path (/api/…). ` +
+             `JSONRPC authentication requires only the base URL (e.g. "${url}"). ` +
+             `Open Server Credentials to update the URL to "${url}" — ` +
+             `or switch the auth type to "x-api-key" / "bearer" ` +
+             `if this server exposes a REST API instead of standard Odoo JSONRPC.`,
+    });
+  }
+
+  // DB is optional – OdooClient will infer it from *.odoo.com URLs or leave it
+  // empty (the JSONRPC call will return a clear error if a DB name is required).
+  if (!url || !username || !password) {
     return res.status(400).json({
       ok   : false,
       error: 'Odoo credentials not configured. ' +
@@ -399,22 +419,12 @@ router.post('/test-odoo', async (req, res) => {
     });
   }
 
-  const { url, wasNormalized, originalUrl } = normalizeOdooUrl(rawUrl);
-  const normHint = wasNormalized
-    ? ` (URL normalized from "${originalUrl}" to "${url}" — update the saved URL to avoid this warning)`
-    : '';
-
   try {
     const client = new OdooClient(url, odooDb, username, password, apiUrl, version);
     const uid    = await client.authenticate();
-    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server, version=${version === 0 ? 'legacy' : version})${normHint}`, uid });
+    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server, version=${version === 0 ? 'legacy' : version})`, uid });
   } catch (err) {
-    const urlHint = wasNormalized
-      ? ` The saved Odoo URL "${originalUrl}" contains a REST API path. ` +
-        `Using base URL "${url}" for JSONRPC — but the server may not support JSONRPC. ` +
-        `Consider switching auth type to x-api-key / bearer.`
-      : '';
-    res.status(500).json({ ok: false, error: err.message + urlHint });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
