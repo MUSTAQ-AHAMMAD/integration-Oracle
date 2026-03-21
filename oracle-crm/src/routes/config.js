@@ -367,7 +367,8 @@ router.post('/test-odoo', async (req, res) => {
       return res.status(200).json({
         ok   : false,
         error: `The username "${username}" looks like a URL, not a login username. ` +
-               `Set the username to your Odoo login email or username (e.g. "admin" or "user@example.com").`,
+               `For JSONRPC auth, set the username to your Odoo login email or username (e.g. "admin" or "user@example.com"). ` +
+               `If this server uses a REST API instead, switch the auth type to "x-api-key" or "bearer" in the form above.`,
       });
     }
 
@@ -465,12 +466,15 @@ router.post('/test-odoo', async (req, res) => {
   // saved in the username field (e.g. username = "https://www.ibqpos.com/").
   // Sending a URL as a username always causes the Odoo server to reject the
   // request with HTTP 400, surfacing a confusing raw-axios error message.
+  // This can also happen when the user has a REST API server but the auth type
+  // is still set to JSONRPC – in that case they should switch to x-api-key/bearer.
   if (/^https?:\/\//i.test(username)) {
     return res.status(200).json({
       ok   : false,
       error: `The saved Odoo username "${username}" looks like a URL, not a login username. ` +
-             `Open Server Credentials and set the username to your Odoo login email or username ` +
-             `(e.g. "admin" or "user@example.com").`,
+             `Open Server Credentials and either — ` +
+             `(A) switch the auth type to "x-api-key" or "bearer" and enter your API key if this server uses a REST API, or ` +
+             `(B) set the username to your Odoo login email or username (e.g. "admin" or "user@example.com") for standard JSONRPC.`,
     });
   }
 

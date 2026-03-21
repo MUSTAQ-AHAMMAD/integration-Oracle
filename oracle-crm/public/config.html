@@ -633,9 +633,10 @@ function renderOdooPanel(o) {
       const usernameWarning = usernameIsUrl
         ? `<div style="margin-top:6px;padding:6px 8px;background:#fce4ec;border:1px solid #e57373;border-radius:4px;font-size:12px;color:#b71c1c">` +
           `⚠️ The saved username <strong>${esc(o.username)}</strong> looks like a URL, not a login username. ` +
-          `Open <strong>Server Credentials</strong> below and set the username to your Odoo login email or username ` +
-          `(e.g. <code>admin</code> or <code>user@example.com</code>). ` +
-          `This misconfiguration will cause the connection test to fail with HTTP 400.</div>`
+          `Open <strong>Server Credentials</strong> below and either — ` +
+          `(A) switch auth type to <strong>x-api-key</strong> / <strong>bearer</strong> and enter your API key if this server uses a REST API, or ` +
+          `(B) set the username to your Odoo login email or username (e.g. <code>admin</code> or <code>user@example.com</code>) for standard JSONRPC. ` +
+          `<button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="quickFixOdooRestAuth()">🔧 Quick Fix: Switch to REST Auth</button></div>`
         : '';
       meta.innerHTML =
         `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
@@ -779,13 +780,16 @@ async function testConnection(system) {
 
     // Guard 2: saved username looks like a URL (e.g. https://www.ibqpos.com/).
     // Sending a URL as a username always causes Odoo to reject with HTTP 400.
+    // If the user is using a REST API server (not standard Odoo JSONRPC), they
+    // should switch the auth type to x-api-key or bearer instead.
     if (!isRest && _odooConfig.username && /^https?:\/\//i.test(_odooConfig.username)) {
       result.className = 'test-result fail';
       result.innerHTML =
         `✗ The saved Odoo username <strong>${esc(_odooConfig.username)}</strong> looks like a URL, not a login username.<br>` +
-        `Open <strong>Server Credentials</strong> below and set the username to your Odoo login email or username ` +
-        `(e.g. <code>admin</code> or <code>user@example.com</code>). ` +
-        `This misconfiguration will cause the connection test to fail with HTTP 400.`;
+        `<strong>To fix:</strong> open <strong>Server Credentials</strong> below and either —<br>` +
+        `&nbsp;&nbsp;(A) switch auth type to <strong>x-api-key</strong> or <strong>bearer</strong> and enter your API key if this server uses a REST API (recommended), or<br>` +
+        `&nbsp;&nbsp;(B) set the username to your Odoo login email or username (e.g. <code>admin</code> or <code>user@example.com</code>) for standard Odoo JSONRPC.<br>` +
+        `<button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="quickFixOdooRestAuth()">🔧 Quick Fix: Switch to REST Auth</button>`;
       result.classList.remove('hidden');
       return;
     }
