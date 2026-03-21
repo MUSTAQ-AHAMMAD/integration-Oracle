@@ -552,10 +552,23 @@ function renderOdooPanel(o) {
     panel.className = 'conn-panel ok';
     badge.className = 'conn-badge ok';
     badge.textContent = '✓ Configured';
+
+    // Detect if the URL contains a REST API path while JSONRPC auth is active.
+    const hasApiPath   = o.url && /\/api\//i.test(o.url);
+    const isJsonrpc    = !o.authType || o.authType === 'jsonrpc';
+    const urlWarning   = (hasApiPath && isJsonrpc)
+      ? `<div style="margin-top:6px;padding:6px 8px;background:#fff8e1;border:1px solid #f0c040;border-radius:4px;font-size:12px;color:#856404">` +
+        `⚠️ The Odoo URL <strong>${esc(o.url)}</strong> contains a REST API path (<code>/api/…</code>). ` +
+        `For JSONRPC authentication the base URL should be used (e.g. <strong>${esc(_odooBaseUrl(o.url))}</strong>). ` +
+        `Open <strong>Server Credentials</strong> below to update the URL or switch the auth type to ` +
+        `<strong>x-api-key</strong> / <strong>bearer</strong> if this server exposes a REST API.</div>`
+      : '';
+
     meta.innerHTML =
       `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
       `<span>Username:</span> <strong>${esc(o.username)}</strong><br>` +
-      `<span>JSON-RPC path:</span> <strong>${esc(o.url)}${esc(o.jsonrpcPath)}</strong>`;
+      `<span>JSON-RPC path:</span> <strong>${esc(o.url)}${esc(o.jsonrpcPath)}</strong>` +
+      urlWarning;
     document.getElementById('odoo-url-display').textContent = o.url || '–';
     document.getElementById('odoo-username-display').textContent = o.username || '–';
     document.getElementById('odoo-endpoints-card').style.display = '';
@@ -566,6 +579,11 @@ function renderOdooPanel(o) {
     meta.innerHTML =
       'Credentials not set for this server mode. Use the <strong>Server Credentials</strong> section below to configure Odoo ERP.';
   }
+}
+
+/** Extract just the origin (base URL) from a potentially full URL. */
+function _odooBaseUrl(url) {
+  try { return new URL(url).origin; } catch (_) { return url; }
 }
 
 function renderOracleEndpoints(oracle) {
@@ -708,7 +726,9 @@ async function saveCredentials(mode) {
     });
     const data = await res.json();
     resultEl.className = 'test-result ' + (data.ok ? 'ok' : 'fail');
-    resultEl.textContent = data.ok ? `✓ ${mode.charAt(0).toUpperCase() + mode.slice(1)} credentials saved` : '✗ ' + (data.error || 'Save failed');
+    resultEl.textContent = data.ok
+      ? `✓ ${mode.charAt(0).toUpperCase() + mode.slice(1)} credentials saved` + (data.warning ? ` — ⚠️ ${data.warning}` : '')
+      : '✗ ' + (data.error || 'Save failed');
     resultEl.classList.remove('hidden');
     // Clear password fields after save
     const passFields = document.querySelectorAll(`#cred-panel-${mode} input[type="password"]`);
@@ -738,6 +758,19 @@ async function testCredentialsInForm(mode) {
   if (!url) {
     resultEl.className = 'test-result fail';
     resultEl.textContent = '✗ Odoo URL is required';
+    resultEl.classList.remove('hidden');
+    return;
+  }
+
+  // Warn early if URL contains a REST API path but JSONRPC auth is selected.
+  if (!isRest && /\/api\//i.test(url)) {
+    let baseUrl = url;
+    try { baseUrl = new URL(url).origin; } catch (_) {}
+    resultEl.className = 'test-result fail';
+    resultEl.innerHTML =
+      `✗ The URL <strong>${esc(url)}</strong> contains a REST API path (<code>/api/…</code>).<br>` +
+      `For JSONRPC authentication, use only the base URL: <strong>${esc(baseUrl)}</strong><br>` +
+      `Or switch auth type to <strong>x-api-key</strong> / <strong>bearer</strong> for REST access.`;
     resultEl.classList.remove('hidden');
     return;
   }

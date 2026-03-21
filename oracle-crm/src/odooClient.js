@@ -57,6 +57,22 @@ function _normalizeHttpError(err, context) {
         'The URL may be wrong or the server is redirecting to a login / error page.'
       );
     }
+    // HTTP 4xx on the JSONRPC endpoint usually means the URL is wrong.
+    // Common mistake: using a REST API endpoint URL (e.g. /api/vSales/Sale_detail)
+    // instead of just the Odoo base URL (e.g. https://www.ibqpos.com).
+    if (status === 400 || status === 404 || status === 405) {
+      const requestUrl = (err.config && err.config.url) || '';
+      const baseUrl    = (err.config && err.config.baseURL) || '';
+      const fullUrl    = baseUrl + requestUrl;
+      if (/\/api\//i.test(fullUrl)) {
+        return new Error(
+          `${prefix}HTTP ${status}: The Odoo URL appears to contain a REST API path ` +
+          `(e.g. /api/vSales/…). For JSONRPC authentication, use only the base URL ` +
+          `(e.g. https://www.ibqpos.com) — or switch the auth type to x-api-key / bearer ` +
+          `if this server uses a REST API. Full URL tried: ${fullUrl}`
+        );
+      }
+    }
     return new Error(`${prefix}HTTP ${status}: ${err.message}`);
   }
 
