@@ -342,7 +342,7 @@ router.post('/test-odoo', async (req, res) => {
     const normHintInline = wasNormalized
       ? ` Note: The URL "${originalUrl}" contains a REST API path; ` +
         `only the base URL "${normalizedUrl}" is used for JSONRPC. ` +
-        `If this server uses a REST API, switch auth type to x-api-key / bearer.`
+        `If this server uses a REST API (not standard Odoo JSONRPC), switch auth type to "x-api-key" / "bearer".`
       : '';
 
     try {
@@ -402,10 +402,10 @@ router.post('/test-odoo', async (req, res) => {
     return res.status(200).json({
       ok   : false,
       error: `The saved Odoo URL "${originalUrl}" contains a REST API path (/api/…). ` +
-             `JSONRPC authentication requires only the base URL (e.g. "${url}"). ` +
-             `Open Server Credentials to update the URL to "${url}" — ` +
-             `or switch the auth type to "x-api-key" / "bearer" ` +
-             `if this server exposes a REST API instead of standard Odoo JSONRPC.`,
+             `This indicates a REST API server, not a standard Odoo JSONRPC server. ` +
+             `To fix: open Server Credentials and either — ` +
+             `(A) switch the auth type to "x-api-key" or "bearer" and enter your API key (recommended for REST servers), or ` +
+             `(B) update the URL to just the base URL "${url}" if this server also supports standard Odoo JSONRPC.`,
     });
   }
 

@@ -501,10 +501,15 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Cached full config – populated after the initial /api/config/full load.
+// Used by testConnection() to provide early warnings before hitting the backend.
+let _odooConfig = null;
+
 // ── Load full config on page load ────────────────────────
 fetch('/api/config/full')
   .then(r => r.json())
   .then(d => {
+    _odooConfig = d.odoo;
     renderOraclePanel(d.oracle);
     renderOdooPanel(d.odoo);
     if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
@@ -695,6 +700,26 @@ function renderOdooEndpoints(odoo) {
 async function testConnection(system) {
   const btn    = document.getElementById(`btn-test-${system}`);
   const result = document.getElementById(`${system}-test-result`);
+
+  // Early guard for Odoo: if the saved URL has a REST API path (/api/…) but
+  // the auth type is JSONRPC, JSONRPC will always fail.  Show an actionable
+  // message immediately instead of waiting for the backend to return 400.
+  if (system === 'odoo' && _odooConfig) {
+    const isRest = _odooConfig.authType === 'x-api-key' || _odooConfig.authType === 'bearer';
+    if (!isRest && _odooConfig.url && /\/api\//i.test(_odooConfig.url)) {
+      const baseUrl = _odooBaseUrl(_odooConfig.url);
+      result.className = 'test-result fail';
+      result.innerHTML =
+        `✗ The saved Odoo URL <strong>${esc(_odooConfig.url)}</strong> contains a REST API path (<code>/api/…</code>).<br>` +
+        `This server uses a REST API, not standard Odoo JSONRPC.<br>` +
+        `<strong>To fix:</strong> open <strong>Server Credentials</strong> below and either —<br>` +
+        `&nbsp;&nbsp;(A) switch auth type to <strong>x-api-key</strong> or <strong>bearer</strong> and enter your API key (recommended), or<br>` +
+        `&nbsp;&nbsp;(B) update the URL to the base URL <strong>${esc(baseUrl)}</strong> if the server supports Odoo JSONRPC.`;
+      result.classList.remove('hidden');
+      return;
+    }
+  }
+
   btn.disabled = true;
   btn.textContent = 'Testing…';
   result.className = 'test-result';
