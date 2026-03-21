@@ -421,7 +421,7 @@ router.post('/test-odoo', async (req, res) => {
       const usedPath = customPaths.saleDetail || OdooRestClient.getDefaultPaths().saleDetail;
       res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url}${usedPath})` });
     } catch (err) {
-      res.status(500).json({ ok: false, error: err.message });
+      res.status(200).json({ ok: false, error: err.message });
     }
     return;
   }

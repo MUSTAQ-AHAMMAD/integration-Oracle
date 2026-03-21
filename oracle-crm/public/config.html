@@ -1029,11 +1029,33 @@ async function saveCredentials(mode) {
     // Clear password fields after save
     const passFields = document.querySelectorAll(`#cred-panel-${mode} input[type="password"]`);
     passFields.forEach(f => f.value = '');
+    // Refresh the Connection Status panels so they reflect the newly saved credentials
+    if (data.ok) {
+      refreshStatusPanels().catch(() => {});
+    }
   } catch (err) {
     resultEl.className = 'test-result fail';
     resultEl.textContent = '✗ ' + err.message;
     resultEl.classList.remove('hidden');
   }
+}
+
+/**
+ * Re-fetch /api/config/full and update all Connection Status panels and
+ * endpoint tables so they reflect the current saved credentials.
+ * Called after a successful saveCredentials() to ensure the UI stays
+ * in sync with the database without requiring a full page reload.
+ */
+async function refreshStatusPanels() {
+  try {
+    const d = await fetch('/api/config/full').then(r => r.json());
+    _odooConfig = d.odoo;
+    _activeMode = d.mode || 'production';
+    renderOraclePanel(d.oracle);
+    renderOdooPanel(d.odoo);
+    if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+    if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
+  } catch (e) { console.warn('[oracle-crm] refreshStatusPanels failed:', e.message); }
 }
 
 /**

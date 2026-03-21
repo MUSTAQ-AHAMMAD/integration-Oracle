@@ -116,7 +116,30 @@ class OdooRestClient {
           `Check the endpoint URL and API key. URL: ${this.url}${path}`
         );
       }
-      return new Error(`${prefix}HTTP ${status}: ${err.message}`);
+      if (status === 400) {
+        // Extract a human-readable detail from the response body when available.
+        let detail = '';
+        if (body && typeof body === 'object') {
+          detail = body.message || body.error || body.detail ||
+            (Object.keys(body).length ? JSON.stringify(body).substring(0, 300) : '');
+        } else if (typeof body === 'string') {
+          detail = body.substring(0, 300);
+        }
+        return new Error(
+          `${prefix}HTTP 400 (Bad Request). ` +
+          (detail ? `Server said: "${detail}". ` : '') +
+          `Tried URL: ${this.url}${path}. ` +
+          `Check that the endpoint path and API key are correct. ` +
+          `You can override the path in "REST Endpoint Paths" inside Server Credentials.`
+        );
+      }
+      if (status === 401 || status === 403) {
+        return new Error(
+          `${prefix}HTTP ${status} (Authentication failed). ` +
+          `Check the API key for URL: ${this.url}${path}`
+        );
+      }
+      return new Error(`${prefix}HTTP ${status}: ${err.message}. URL: ${this.url}${path}`);
     }
     if (err instanceof SyntaxError || (err.message && err.message.includes('is not valid JSON'))) {
       return new Error(
