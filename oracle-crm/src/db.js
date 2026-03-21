@@ -858,19 +858,36 @@ function getActiveCredentials() {
   const oracleUsername = getAppSetting(`oracle_${mode}_username`)  || (mode === 'production' ? process.env.FUSION_USERNAME  || null : null);
   const oraclePassword = getAppSetting(`oracle_${mode}_password`)  || (mode === 'production' ? process.env.FUSION_PASSWORD  || null : null);
 
-  const odooUrl      = getAppSetting(`odoo_${mode}_url`)      || (mode === 'production' ? process.env.ODOO_URL      || null : null);
-  const odooDb       = getAppSetting(`odoo_${mode}_db`)       || (mode === 'production' ? process.env.ODOO_DB       || null : null);
-  const odooUsername = getAppSetting(`odoo_${mode}_username`) || (mode === 'production' ? process.env.ODOO_USERNAME || null : null);
-  const odooPassword = getAppSetting(`odoo_${mode}_password`) || (mode === 'production' ? process.env.ODOO_PASSWORD || null : null);
-  const odooAuthType = getAppSetting(`odoo_${mode}_auth_type`) || (mode === 'production' ? process.env.ODOO_AUTH_TYPE || 'jsonrpc' : 'jsonrpc');
-  const odooApiKey   = getAppSetting(`odoo_${mode}_api_key`)   || (mode === 'production' ? process.env.ODOO_API_KEY  || null : null);
-  const odooApiUrl   = getAppSetting(`odoo_${mode}_api_url`)   || (mode === 'production' ? process.env.ODOO_API_URL  || null : null);
-  const odooVersion  = Number(getAppSetting(`odoo_${mode}_version`) || (mode === 'production' ? process.env.ODOO_VERSION || 0 : 0));
+  const odooUrl            = getAppSetting(`odoo_${mode}_url`)             || (mode === 'production' ? process.env.ODOO_URL            || null : null);
+  const odooDb             = getAppSetting(`odoo_${mode}_db`)              || (mode === 'production' ? process.env.ODOO_DB             || null : null);
+  const odooUsername       = getAppSetting(`odoo_${mode}_username`)        || (mode === 'production' ? process.env.ODOO_USERNAME        || null : null);
+  const odooPassword       = getAppSetting(`odoo_${mode}_password`)        || (mode === 'production' ? process.env.ODOO_PASSWORD        || null : null);
+  const odooAuthType       = getAppSetting(`odoo_${mode}_auth_type`)       || (mode === 'production' ? process.env.ODOO_AUTH_TYPE       || 'jsonrpc' : 'jsonrpc');
+  const odooApiKey         = getAppSetting(`odoo_${mode}_api_key`)         || (mode === 'production' ? process.env.ODOO_API_KEY         || null : null);
+  const odooApiUrl         = getAppSetting(`odoo_${mode}_api_url`)         || (mode === 'production' ? process.env.ODOO_API_URL         || null : null);
+  const odooVersion        = Number(getAppSetting(`odoo_${mode}_version`)  || (mode === 'production' ? process.env.ODOO_VERSION        || 0    : 0));
+  // Global REST endpoint path overrides – let operators point to custom paths
+  // (e.g. /api/vSales/Sale_detail/jsonrpc) without touching country configs.
+  const odooSaleDetailPath = getAppSetting(`odoo_${mode}_sale_detail_path`) || (mode === 'production' ? process.env.ODOO_SALE_DETAIL_PATH || null : null);
+  const odooOrderLinePath  = getAppSetting(`odoo_${mode}_order_line_path`)  || (mode === 'production' ? process.env.ODOO_ORDER_LINE_PATH  || null : null);
+  const odooPaymentPath    = getAppSetting(`odoo_${mode}_payment_path`)     || (mode === 'production' ? process.env.ODOO_PAYMENT_PATH     || null : null);
 
   return {
     mode,
     oracle: { baseUrl: oracleBaseUrl, username: oracleUsername, password: oraclePassword },
-    odoo  : { url: odooUrl, db: odooDb, username: odooUsername, password: odooPassword, authType: odooAuthType, apiKey: odooApiKey, apiUrl: odooApiUrl, version: odooVersion },
+    odoo  : {
+      url           : odooUrl,
+      db            : odooDb,
+      username      : odooUsername,
+      password      : odooPassword,
+      authType      : odooAuthType,
+      apiKey        : odooApiKey,
+      apiUrl        : odooApiUrl,
+      version       : odooVersion,
+      saleDetailPath: odooSaleDetailPath,
+      orderLinePath : odooOrderLinePath,
+      paymentPath   : odooPaymentPath,
+    },
   };
 }
 
@@ -952,9 +969,9 @@ function getCredentialsForCountry(countryCode) {
       apiKey        : cc.odoo_api_key         || null,
       apiUrl        : cc.odoo_api_url         || defaults.odoo.apiUrl  || null,
       version       : cc.odoo_version != null ? Number(cc.odoo_version) : (defaults.odoo.version || 0),
-      saleDetailPath: cc.odoo_sale_detail_path || null,
-      orderLinePath : cc.odoo_order_line_path  || null,
-      paymentPath   : cc.odoo_payment_path     || null,
+      saleDetailPath: cc.odoo_sale_detail_path || defaults.odoo.saleDetailPath || null,
+      orderLinePath : cc.odoo_order_line_path  || defaults.odoo.orderLinePath  || null,
+      paymentPath   : cc.odoo_payment_path     || defaults.odoo.paymentPath    || null,
     },
   };
 }

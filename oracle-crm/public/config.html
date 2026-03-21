@@ -193,6 +193,28 @@
                   <label class="form-label">API Key <span style="font-size:11px;color:var(--muted)">(sent as X-Api-Key or Bearer header)</span></label>
                   <input class="form-control" id="cred-test-odoo-api-key" type="password" placeholder="Leave blank to keep existing">
                 </div>
+                <details style="margin-bottom:10px">
+                  <summary style="font-size:12px;color:var(--muted);cursor:pointer;user-select:none">⚙️ REST Endpoint Paths <span style="font-weight:400">(optional overrides)</span></summary>
+                  <div style="margin-top:8px;padding:10px;background:#f8f9fa;border-radius:4px">
+                    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+                      Leave blank to use the defaults. Set these when your server uses custom paths
+                      (e.g. <code>/api/vSales/Sale_detail/jsonrpc</code> instead of <code>/api/vSales/Sale_detail</code>).
+                      Paths are auto-detected when you enter a full URL above.
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Sale Detail Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/Sale_detail</span></label>
+                      <input class="form-control" id="cred-test-odoo-sale-path" placeholder="/api/vSales/Sale_detail">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Order Line Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/PosOrderLine</span></label>
+                      <input class="form-control" id="cred-test-odoo-line-path" placeholder="/api/vSales/PosOrderLine">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Payment Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
+                      <input class="form-control" id="cred-test-odoo-pay-path" placeholder="/api/vSales/payment_lines">
+                    </div>
+                  </div>
+                </details>
               </div>
               <div id="cred-test-odoo-jsonrpc-fields">
                 <div class="form-group">
@@ -256,6 +278,28 @@
                   <label class="form-label">API Key <span style="font-size:11px;color:var(--muted)">(sent as X-Api-Key or Bearer header)</span></label>
                   <input class="form-control" id="cred-prod-odoo-api-key" type="password" placeholder="Leave blank to keep existing">
                 </div>
+                <details style="margin-bottom:10px">
+                  <summary style="font-size:12px;color:var(--muted);cursor:pointer;user-select:none">⚙️ REST Endpoint Paths <span style="font-weight:400">(optional overrides)</span></summary>
+                  <div style="margin-top:8px;padding:10px;background:#f8f9fa;border-radius:4px">
+                    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+                      Leave blank to use the defaults. Set these when your server uses custom paths
+                      (e.g. <code>/api/vSales/Sale_detail/jsonrpc</code> instead of <code>/api/vSales/Sale_detail</code>).
+                      Paths are auto-detected when you enter a full URL above.
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Sale Detail Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/Sale_detail</span></label>
+                      <input class="form-control" id="cred-prod-odoo-sale-path" placeholder="/api/vSales/Sale_detail">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Order Line Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/PosOrderLine</span></label>
+                      <input class="form-control" id="cred-prod-odoo-line-path" placeholder="/api/vSales/PosOrderLine">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Payment Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
+                      <input class="form-control" id="cred-prod-odoo-pay-path" placeholder="/api/vSales/payment_lines">
+                    </div>
+                  </div>
+                </details>
               </div>
               <div id="cred-prod-odoo-jsonrpc-fields">
                 <div class="form-group">
@@ -782,6 +826,9 @@ async function loadCredentials() {
     setSelect('cred-test-odoo-auth-type',   data.test?.odoo?.authType);
     setVal('cred-test-odoo-api-url',        data.test?.odoo?.apiUrl);
     setVal('cred-test-odoo-user',           data.test?.odoo?.username);
+    setVal('cred-test-odoo-sale-path',      data.test?.odoo?.saleDetailPath);
+    setVal('cred-test-odoo-line-path',      data.test?.odoo?.orderLinePath);
+    setVal('cred-test-odoo-pay-path',       data.test?.odoo?.paymentPath);
 
     setVal('cred-prod-oracle-url',          data.production?.oracle?.baseUrl);
     setVal('cred-prod-oracle-user',         data.production?.oracle?.username);
@@ -789,6 +836,9 @@ async function loadCredentials() {
     setSelect('cred-prod-odoo-auth-type',   data.production?.odoo?.authType);
     setVal('cred-prod-odoo-api-url',        data.production?.odoo?.apiUrl);
     setVal('cred-prod-odoo-user',           data.production?.odoo?.username);
+    setVal('cred-prod-odoo-sale-path',      data.production?.odoo?.saleDetailPath);
+    setVal('cred-prod-odoo-line-path',      data.production?.odoo?.orderLinePath);
+    setVal('cred-prod-odoo-pay-path',       data.production?.odoo?.paymentPath);
 
     // Refresh auth type field visibility for both modes
     toggleGlobalOdooAuthFields('test');
@@ -844,13 +894,28 @@ function autoDetectOdooAuthType(mode) {
   if (!urlEl || !authEl) return;
   const url    = urlEl.value.trim();
   const isRest = authEl.value === 'x-api-key' || authEl.value === 'bearer';
-  if (/\/api\//i.test(url) && !isRest) {
-    authEl.value = 'x-api-key';
-    toggleGlobalOdooAuthFields(mode);
+  if (/\/api\//i.test(url)) {
+    if (!isRest) {
+      authEl.value = 'x-api-key';
+      toggleGlobalOdooAuthFields(mode);
+    }
     if (hintEl) {
       hintEl.innerHTML = 'ℹ️ REST API URL detected — auth type switched to <strong>x-api-key</strong>. Enter your API key below.';
       hintEl.style.display = '';
     }
+    // Auto-populate the Sale Detail Path from the URL's path component so the
+    // REST client calls exactly the endpoint the user entered (e.g.
+    // /api/vSales/Sale_detail/jsonrpc instead of the default /api/vSales/Sale_detail).
+    try {
+      const parsed    = new URL(url);
+      const salePathEl = document.getElementById(`cred-${prefix}-odoo-sale-path`);
+      if (salePathEl && parsed.pathname && /^\/api\//i.test(parsed.pathname) && !salePathEl.value) {
+        salePathEl.value = parsed.pathname;
+        // Open the REST Endpoint Paths details panel so the user sees the auto-detected path
+        const detailsEl = salePathEl.closest('details');
+        if (detailsEl) detailsEl.open = true;
+      }
+    } catch (_) { /* invalid URL – skip */ }
   } else if (hintEl && !/\/api\//i.test(url)) {
     hintEl.style.display = 'none';
   }
@@ -898,6 +963,7 @@ async function saveCredentials(mode) {
 
   const gv = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
   const passOrUndef = (v) => v === '' ? undefined : v; // empty = don't overwrite existing password
+  const pathOrUndef = (v) => v === '' ? null : (v !== undefined ? v : undefined); // empty = clear, undefined = leave unchanged
 
   const authType = gv(`cred-${prefix}-odoo-auth-type`) || 'jsonrpc';
   const isRest   = authType === 'x-api-key' || authType === 'bearer';
@@ -913,7 +979,10 @@ async function saveCredentials(mode) {
       url      : gv(`cred-${prefix}-odoo-url`)       || undefined,
       authType,
       // REST fields
-      apiKey   : isRest ? passOrUndef(gv(`cred-${prefix}-odoo-api-key`)) : undefined,
+      apiKey         : isRest ? passOrUndef(gv(`cred-${prefix}-odoo-api-key`)) : undefined,
+      saleDetailPath : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-sale-path`)) : undefined,
+      orderLinePath  : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-line-path`)) : undefined,
+      paymentPath    : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-pay-path`))  : undefined,
       // JSONRPC fields
       apiUrl   : !isRest ? (gv(`cred-${prefix}-odoo-api-url`)  || undefined) : undefined,
       username : !isRest ? (gv(`cred-${prefix}-odoo-user`)     || undefined) : undefined,
@@ -991,7 +1060,11 @@ async function testCredentialsInForm(mode) {
         resultEl.textContent = '✗ API key is required for REST auth';
         return;
       }
-      body = { url, authType, apiKey };
+      // Include path overrides so the test hits exactly the configured endpoint
+      const saleDetailPath = gv(`cred-${prefix}-odoo-sale-path`) || undefined;
+      const orderLinePath  = gv(`cred-${prefix}-odoo-line-path`) || undefined;
+      const paymentPath    = gv(`cred-${prefix}-odoo-pay-path`)  || undefined;
+      body = { url, authType, apiKey, saleDetailPath, orderLinePath, paymentPath };
     } else {
       const username = gv(`cred-${prefix}-odoo-user`);
       const password = gv(`cred-${prefix}-odoo-pass`);
