@@ -81,12 +81,16 @@ function buildOdooClient(country) {
   // apiUrl allows the JSONRPC API to be hosted on a different domain than
   // the main Odoo web URL (e.g. api.mycompany.com vs www.mycompany.com).
   const apiUrl   = creds.odoo.apiUrl || null;
+  // version drives which JSONRPC endpoint paths are used:
+  //   0 / <17  →  legacy /jsonrpc
+  //   17/18    →  /web/session/authenticate + /web/dataset/call_kw
+  const version  = creds.odoo.version || 0;
   if (!url || !username || !password) {
     throw new Error(
       `Odoo connection not configured for ${creds.mode} server. Set credentials via the Configuration page.`
     );
   }
-  return new OdooClient(url, odoo_db, username, password, apiUrl);
+  return new OdooClient(url, odoo_db, username, password, apiUrl, version);
 }
 
 function buildOracleService(country) {

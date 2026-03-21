@@ -210,7 +210,10 @@
             </div>
           </div>
           <div id="cred-test-result" class="test-result hidden" style="margin-bottom:10px"></div>
-          <button class="btn btn-primary" onclick="saveCredentials('test')">💾 Save Test Credentials</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline" onclick="testCredentialsInForm('test')">⚡ Test Connection</button>
+            <button class="btn btn-primary" onclick="saveCredentials('test')">💾 Save Test Credentials</button>
+          </div>
         </div>
 
         <!-- Production credentials panel -->
@@ -269,7 +272,10 @@
             </div>
           </div>
           <div id="cred-prod-result" class="test-result hidden" style="margin-bottom:10px"></div>
-          <button class="btn btn-primary" onclick="saveCredentials('production')">💾 Save Production Credentials</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline" onclick="testCredentialsInForm('production')">⚡ Test Connection</button>
+            <button class="btn btn-primary" onclick="saveCredentials('production')">💾 Save Production Credentials</button>
+          </div>
         </div>
       </div>
     </div>
@@ -714,6 +720,75 @@ async function saveCredentials(mode) {
   }
 }
 
+/**
+ * Test Odoo credentials using the CURRENT form values — without saving them first.
+ * Works for both REST (x-api-key / bearer) and JSONRPC auth types.
+ * The backend /api/config/test-odoo inline mode is used so no DB writes happen.
+ */
+async function testCredentialsInForm(mode) {
+  const prefix   = mode === 'test' ? 'test' : 'prod';
+  const resultEl = document.getElementById(`cred-${prefix}-result`);
+
+  const gv  = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const url      = gv(`cred-${prefix}-odoo-url`);
+  const authType = gv(`cred-${prefix}-odoo-auth-type`) || 'jsonrpc';
+  const isRest   = authType === 'x-api-key' || authType === 'bearer';
+
+  if (!url) {
+    resultEl.className = 'test-result fail';
+    resultEl.textContent = '✗ Odoo URL is required';
+    resultEl.classList.remove('hidden');
+    return;
+  }
+
+  resultEl.className = 'test-result';
+  resultEl.textContent = 'Testing…';
+  resultEl.classList.remove('hidden');
+
+  try {
+    let body;
+    if (isRest) {
+      const apiKey = gv(`cred-${prefix}-odoo-api-key`);
+      if (!apiKey) {
+        resultEl.className = 'test-result fail';
+        resultEl.textContent = '✗ API key is required for REST auth';
+        return;
+      }
+      body = { url, authType, apiKey };
+    } else {
+      const username = gv(`cred-${prefix}-odoo-user`);
+      const password = gv(`cred-${prefix}-odoo-pass`);
+      const apiUrl   = gv(`cred-${prefix}-odoo-api-url`) || undefined;
+      if (!username) {
+        resultEl.className = 'test-result fail';
+        resultEl.textContent = '✗ Username is required for JSONRPC auth';
+        return;
+      }
+      if (!password) {
+        resultEl.className = 'test-result fail';
+        resultEl.textContent = '✗ Password is required (enter it to test)';
+        return;
+      }
+      body = { url, authType, username, password, apiUrl };
+    }
+
+    const res  = await fetch('/api/config/test-odoo', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify(body),
+    });
+    const data = await res.json();
+    resultEl.className = 'test-result ' + (data.ok ? 'ok' : 'fail');
+    resultEl.textContent = data.ok
+      ? '✓ ' + data.message
+      : '✗ ' + (data.error || 'Connection failed');
+  } catch (err) {
+    resultEl.className = 'test-result fail';
+    resultEl.textContent = '✗ Request failed: ' + esc(err.message);
+  }
+}
+
 // ── Import credentials from middleware ────────────────────
 let _middlewareCreds = null;
 
@@ -927,6 +1002,9 @@ async function loadCountryConfigs() {
                       : c.odoo_auth_type === 'bearer'    ? 'Bearer'
                       : 'JSONRPC';
       const isRest    = c.odoo_auth_type === 'x-api-key' || c.odoo_auth_type === 'bearer';
+      const versionBadge = (!isRest && c.odoo_version >= 17)
+        ? ` <span class="badge badge-muted" style="font-size:10px">v${c.odoo_version}</span>`
+        : '';
       // Show endpoint path overrides if they exist
       const endpointHints = isRest ? [
         c.odoo_sale_detail_path ? `<div style="color:#1a56db">①&nbsp;${escHtml(c.odoo_sale_detail_path)}</div>` : '',
@@ -938,7 +1016,7 @@ async function loadCountryConfigs() {
         <td><strong>${escHtml(c.country_code)}</strong></td>
         <td>${escHtml(c.country_name)}</td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.odoo_url || '\u2013')}${endpointHints ? '<br><small style="font-size:10px">' + endpointHints + '</small>' : ''}</td>
-        <td style="font-size:12px"><span class="badge badge-muted">${authLabel}</span></td>
+        <td style="font-size:12px"><span class="badge badge-muted">${authLabel}</span>${versionBadge}</td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.oracle_base_url || '\u2013')}</td>
         <td><span class="badge ${c.enabled ? 'badge-success' : 'badge-muted'}">${c.enabled ? 'Enabled' : 'Disabled'}</span></td>
         <td>
@@ -980,6 +1058,14 @@ function openCCModal(code, existing) {
             </div>
           </div>
           <div id="cc-jsonrpc-fields" style="grid-column:1/-1;display:${isRest?'none':'grid'};grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group" style="grid-column:1/-1">
+              <label class="form-label">Odoo Version <span style="font-size:11px;color:var(--muted)">(set to 17 or 18 for Odoo 17/18 instances to avoid HTML response errors)</span></label>
+              <select class="form-control" id="cc-odoo-version">
+                <option value="0"  ${(!ex.odoo_version||ex.odoo_version==0) ?'selected':''}>Legacy / Auto (Odoo ≤ 16 – uses /jsonrpc)</option>
+                <option value="17" ${ex.odoo_version==17?'selected':''}>Odoo 17 (uses /web/session/authenticate + /web/dataset/call_kw)</option>
+                <option value="18" ${ex.odoo_version==18?'selected':''}>Odoo 18 (uses /web/session/authenticate + /web/dataset/call_kw)</option>
+              </select>
+            </div>
             <div class="form-group"><label class="form-label">Odoo API URL <span style="font-size:11px;color:var(--muted)">(optional – JSONRPC override)</span></label><input class="form-control" id="cc-odoo-api-url" value="${escHtml(ex.odoo_api_url||'')}" placeholder="e.g. https://api.ibqpos.com"></div>
             <div class="form-group"></div>
             <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" value="${escHtml(ex.odoo_username||'')}" placeholder="admin"></div>
@@ -1098,11 +1184,13 @@ async function saveCCConfig() {
   if (!code) { document.getElementById('cc-modal-err').textContent = 'Country code is required'; return; }
   if (!name) { document.getElementById('cc-modal-err').textContent = 'Country name is required'; return; }
   const authType = document.getElementById('cc-auth-type').value;
+  const versionEl = document.getElementById('cc-odoo-version');
   const body = {
     country_name          : name,
     odoo_url              : document.getElementById('cc-odoo-url').value.trim() || null,
     odoo_api_url          : document.getElementById('cc-odoo-api-url') ? document.getElementById('cc-odoo-api-url').value.trim() || null : null,
     odoo_auth_type        : authType,
+    odoo_version          : versionEl ? Number(versionEl.value) : 0,
     odoo_username         : document.getElementById('cc-odoo-user') ? document.getElementById('cc-odoo-user').value.trim() || null : null,
     odoo_password         : document.getElementById('cc-odoo-pass') ? document.getElementById('cc-odoo-pass').value || null : null,
     odoo_api_key          : document.getElementById('cc-api-key') ? document.getElementById('cc-api-key').value || null : null,
