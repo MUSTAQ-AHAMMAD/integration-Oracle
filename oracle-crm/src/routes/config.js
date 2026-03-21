@@ -338,6 +338,15 @@ router.post('/test-odoo', async (req, res) => {
     if (!username) return res.status(400).json({ ok: false, error: 'username is required for JSONRPC auth' });
     if (!password) return res.status(400).json({ ok: false, error: 'password is required for JSONRPC auth' });
 
+    // Detect the common mistake of entering a URL in the username field.
+    if (/^https?:\/\//i.test(username)) {
+      return res.status(200).json({
+        ok   : false,
+        error: `The username "${username}" looks like a URL, not a login username. ` +
+               `Set the username to your Odoo login email or username (e.g. "admin" or "user@example.com").`,
+      });
+    }
+
     // Build normalization hint once so both success and failure paths share the message.
     const normHintInline = wasNormalized
       ? ` Note: The URL "${originalUrl}" contains a REST API path; ` +
@@ -416,6 +425,19 @@ router.post('/test-odoo', async (req, res) => {
       ok   : false,
       error: 'Odoo credentials not configured. ' +
              'Set credentials via the Configuration page (Server Credentials section).',
+    });
+  }
+
+  // Detect the common misconfiguration where the Odoo URL was accidentally
+  // saved in the username field (e.g. username = "https://www.ibqpos.com/").
+  // Sending a URL as a username always causes the Odoo server to reject the
+  // request with HTTP 400, surfacing a confusing raw-axios error message.
+  if (/^https?:\/\//i.test(username)) {
+    return res.status(200).json({
+      ok   : false,
+      error: `The saved Odoo username "${username}" looks like a URL, not a login username. ` +
+             `Open Server Credentials and set the username to your Odoo login email or username ` +
+             `(e.g. "admin" or "user@example.com").`,
     });
   }
 

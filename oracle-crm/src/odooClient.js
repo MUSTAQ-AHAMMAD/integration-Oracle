@@ -93,6 +93,22 @@ function _normalizeHttpError(err, context) {
     );
   }
 
+  // Fallback: catch axios errors that carry "status code NNN" in their message but
+  // where err.response is not available (e.g. when an interceptor re-wraps the error).
+  // Provide the same actionable hint rather than leaking the raw axios message.
+  if (err.message && /status code \d+/i.test(err.message)) {
+    const match  = err.message.match(/status code (\d+)/i);
+    const status = match ? Number(match[1]) : 0;
+    if (status === 400 || status === 404 || status === 405) {
+      return new Error(
+        `${prefix}HTTP ${status}: The server rejected the JSONRPC request. ` +
+        `If this server uses a REST API instead of standard Odoo JSONRPC, ` +
+        `switch the auth type to "x-api-key" or "bearer" in the Server Credentials configuration.`
+      );
+    }
+    return new Error(`${prefix}${err.message}`);
+  }
+
   return err;
 }
 
