@@ -160,6 +160,33 @@ const ODOO_ENDPOINTS = [
   },
 ];
 
+// ── Odoo URL normalisation ────────────────────────────────────────────────────
+// When users copy-paste a full REST API endpoint URL
+// (e.g. https://www.ibqpos.com/api/vSales/Sale_detail) into the Odoo URL field
+// the JSONRPC client will try to POST to /api/vSales/Sale_detail/jsonrpc, which
+// returns HTTP 400 from the REST endpoint.  For JSONRPC auth we only need the
+// base URL (protocol + host); for REST auth the OdooRestClient appends paths
+// itself.  This helper strips any /api/… (or similar) sub-path so callers
+// always work with just the base URL.
+//
+// Returns { url, wasNormalized, originalUrl }
+function normalizeOdooUrl(rawUrl) {
+  if (!rawUrl) return { url: rawUrl, wasNormalized: false, originalUrl: rawUrl };
+  const stripped = rawUrl.replace(/\/$/, '');
+  try {
+    const parsed = new URL(stripped);
+    // Strip paths that look like REST API endpoints (start with /api/)
+    if (/^\/api\//i.test(parsed.pathname)) {
+      return {
+        url          : parsed.origin,
+        wasNormalized: true,
+        originalUrl  : stripped,
+      };
+    }
+  } catch (_) { /* invalid URL – return as-is */ }
+  return { url: stripped, wasNormalized: false, originalUrl: stripped };
+}
+
 // ── GET /api/config/status ────────────────────────────────────────────────────
 router.get('/status', (req, res) => {
   const creds      = db.getActiveCredentials();
@@ -295,25 +322,36 @@ router.post('/test-odoo', async (req, res) => {
       return;
     }
 
-    // JSONRPC inline test
+    // JSONRPC inline test – normalize the URL first (strip /api/… paths)
     const username = body.username ? String(body.username).trim() : '';
     const password = body.password ? String(body.password) : '';
     const apiUrl   = body.apiUrl   ? String(body.apiUrl).trim() : null;
     const version  = Number(body.version) || 0;
+
+    const { url: normalizedUrl, wasNormalized, originalUrl } = normalizeOdooUrl(url);
+
     // db can be provided explicitly or auto-inferred from the URL subdomain
     const odooDb   = (body.odooDb || body.db)
       ? String(body.odooDb || body.db).trim()
-      : (OdooClient.inferDbFromUrl(url) || '');
+      : (OdooClient.inferDbFromUrl(normalizedUrl) || '');
 
     if (!username) return res.status(400).json({ ok: false, error: 'username is required for JSONRPC auth' });
     if (!password) return res.status(400).json({ ok: false, error: 'password is required for JSONRPC auth' });
 
+    // Build normalization hint once so both success and failure paths share the message.
+    const normHintInline = wasNormalized
+      ? ` Note: The URL "${originalUrl}" contains a REST API path; ` +
+        `only the base URL "${normalizedUrl}" is used for JSONRPC. ` +
+        `If this server uses a REST API, switch auth type to x-api-key / bearer.`
+      : '';
+
     try {
-      const client = new OdooClient(url, odooDb, username, password, apiUrl, version);
+      const client = new OdooClient(normalizedUrl, odooDb, username, password, apiUrl, version);
       const uid    = await client.authenticate();
-      res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, version=${version === 0 ? 'legacy' : version})`, uid });
+      const versionLabel = version === 0 ? 'legacy' : version;
+      res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, version=${versionLabel})${normHintInline}`, uid });
     } catch (err) {
-      res.status(200).json({ ok: false, error: err.message });
+      res.status(200).json({ ok: false, error: err.message + normHintInline });
     }
     return;
   }
@@ -346,14 +384,14 @@ router.post('/test-odoo', async (req, res) => {
   }
 
   // Standard JSONRPC path
-  const url      = creds.odoo.url;
+  const rawUrl   = creds.odoo.url;
   const odooDb   = creds.odoo.db;
   const username = creds.odoo.username;
   const password = creds.odoo.password;
   const apiUrl   = creds.odoo.apiUrl || null;
   const version  = creds.odoo.version || 0;
 
-  if (!url || !odooDb || !username || !password) {
+  if (!rawUrl || !odooDb || !username || !password) {
     return res.status(400).json({
       ok   : false,
       error: 'Odoo credentials not configured. ' +
@@ -361,12 +399,22 @@ router.post('/test-odoo', async (req, res) => {
     });
   }
 
+  const { url, wasNormalized, originalUrl } = normalizeOdooUrl(rawUrl);
+  const normHint = wasNormalized
+    ? ` (URL normalized from "${originalUrl}" to "${url}" — update the saved URL to avoid this warning)`
+    : '';
+
   try {
     const client = new OdooClient(url, odooDb, username, password, apiUrl, version);
     const uid    = await client.authenticate();
-    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server, version=${version === 0 ? 'legacy' : version})`, uid });
+    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server, version=${version === 0 ? 'legacy' : version})${normHint}`, uid });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    const urlHint = wasNormalized
+      ? ` The saved Odoo URL "${originalUrl}" contains a REST API path. ` +
+        `Using base URL "${url}" for JSONRPC — but the server may not support JSONRPC. ` +
+        `Consider switching auth type to x-api-key / bearer.`
+      : '';
+    res.status(500).json({ ok: false, error: err.message + urlHint });
   }
 });
 
@@ -495,8 +543,12 @@ router.put('/credentials', (req, res) => {
     persist(`oracle_${mode}_username`,  oracle.username);
     persist(`oracle_${mode}_password`,  oracle.password);
   }
+  // Normalize the Odoo URL: strip REST API path suffixes so the base URL is
+  // always stored.  This prevents OdooClient from appending /jsonrpc to a
+  // REST endpoint path (e.g. /api/vSales/Sale_detail) which causes HTTP 400.
+  const odooNorm = (odoo && odoo.url !== undefined) ? normalizeOdooUrl(odoo.url) : null;
   if (odoo) {
-    persist(`odoo_${mode}_url`,       odoo.url);
+    persist(`odoo_${mode}_url`,       odooNorm ? odooNorm.url : odoo.url);
     persist(`odoo_${mode}_username`,  odoo.username);
     persist(`odoo_${mode}_password`,  odoo.password);
     persist(`odoo_${mode}_auth_type`, odoo.authType);
@@ -507,7 +559,15 @@ router.put('/credentials', (req, res) => {
     }
   }
 
-  res.json({ ok: true, mode });
+  res.json({
+    ok  : true,
+    mode,
+    ...(odooNorm && odooNorm.wasNormalized && {
+      warning: `Odoo URL was automatically normalized to the base URL "${odooNorm.url}". ` +
+               `The REST API path was stripped. ` +
+               `If this server uses a REST API, update the auth type to x-api-key / bearer.`,
+    }),
+  });
 });
 
 // ── GET /api/config/activity-summary ─────────────────────────────────────────

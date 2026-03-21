@@ -311,23 +311,23 @@
       </div>
     </div>
 
-    <!-- ── Odoo JSONRPC Endpoints ──────────────────────────────────── -->
+    <!-- ── Odoo Endpoints (JSONRPC or REST depending on auth type) ─── -->
     <div class="card" id="odoo-endpoints-card" style="display:none">
-      <div class="card-header">
+      <div class="card-header" id="odoo-endpoints-card-header">
         🟣 Odoo JSONRPC Endpoints
-        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px" id="odoo-endpoint-card-subtitle">
           All Odoo calls share a single HTTP path (<code>/jsonrpc</code>); the service, method, and model encode the operation.
         </span>
       </div>
       <div class="card-body">
-        <p style="font-size:13px;margin-bottom:12px">
+        <p style="font-size:13px;margin-bottom:12px" id="odoo-endpoints-meta">
           Odoo URL: <code id="odoo-url-display">–</code> &nbsp;·&nbsp;
           Username: <code id="odoo-username-display">–</code>
         </p>
         <div class="table-wrap">
           <table class="endpoint-table" id="odoo-endpoint-table">
             <thead>
-              <tr>
+              <tr id="odoo-endpoint-thead-row">
                 <th style="width:180px">Name</th>
                 <th style="width:70px">Service</th>
                 <th style="width:120px">Model</th>
@@ -552,12 +552,41 @@ function renderOdooPanel(o) {
     panel.className = 'conn-panel ok';
     badge.className = 'conn-badge ok';
     badge.textContent = '✓ Configured';
-    meta.innerHTML =
-      `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
-      `<span>Username:</span> <strong>${esc(o.username)}</strong><br>` +
-      `<span>JSON-RPC path:</span> <strong>${esc(o.url)}${esc(o.jsonrpcPath)}</strong>`;
-    document.getElementById('odoo-url-display').textContent = o.url || '–';
-    document.getElementById('odoo-username-display').textContent = o.username || '–';
+
+    const isRest    = o.authType === 'x-api-key' || o.authType === 'bearer';
+
+    if (isRest) {
+      // REST auth: show URL + auth type + default REST paths; no JSON-RPC path
+      const authLabel  = o.authType === 'bearer' ? 'Bearer Token' : 'X-Api-Key';
+      const paths      = o.restPaths || {};
+      meta.innerHTML =
+        `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
+        `<span>Auth Type:</span> <strong>${esc(authLabel)}</strong><br>` +
+        `<span>Endpoints:</span> ` +
+        `<code>${esc(paths.saleDetail   || '/api/vSales/Sale_detail')}</code>, ` +
+        `<code>${esc(paths.posOrderLine || '/api/vSales/PosOrderLine')}</code>, ` +
+        `<code>${esc(paths.paymentLines || '/api/vSales/payment_lines')}</code>`;
+    } else {
+      // JSONRPC auth: show URL + username + JSON-RPC path; warn if URL has /api/ path
+      const hasApiPath = o.url && /\/api\//i.test(o.url);
+      const urlWarning = hasApiPath
+        ? `<div style="margin-top:6px;padding:6px 8px;background:#fff8e1;border:1px solid #f0c040;border-radius:4px;font-size:12px;color:#856404">` +
+          `⚠️ The Odoo URL <strong>${esc(o.url)}</strong> contains a REST API path (<code>/api/…</code>). ` +
+          `For JSONRPC authentication the base URL should be used (e.g. <strong>${esc(_odooBaseUrl(o.url))}</strong>). ` +
+          `Open <strong>Server Credentials</strong> below to update the URL or switch the auth type to ` +
+          `<strong>x-api-key</strong> / <strong>bearer</strong> if this server exposes a REST API.</div>`
+        : '';
+      meta.innerHTML =
+        `<span>URL:</span> <strong>${esc(o.url)}</strong><br>` +
+        `<span>Username:</span> <strong>${esc(o.username)}</strong><br>` +
+        `<span>JSON-RPC path:</span> <strong>${esc(o.url)}${esc(o.jsonrpcPath)}</strong>` +
+        urlWarning;
+    }
+
+    const urlEl = document.getElementById('odoo-url-display');
+    const usrEl = document.getElementById('odoo-username-display');
+    if (urlEl) urlEl.textContent = o.url || '–';
+    if (usrEl) usrEl.textContent = isRest ? '–' : (o.username || '–');
     document.getElementById('odoo-endpoints-card').style.display = '';
   } else {
     panel.className = 'conn-panel fail';
@@ -566,6 +595,11 @@ function renderOdooPanel(o) {
     meta.innerHTML =
       'Credentials not set for this server mode. Use the <strong>Server Credentials</strong> section below to configure Odoo ERP.';
   }
+}
+
+/** Extract just the origin (base URL) from a potentially full URL. */
+function _odooBaseUrl(url) {
+  try { return new URL(url).origin; } catch (_) { return url; }
 }
 
 function renderOracleEndpoints(oracle) {
@@ -582,16 +616,79 @@ function renderOracleEndpoints(oracle) {
 }
 
 function renderOdooEndpoints(odoo) {
-  const tbody = document.getElementById('odoo-endpoint-tbody');
-  tbody.innerHTML = odoo.endpoints.map(ep => `
-    <tr>
-      <td><strong>${esc(ep.name)}</strong></td>
-      <td><code style="font-size:11px">${esc(ep.service)}</code></td>
-      <td><code style="font-size:11px">${esc(ep.model || '–')}</code></td>
-      <td><code style="font-size:11px">${esc(ep.odooMethod || '–')}</code></td>
-      <td style="font-size:12px">${esc(ep.description)}</td>
-    </tr>
-  `).join('');
+  const tbody     = document.getElementById('odoo-endpoint-tbody');
+  const theadRow  = document.getElementById('odoo-endpoint-thead-row');
+  const cardHeader = document.getElementById('odoo-endpoints-card-header');
+  const metaEl    = document.getElementById('odoo-endpoints-meta');
+
+  const isRest = odoo.authType === 'x-api-key' || odoo.authType === 'bearer';
+
+  if (isRest) {
+    // ── REST auth: show the actual REST endpoint paths ─────────────────────
+    if (cardHeader) {
+      cardHeader.innerHTML =
+        '🟣 Odoo REST API Endpoints' +
+        ' <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px" id="odoo-endpoint-card-subtitle">' +
+        'Custom REST API paths called by the sync job — not the standard Odoo /jsonrpc endpoint.' +
+        '</span>';
+    }
+    if (metaEl) {
+      metaEl.innerHTML =
+        `Odoo URL: <code id="odoo-url-display">${esc(odoo.url || '–')}</code>` +
+        ` &nbsp;·&nbsp; Auth: <code>${esc(odoo.authType)}</code>`;
+    }
+    if (theadRow) {
+      theadRow.innerHTML = `
+        <th style="width:180px">Name</th>
+        <th>Path</th>
+        <th>Description</th>
+      `;
+    }
+    const paths = odoo.restPaths || {};
+    tbody.innerHTML = [
+      { name: 'Sale Headers',  path: paths.saleDetail   || '/api/vSales/Sale_detail',   desc: 'Fetch POS sale header records filtered by date range.' },
+      { name: 'Order Lines',   path: paths.posOrderLine || '/api/vSales/PosOrderLine',  desc: 'Fetch POS order line items for all fetched sales.' },
+      { name: 'Payment Lines', path: paths.paymentLines || '/api/vSales/payment_lines', desc: 'Fetch payment lines for all fetched sales.' },
+    ].map(ep => `
+      <tr>
+        <td><strong>${esc(ep.name)}</strong></td>
+        <td class="endpoint-path">${esc(ep.path)}</td>
+        <td style="font-size:12px">${esc(ep.desc)}</td>
+      </tr>
+    `).join('');
+  } else {
+    // ── JSONRPC auth: show the standard Odoo JSONRPC endpoint catalog ──────
+    if (cardHeader) {
+      cardHeader.innerHTML =
+        '🟣 Odoo JSONRPC Endpoints' +
+        ' <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px" id="odoo-endpoint-card-subtitle">' +
+        'All Odoo calls share a single HTTP path (<code>/jsonrpc</code>); the service, method, and model encode the operation.' +
+        '</span>';
+    }
+    if (metaEl) {
+      metaEl.innerHTML =
+        `Odoo URL: <code id="odoo-url-display">${esc(odoo.url || '–')}</code>` +
+        ` &nbsp;·&nbsp; Username: <code id="odoo-username-display">${esc(odoo.username || '–')}</code>`;
+    }
+    if (theadRow) {
+      theadRow.innerHTML = `
+        <th style="width:180px">Name</th>
+        <th style="width:70px">Service</th>
+        <th style="width:120px">Model</th>
+        <th style="width:100px">Odoo Method</th>
+        <th>Description</th>
+      `;
+    }
+    tbody.innerHTML = odoo.endpoints.map(ep => `
+      <tr>
+        <td><strong>${esc(ep.name)}</strong></td>
+        <td><code style="font-size:11px">${esc(ep.service)}</code></td>
+        <td><code style="font-size:11px">${esc(ep.model || '–')}</code></td>
+        <td><code style="font-size:11px">${esc(ep.odooMethod || '–')}</code></td>
+        <td style="font-size:12px">${esc(ep.description)}</td>
+      </tr>
+    `).join('');
+  }
 }
 
 // ── Connection test handlers ──────────────────────────────
@@ -708,7 +805,9 @@ async function saveCredentials(mode) {
     });
     const data = await res.json();
     resultEl.className = 'test-result ' + (data.ok ? 'ok' : 'fail');
-    resultEl.textContent = data.ok ? `✓ ${mode.charAt(0).toUpperCase() + mode.slice(1)} credentials saved` : '✗ ' + (data.error || 'Save failed');
+    resultEl.textContent = data.ok
+      ? `✓ ${mode.charAt(0).toUpperCase() + mode.slice(1)} credentials saved` + (data.warning ? ` — ⚠️ ${data.warning}` : '')
+      : '✗ ' + (data.error || 'Save failed');
     resultEl.classList.remove('hidden');
     // Clear password fields after save
     const passFields = document.querySelectorAll(`#cred-panel-${mode} input[type="password"]`);
@@ -738,6 +837,19 @@ async function testCredentialsInForm(mode) {
   if (!url) {
     resultEl.className = 'test-result fail';
     resultEl.textContent = '✗ Odoo URL is required';
+    resultEl.classList.remove('hidden');
+    return;
+  }
+
+  // Warn early if URL contains a REST API path but JSONRPC auth is selected.
+  if (!isRest && /\/api\//i.test(url)) {
+    let baseUrl = url;
+    try { baseUrl = new URL(url).origin; } catch (_) {}
+    resultEl.className = 'test-result fail';
+    resultEl.innerHTML =
+      `✗ The URL <strong>${esc(url)}</strong> contains a REST API path (<code>/api/…</code>).<br>` +
+      `For JSONRPC authentication, use only the base URL: <strong>${esc(baseUrl)}</strong><br>` +
+      `Or switch auth type to <strong>x-api-key</strong> / <strong>bearer</strong> for REST access.`;
     resultEl.classList.remove('hidden');
     return;
   }
@@ -816,6 +928,7 @@ async function autoImportMiddlewareCredentials() {
         renderOraclePanel(d.oracle);
         renderOdooPanel(d.odoo);
         if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+        if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
         loadCredentials().catch(() => {});
       })
       .catch(() => {});
@@ -929,6 +1042,7 @@ async function importAndApplyMiddlewareCredentials(mode) {
           renderOraclePanel(d.oracle);
           renderOdooPanel(d.odoo);
           if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+          if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
           loadCredentials().then(() => showCredTab(mode)).catch(() => showCredTab(mode));
           box.style.display = 'none';
         })
@@ -976,7 +1090,12 @@ window.onServerModeChanged = function(newMode) {
   // Reload config status for new mode
   fetch('/api/config/full')
     .then(r => r.json())
-    .then(d => { renderOraclePanel(d.oracle); renderOdooPanel(d.odoo); })
+    .then(d => {
+      renderOraclePanel(d.oracle);
+      renderOdooPanel(d.odoo);
+      if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
+      if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
+    })
     .catch(() => {});
 };
 
