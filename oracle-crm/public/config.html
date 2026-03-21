@@ -210,7 +210,10 @@
             </div>
           </div>
           <div id="cred-test-result" class="test-result hidden" style="margin-bottom:10px"></div>
-          <button class="btn btn-primary" onclick="saveCredentials('test')">💾 Save Test Credentials</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline" onclick="testCredentialsInForm('test')">⚡ Test Connection</button>
+            <button class="btn btn-primary" onclick="saveCredentials('test')">💾 Save Test Credentials</button>
+          </div>
         </div>
 
         <!-- Production credentials panel -->
@@ -269,7 +272,10 @@
             </div>
           </div>
           <div id="cred-prod-result" class="test-result hidden" style="margin-bottom:10px"></div>
-          <button class="btn btn-primary" onclick="saveCredentials('production')">💾 Save Production Credentials</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline" onclick="testCredentialsInForm('production')">⚡ Test Connection</button>
+            <button class="btn btn-primary" onclick="saveCredentials('production')">💾 Save Production Credentials</button>
+          </div>
         </div>
       </div>
     </div>
@@ -711,6 +717,75 @@ async function saveCredentials(mode) {
     resultEl.className = 'test-result fail';
     resultEl.textContent = '✗ ' + err.message;
     resultEl.classList.remove('hidden');
+  }
+}
+
+/**
+ * Test Odoo credentials using the CURRENT form values — without saving them first.
+ * Works for both REST (x-api-key / bearer) and JSONRPC auth types.
+ * The backend /api/config/test-odoo inline mode is used so no DB writes happen.
+ */
+async function testCredentialsInForm(mode) {
+  const prefix   = mode === 'test' ? 'test' : 'prod';
+  const resultEl = document.getElementById(`cred-${prefix}-result`);
+
+  const gv  = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const url      = gv(`cred-${prefix}-odoo-url`);
+  const authType = gv(`cred-${prefix}-odoo-auth-type`) || 'jsonrpc';
+  const isRest   = authType === 'x-api-key' || authType === 'bearer';
+
+  if (!url) {
+    resultEl.className = 'test-result fail';
+    resultEl.textContent = '✗ Odoo URL is required';
+    resultEl.classList.remove('hidden');
+    return;
+  }
+
+  resultEl.className = 'test-result';
+  resultEl.textContent = 'Testing…';
+  resultEl.classList.remove('hidden');
+
+  try {
+    let body;
+    if (isRest) {
+      const apiKey = gv(`cred-${prefix}-odoo-api-key`);
+      if (!apiKey) {
+        resultEl.className = 'test-result fail';
+        resultEl.textContent = '✗ API key is required for REST auth';
+        return;
+      }
+      body = { url, authType, apiKey };
+    } else {
+      const username = gv(`cred-${prefix}-odoo-user`);
+      const password = gv(`cred-${prefix}-odoo-pass`);
+      const apiUrl   = gv(`cred-${prefix}-odoo-api-url`) || undefined;
+      if (!username) {
+        resultEl.className = 'test-result fail';
+        resultEl.textContent = '✗ Username is required for JSONRPC auth';
+        return;
+      }
+      if (!password) {
+        resultEl.className = 'test-result fail';
+        resultEl.textContent = '✗ Password is required (enter it to test)';
+        return;
+      }
+      body = { url, authType, username, password, apiUrl };
+    }
+
+    const res  = await fetch('/api/config/test-odoo', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify(body),
+    });
+    const data = await res.json();
+    resultEl.className = 'test-result ' + (data.ok ? 'ok' : 'fail');
+    resultEl.textContent = data.ok
+      ? '✓ ' + data.message
+      : '✗ ' + (data.error || 'Connection failed');
+  } catch (err) {
+    resultEl.className = 'test-result fail';
+    resultEl.textContent = '✗ Request failed: ' + esc(err.message);
   }
 }
 

@@ -261,9 +261,65 @@ router.post('/test-oracle', async (req, res) => {
 
 // ── POST /api/config/test-odoo ────────────────────────────────────────────────
 // Tests the Odoo connection for the global or a specific country config.
-// Body (optional): { country: 'BH' }  – if provided, uses the country's creds.
+//
+// Body variants:
+//   {}                         – test active saved credentials
+//   { country: 'BH' }         – test a specific country's saved credentials
+//   { url, apiKey, authType }  – inline REST test (no DB lookup; "test before save")
+//   { url, username, password, odooDb?, apiUrl?, version? }
+//                              – inline JSONRPC test (no DB lookup; "test before save")
+//
+// The inline mode is triggered when `url` is present in the request body.
+// This lets the credential form test with unsaved values before committing them.
 router.post('/test-odoo', async (req, res) => {
-  const country  = (req.body && req.body.country) ? String(req.body.country).toUpperCase() : null;
+  const body = req.body || {};
+
+  // ── Inline credentials mode (test before save) ────────────────────────────
+  // Triggered when the caller passes `url` directly in the body instead of
+  // relying on saved credentials.  Supports both REST and JSONRPC auth types.
+  if (body.url) {
+    const url      = String(body.url).trim().replace(/\/$/, '');
+    const authType = (body.authType || 'jsonrpc').toLowerCase();
+
+    if (authType === 'x-api-key' || authType === 'bearer') {
+      const apiKey = body.apiKey ? String(body.apiKey).trim() : '';
+      if (!apiKey) return res.status(400).json({ ok: false, error: 'apiKey is required for REST auth' });
+      try {
+        const OdooRestClient = require('../odooRestClient');
+        const client = new OdooRestClient(url, authType, apiKey);
+        await client.searchSalesOrders([], null, { limit: 1 });
+        res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url})` });
+      } catch (err) {
+        res.status(200).json({ ok: false, error: err.message });
+      }
+      return;
+    }
+
+    // JSONRPC inline test
+    const username = body.username ? String(body.username).trim() : '';
+    const password = body.password ? String(body.password) : '';
+    const apiUrl   = body.apiUrl   ? String(body.apiUrl).trim() : null;
+    const version  = Number(body.version) || 0;
+    // db can be provided explicitly or auto-inferred from the URL subdomain
+    const odooDb   = (body.odooDb || body.db)
+      ? String(body.odooDb || body.db).trim()
+      : (OdooClient.inferDbFromUrl(url) || '');
+
+    if (!username) return res.status(400).json({ ok: false, error: 'username is required for JSONRPC auth' });
+    if (!password) return res.status(400).json({ ok: false, error: 'password is required for JSONRPC auth' });
+
+    try {
+      const client = new OdooClient(url, odooDb, username, password, apiUrl, version);
+      const uid    = await client.authenticate();
+      res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, version=${version === 0 ? 'legacy' : version})`, uid });
+    } catch (err) {
+      res.status(200).json({ ok: false, error: err.message });
+    }
+    return;
+  }
+
+  // ── Saved-credentials mode (existing behaviour) ───────────────────────────
+  const country  = body.country ? String(body.country).toUpperCase() : null;
   const creds    = country ? db.getCredentialsForCountry(country) : db.getActiveCredentials();
   const authType = (creds.odoo.authType || 'jsonrpc').toLowerCase();
 
