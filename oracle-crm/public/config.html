@@ -757,11 +757,12 @@ async function testConnection(system) {
   const btn    = document.getElementById(`btn-test-${system}`);
   const result = document.getElementById(`${system}-test-result`);
 
-  // Early guard for Odoo: if the saved URL has a REST API path (/api/…) but
-  // the auth type is JSONRPC, JSONRPC will always fail.  Show an actionable
-  // message immediately instead of waiting for the backend to return 400.
+  // Early guards for Odoo: detect common misconfigurations before hitting the
+  // backend so the user gets instant, actionable feedback.
   if (system === 'odoo' && _odooConfig) {
     const isRest = _odooConfig.authType === 'x-api-key' || _odooConfig.authType === 'bearer';
+
+    // Guard 1: saved URL has a REST API path (/api/…) but auth type is JSONRPC
     if (!isRest && _odooConfig.url && /\/api\//i.test(_odooConfig.url)) {
       const baseUrl = _odooBaseUrl(_odooConfig.url);
       result.className = 'test-result fail';
@@ -772,6 +773,19 @@ async function testConnection(system) {
         `&nbsp;&nbsp;(A) switch auth type to <strong>x-api-key</strong> or <strong>bearer</strong> and enter your API key (recommended), or<br>` +
         `&nbsp;&nbsp;(B) update the URL to the base URL <strong>${esc(baseUrl)}</strong> if the server supports Odoo JSONRPC.<br>` +
         `<button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="quickFixOdooRestAuth()">🔧 Quick Fix: Switch to REST Auth</button>`;
+      result.classList.remove('hidden');
+      return;
+    }
+
+    // Guard 2: saved username looks like a URL (e.g. https://www.ibqpos.com/).
+    // Sending a URL as a username always causes Odoo to reject with HTTP 400.
+    if (!isRest && _odooConfig.username && /^https?:\/\//i.test(_odooConfig.username)) {
+      result.className = 'test-result fail';
+      result.innerHTML =
+        `✗ The saved Odoo username <strong>${esc(_odooConfig.username)}</strong> looks like a URL, not a login username.<br>` +
+        `Open <strong>Server Credentials</strong> below and set the username to your Odoo login email or username ` +
+        `(e.g. <code>admin</code> or <code>user@example.com</code>). ` +
+        `This misconfiguration will cause the connection test to fail with HTTP 400.`;
       result.classList.remove('hidden');
       return;
     }
@@ -843,6 +857,12 @@ async function loadCredentials() {
     // Refresh auth type field visibility for both modes
     toggleGlobalOdooAuthFields('test');
     toggleGlobalOdooAuthFields('production');
+
+    // Trigger username URL check after loading so any saved URL is flagged immediately
+    const testUserEl = document.getElementById('cred-test-odoo-user');
+    const prodUserEl = document.getElementById('cred-prod-odoo-user');
+    if (testUserEl) checkOdooUsernameField(testUserEl);
+    if (prodUserEl) checkOdooUsernameField(prodUserEl);
   } catch (_) {}
 }
 
