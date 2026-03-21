@@ -567,20 +567,22 @@ class OdooClient {
   }
 
   /**
-   * Build a standard domain for filtering by date range and optional store.
+   * Build a standard domain for filtering by date range and optional store/company.
    *
-   * @param {string}  dateFrom   YYYY-MM-DD
-   * @param {string}  dateTo     YYYY-MM-DD (inclusive)
-   * @param {number}  [storeId]  warehouse id
-   * @param {string[]} [states]  default: ['sale','done']
+   * @param {string}  dateFrom    YYYY-MM-DD
+   * @param {string}  dateTo      YYYY-MM-DD (inclusive)
+   * @param {number}  [storeId]   warehouse id
+   * @param {string[]} [states]   default: ['sale','done']
+   * @param {number}  [companyId] Odoo company id (for multi-company instances)
    */
-  static buildDomain(dateFrom, dateTo, storeId, states = ['sale', 'done']) {
+  static buildDomain(dateFrom, dateTo, storeId, states = ['sale', 'done'], companyId = null) {
     const d = [
       ['date_order', '>=', `${dateFrom} 00:00:00`],
       ['date_order', '<=', `${dateTo} 23:59:59`],
       ['state', 'in', states],
     ];
-    if (storeId) d.push(['warehouse_id', '=', storeId]);
+    if (storeId)   d.push(['warehouse_id', '=', storeId]);
+    if (companyId) d.push(['company_id', '=', companyId]);
     return d;
   }
 }

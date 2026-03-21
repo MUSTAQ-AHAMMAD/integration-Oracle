@@ -119,20 +119,21 @@ function jobLog(jobId, level, message, meta = {}) {
  * Start a background fetch-from-Odoo job.
  *
  * @param {object} options
- * @param {string}  options.dateFrom   YYYY-MM-DD (required)
- * @param {string}  options.dateTo     YYYY-MM-DD (required, can equal dateFrom)
- * @param {number}  [options.storeId]  filter by warehouse_id
+ * @param {string}  options.dateFrom    YYYY-MM-DD (required)
+ * @param {string}  options.dateTo      YYYY-MM-DD (required, can equal dateFrom)
+ * @param {number}  [options.storeId]   filter by warehouse_id
  * @param {string}  [options.storeName]
- * @param {string}  [options.mode]     'BY_DATE' | 'BY_STORE_DATE' | 'ALL_STORES_DATE'
+ * @param {string}  [options.mode]      'BY_DATE' | 'BY_STORE_DATE' | 'ALL_STORES_DATE'
+ * @param {number}  [options.companyId] filter by Odoo company_id (multi-company)
  * @returns {string} jobId
  */
 function startFetchJob(options) {
-  const { dateFrom, dateTo, storeId, storeName, country } = options;
+  const { dateFrom, dateTo, storeId, storeName, country, companyId } = options;
   const mode  = storeId ? 'BY_STORE_DATE' : 'ALL_STORES_DATE';
   const jobId = randomUUID();
 
   db.createJob({ jobId, jobType: 'FETCH', mode, dateFrom, dateTo, storeId, storeName });
-  logger.info('Fetch job created', { jobId, mode, dateFrom, dateTo, storeId, country });
+  logger.info('Fetch job created', { jobId, mode, dateFrom, dateTo, storeId, country, companyId });
 
   // Run in background – do NOT await
   setImmediate(() => _runFetchJob(jobId, options));
@@ -140,13 +141,13 @@ function startFetchJob(options) {
   return jobId;
 }
 
-async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country }) {
+async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, companyId }) {
   db.updateJob(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
-  jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country });
+  jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country, companyId });
 
   try {
     const odoo   = buildOdooClient(country);
-    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId);
+    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, ['sale', 'done'], companyId ? Number(companyId) : null);
 
     jobLog(jobId, 'info', 'Connecting to Odoo…');
     await odoo.authenticate();
