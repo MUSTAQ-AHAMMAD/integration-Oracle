@@ -75,7 +75,7 @@ const VALID_COUNTRIES = ['AE','KW','OM','SA','BH','QA'];
 
 // ── POST /api/odoo/fetch ──────────────────────────────────────────────────────
 router.post('/fetch', (req, res) => {
-  const { dateFrom, dateTo, storeId, storeName, country } = req.body || {};
+  const { dateFrom, dateTo, storeId, storeName, country, companyId } = req.body || {};
 
   if (!dateFrom || !validateDate(dateFrom)) return badRequest(res, 'dateFrom is required (YYYY-MM-DD)');
   if (!dateTo   || !validateDate(dateTo))   return badRequest(res, 'dateTo is required (YYYY-MM-DD)');
@@ -83,17 +83,22 @@ router.post('/fetch', (req, res) => {
   if (country && !VALID_COUNTRIES.includes(country)) {
     return badRequest(res, `country must be one of: ${VALID_COUNTRIES.join(', ')}`);
   }
+  if (companyId !== undefined && companyId !== null && companyId !== '') {
+    const cid = Number(companyId);
+    if (!Number.isInteger(cid) || cid < 1) return badRequest(res, 'companyId must be a positive integer');
+  }
 
   try {
     const jobId = startFetchJob({
       dateFrom,
       dateTo,
-      storeId  : storeId  ? Number(storeId)  : undefined,
+      storeId  : storeId   ? Number(storeId)   : undefined,
       storeName: storeName || undefined,
       country  : country   || undefined,
+      companyId: companyId ? Number(companyId) : undefined,
     });
 
-    logger.info('Fetch job queued via API', { jobId, dateFrom, dateTo, storeId, country });
+    logger.info('Fetch job queued via API', { jobId, dateFrom, dateTo, storeId, country, companyId });
     res.json({ jobId, status: 'QUEUED', message: 'Fetch job started in background' });
   } catch (err) {
     logger.error('Failed to start fetch job', { err: err.message });
