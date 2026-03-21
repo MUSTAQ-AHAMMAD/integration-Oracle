@@ -927,6 +927,9 @@ async function loadCountryConfigs() {
                       : c.odoo_auth_type === 'bearer'    ? 'Bearer'
                       : 'JSONRPC';
       const isRest    = c.odoo_auth_type === 'x-api-key' || c.odoo_auth_type === 'bearer';
+      const versionBadge = (!isRest && c.odoo_version >= 17)
+        ? ` <span class="badge badge-muted" style="font-size:10px">v${c.odoo_version}</span>`
+        : '';
       // Show endpoint path overrides if they exist
       const endpointHints = isRest ? [
         c.odoo_sale_detail_path ? `<div style="color:#1a56db">①&nbsp;${escHtml(c.odoo_sale_detail_path)}</div>` : '',
@@ -938,7 +941,7 @@ async function loadCountryConfigs() {
         <td><strong>${escHtml(c.country_code)}</strong></td>
         <td>${escHtml(c.country_name)}</td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.odoo_url || '\u2013')}${endpointHints ? '<br><small style="font-size:10px">' + endpointHints + '</small>' : ''}</td>
-        <td style="font-size:12px"><span class="badge badge-muted">${authLabel}</span></td>
+        <td style="font-size:12px"><span class="badge badge-muted">${authLabel}</span>${versionBadge}</td>
         <td style="font-size:12px;color:var(--muted)">${escHtml(c.oracle_base_url || '\u2013')}</td>
         <td><span class="badge ${c.enabled ? 'badge-success' : 'badge-muted'}">${c.enabled ? 'Enabled' : 'Disabled'}</span></td>
         <td>
@@ -980,6 +983,14 @@ function openCCModal(code, existing) {
             </div>
           </div>
           <div id="cc-jsonrpc-fields" style="grid-column:1/-1;display:${isRest?'none':'grid'};grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group" style="grid-column:1/-1">
+              <label class="form-label">Odoo Version <span style="font-size:11px;color:var(--muted)">(set to 17 or 18 for Odoo 17/18 instances to avoid HTML response errors)</span></label>
+              <select class="form-control" id="cc-odoo-version">
+                <option value="0"  ${(!ex.odoo_version||ex.odoo_version==0) ?'selected':''}>Legacy / Auto (Odoo ≤ 16 – uses /jsonrpc)</option>
+                <option value="17" ${ex.odoo_version==17?'selected':''}>Odoo 17 (uses /web/session/authenticate + /web/dataset/call_kw)</option>
+                <option value="18" ${ex.odoo_version==18?'selected':''}>Odoo 18 (uses /web/session/authenticate + /web/dataset/call_kw)</option>
+              </select>
+            </div>
             <div class="form-group"><label class="form-label">Odoo API URL <span style="font-size:11px;color:var(--muted)">(optional – JSONRPC override)</span></label><input class="form-control" id="cc-odoo-api-url" value="${escHtml(ex.odoo_api_url||'')}" placeholder="e.g. https://api.ibqpos.com"></div>
             <div class="form-group"></div>
             <div class="form-group"><label class="form-label">Odoo Username</label><input class="form-control" id="cc-odoo-user" value="${escHtml(ex.odoo_username||'')}" placeholder="admin"></div>
@@ -1098,11 +1109,13 @@ async function saveCCConfig() {
   if (!code) { document.getElementById('cc-modal-err').textContent = 'Country code is required'; return; }
   if (!name) { document.getElementById('cc-modal-err').textContent = 'Country name is required'; return; }
   const authType = document.getElementById('cc-auth-type').value;
+  const versionEl = document.getElementById('cc-odoo-version');
   const body = {
     country_name          : name,
     odoo_url              : document.getElementById('cc-odoo-url').value.trim() || null,
     odoo_api_url          : document.getElementById('cc-odoo-api-url') ? document.getElementById('cc-odoo-api-url').value.trim() || null : null,
     odoo_auth_type        : authType,
+    odoo_version          : versionEl ? Number(versionEl.value) : 0,
     odoo_username         : document.getElementById('cc-odoo-user') ? document.getElementById('cc-odoo-user').value.trim() || null : null,
     odoo_password         : document.getElementById('cc-odoo-pass') ? document.getElementById('cc-odoo-pass').value || null : null,
     odoo_api_key          : document.getElementById('cc-api-key') ? document.getElementById('cc-api-key').value || null : null,

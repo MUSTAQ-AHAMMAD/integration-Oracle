@@ -295,6 +295,7 @@ router.post('/test-odoo', async (req, res) => {
   const username = creds.odoo.username;
   const password = creds.odoo.password;
   const apiUrl   = creds.odoo.apiUrl || null;
+  const version  = creds.odoo.version || 0;
 
   if (!url || !odooDb || !username || !password) {
     return res.status(400).json({
@@ -305,9 +306,9 @@ router.post('/test-odoo', async (req, res) => {
   }
 
   try {
-    const client = new OdooClient(url, odooDb, username, password, apiUrl);
+    const client = new OdooClient(url, odooDb, username, password, apiUrl, version);
     const uid    = await client.authenticate();
-    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server)`, uid });
+    res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server, version=${version === 0 ? 'legacy' : version})`, uid });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -406,6 +407,7 @@ router.get('/credentials', (req, res) => {
         authType : db.getAppSetting(`odoo_${m}_auth_type`) || (m === 'production' ? process.env.ODOO_AUTH_TYPE  || 'jsonrpc' : 'jsonrpc'),
         apiKey   : mask(db.getAppSetting(`odoo_${m}_api_key`)  || (m === 'production' ? process.env.ODOO_API_KEY  : null)),
         apiUrl   : db.getAppSetting(`odoo_${m}_api_url`)   || (m === 'production' ? process.env.ODOO_API_URL   || null : null),
+        version  : Number(db.getAppSetting(`odoo_${m}_version`) || (m === 'production' ? process.env.ODOO_VERSION || 0 : 0)),
       },
     };
   }
@@ -444,6 +446,9 @@ router.put('/credentials', (req, res) => {
     persist(`odoo_${mode}_auth_type`, odoo.authType);
     persist(`odoo_${mode}_api_key`,   odoo.apiKey);
     persist(`odoo_${mode}_api_url`,   odoo.apiUrl);
+    if (odoo.version !== undefined) {
+      persist(`odoo_${mode}_version`, odoo.version != null ? String(Number(odoo.version)) : null);
+    }
   }
 
   res.json({ ok: true, mode });
@@ -486,7 +491,7 @@ router.put('/country-configs/:code', (req, res) => {
   const countryCode = req.params.code.toUpperCase();
   const {
     country_name, odoo_url, odoo_api_url, odoo_username, odoo_password,
-    odoo_auth_type, odoo_api_key,
+    odoo_auth_type, odoo_api_key, odoo_version,
     odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path,
     oracle_base_url, oracle_username, oracle_password, enabled,
   } = req.body || {};
@@ -496,6 +501,12 @@ router.put('/country-configs/:code', (req, res) => {
   const validAuthTypes = ['jsonrpc', 'x-api-key', 'bearer'];
   if (odoo_auth_type && !validAuthTypes.includes(odoo_auth_type)) {
     return res.status(400).json({ error: `odoo_auth_type must be one of: ${validAuthTypes.join(', ')}` });
+  }
+
+  // Validate odoo_version if provided
+  const versionNum = odoo_version != null ? Number(odoo_version) : 0;
+  if (isNaN(versionNum) || versionNum < 0) {
+    return res.status(400).json({ error: 'odoo_version must be a non-negative number (e.g. 0, 15, 16, 17, 18)' });
   }
 
   const existing = db.getCountryConfig(countryCode);
@@ -513,6 +524,7 @@ router.put('/country-configs/:code', (req, res) => {
     odooPassword      : resolvePass(odoo_password, 'odoo_password'),
     odooAuthType      : odoo_auth_type       || 'jsonrpc',
     odooApiKey        : resolvePass(odoo_api_key,  'odoo_api_key'),
+    odooVersion       : versionNum,
     odooSaleDetailPath: odoo_sale_detail_path || null,
     odooOrderLinePath : odoo_order_line_path  || null,
     odooPaymentPath   : odoo_payment_path     || null,

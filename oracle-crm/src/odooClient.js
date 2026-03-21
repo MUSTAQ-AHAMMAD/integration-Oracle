@@ -27,7 +27,9 @@ const https  = require('https');
 const axios  = require('axios');
 const logger = require('./logger').child('OdooClient');
 
-const JSONRPC_PATH = '/jsonrpc';
+const JSONRPC_PATH        = '/jsonrpc';
+const SESSION_AUTH_PATH   = '/web/session/authenticate';
+const CALL_KW_PATH        = '/web/dataset/call_kw';
 
 /**
  * Convert a low-level HTTP / JSON-parse error into a human-readable message.
@@ -88,8 +90,12 @@ class OdooClient {
    *                            exposed on api.mycompany.com while the UI lives on
    *                            www.mycompany.com) set this to the API base URL.
    *                            If omitted, `url` is used for both display and API calls.
+   * @param {number} [version]  Odoo version number (e.g. 15, 16, 17, 18).  Versions ≥ 17
+   *                            use `/web/session/authenticate` + `/web/dataset/call_kw`
+   *                            instead of the legacy `/jsonrpc` endpoint.
+   *                            0 or omitted → legacy `/jsonrpc` behaviour (Odoo ≤ 16).
    */
-  constructor(url, db, username, password, apiUrl) {
+  constructor(url, db, username, password, apiUrl, version = 0) {
     this.url      = url.replace(/\/$/, '');
     // Auto-infer db from URL if not provided (e.g. https://mycompany.odoo.com → 'mycompany').
     // Falls back to empty string rather than null so downstream code that requires a string stays safe.
@@ -100,6 +106,13 @@ class OdooClient {
     // apiUrl overrides the HTTP base for all JSONRPC calls when the API is
     // hosted on a different domain than the main Odoo URL.
     this.apiUrl   = (apiUrl || url).replace(/\/$/, '');
+    // Odoo version – drives which endpoint paths are used.
+    // version >= 17  →  /web/session/authenticate  +  /web/dataset/call_kw
+    // version <  17  →  /jsonrpc  (legacy, default)
+    this.version  = Number(version) || 0;
+    // Session cookie obtained after authenticating against /web/session/authenticate.
+    // Used as the Authorization mechanism for all subsequent v17+ calls.
+    this._sessionCookies = null;
 
     this.http = axios.create({
       baseURL    : this.apiUrl,
@@ -113,8 +126,19 @@ class OdooClient {
     });
   }
 
-  // ── Internal JSONRPC helper ────────────────────────────────────────────────
+  // ── Version helpers ────────────────────────────────────────────────────────
 
+  /** @returns {boolean} true when this instance targets Odoo 17 or newer. */
+  _isV17Plus() {
+    return this.version >= 17;
+  }
+
+  // ── Internal JSONRPC helpers ───────────────────────────────────────────────
+
+  /**
+   * Legacy JSONRPC helper – used for Odoo ≤ 16.
+   * Targets the `/jsonrpc` endpoint with explicit service routing.
+   */
   async _call(service, method, args) {
     const payload = {
       jsonrpc : '2.0',
@@ -135,7 +159,8 @@ class OdooClient {
     if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
       throw new Error(
         'Odoo JSONRPC: endpoint returned HTML instead of JSON. ' +
-        'The server may be redirecting to a login page or returning an error page.'
+        'The server may be redirecting to a login page or returning an error page. ' +
+        'If you are using Odoo 17 or newer, set the Odoo Version to 17 or 18 in the configuration.'
       );
     }
 
@@ -149,13 +174,118 @@ class OdooClient {
     return res.data.result;
   }
 
+  /**
+   * Odoo 17/18 model-call helper.
+   * Targets `/web/dataset/call_kw` and authenticates via the session cookie
+   * that was stored during `_authenticateV17()`.
+   *
+   * @param {string} model
+   * @param {string} method
+   * @param {Array}  args
+   * @param {object} kwargs
+   */
+  async _callV17(model, method, args, kwargs) {
+    const payload = {
+      jsonrpc : '2.0',
+      method  : 'call',
+      id      : Date.now(),
+      params  : { model, method, args, kwargs },
+    };
+
+    let res;
+    try {
+      res = await this.http.post(CALL_KW_PATH, payload);
+    } catch (err) {
+      throw _normalizeHttpError(err, 'Odoo JSONRPC v17+');
+    }
+
+    if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
+      throw new Error(
+        'Odoo JSONRPC v17+: endpoint returned HTML instead of JSON. ' +
+        'Check that the Odoo URL is correct and the session is valid.'
+      );
+    }
+
+    if (res.data.error) {
+      const { code, message, data: errData } = res.data.error;
+      throw new Error(
+        `Odoo JSONRPC v17+ error [${code}]: ${message}` +
+        (errData ? ` – ${errData.message || JSON.stringify(errData)}` : '')
+      );
+    }
+    return res.data.result;
+  }
+
+  /**
+   * Authenticate against `/web/session/authenticate` (Odoo 17/18).
+   * Stores the session cookie for subsequent model calls.
+   * @returns {number} uid
+   */
+  async _authenticateV17() {
+    logger.debug('Authenticating with Odoo 17/18', { url: this.url, db: this.db, user: this.username });
+    const payload = {
+      jsonrpc : '2.0',
+      method  : 'call',
+      id      : Date.now(),
+      params  : { db: this.db, login: this.username, password: this.password },
+    };
+
+    let res;
+    try {
+      res = await this.http.post(SESSION_AUTH_PATH, payload);
+    } catch (err) {
+      throw _normalizeHttpError(err, 'Odoo session authenticate');
+    }
+
+    if (typeof res.data === 'string' && res.data.trimStart().startsWith('<')) {
+      throw new Error(
+        'Odoo session authenticate: endpoint returned HTML instead of JSON. ' +
+        'Check the Odoo URL and credentials.'
+      );
+    }
+
+    if (res.data.error) {
+      const { code, message, data: errData } = res.data.error;
+      throw new Error(
+        `Odoo session authenticate error [${code}]: ${message}` +
+        (errData ? ` – ${errData.message || JSON.stringify(errData)}` : '')
+      );
+    }
+
+    const result = res.data.result || {};
+    const uid    = result.uid;
+    if (!uid) {
+      throw new Error('Odoo 17/18 authentication failed – check ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD');
+    }
+
+    // Persist session cookie so all subsequent calls to /web/dataset/call_kw
+    // are authenticated without re-sending credentials.
+    const setCookieRaw = res.headers['set-cookie'];
+    if (setCookieRaw) {
+      const cookieParts = (Array.isArray(setCookieRaw) ? setCookieRaw : [setCookieRaw])
+        .map(c => c.split(';')[0]);  // keep only name=value, strip path/expiry/etc.
+      this._sessionCookies = cookieParts.join('; ');
+      this.http.defaults.headers.common['Cookie'] = this._sessionCookies;
+    }
+
+    this.uid = uid;
+    logger.info('Odoo 17/18 authenticated', { uid, db: this.db });
+    return uid;
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
   /**
    * Authenticate with Odoo and cache uid for subsequent calls.
+   * Routes to the correct endpoint based on the configured Odoo version:
+   *   version >= 17 → POST /web/session/authenticate (stores session cookie)
+   *   version <  17 → POST /jsonrpc with service='common' (legacy)
    * @returns {number} uid
    */
   async authenticate() {
+    if (this._isV17Plus()) {
+      return this._authenticateV17();
+    }
     logger.debug('Authenticating with Odoo', { url: this.url, db: this.db, user: this.username });
     const uid = await this._call('common', 'authenticate', [
       this.db, this.username, this.password, {},
@@ -176,6 +306,9 @@ class OdooClient {
 
   /**
    * Execute a model method via JSONRPC.
+   * Routes to the correct endpoint based on the configured Odoo version:
+   *   version >= 17 → POST /web/dataset/call_kw (session-cookie auth)
+   *   version <  17 → POST /jsonrpc with service='object' (legacy)
    * @param {string}   model   Odoo model name (e.g. 'sale.order')
    * @param {string}   method  Method name (e.g. 'search_read')
    * @param {Array}    args    Positional arguments
@@ -183,6 +316,9 @@ class OdooClient {
    */
   async execute(model, method, args = [], kwargs = {}) {
     const uid = await this.ensureAuth();
+    if (this._isV17Plus()) {
+      return this._callV17(model, method, args, kwargs);
+    }
     return this._call('object', 'execute_kw', [
       this.db, uid, this.password, model, method, args, kwargs,
     ]);
