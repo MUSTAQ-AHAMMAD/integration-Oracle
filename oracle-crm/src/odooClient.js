@@ -58,8 +58,9 @@ function _normalizeHttpError(err, context) {
       );
     }
     // HTTP 4xx on the JSONRPC endpoint usually means the URL is wrong.
-    // Common mistake: using a REST API endpoint URL (e.g. /api/vSales/Sale_detail)
+    // Common mistake 1: using a REST API endpoint URL (e.g. /api/vSales/Sale_detail)
     // instead of just the Odoo base URL (e.g. https://www.ibqpos.com).
+    // Common mistake 2: the server is a REST-only API and does not support JSONRPC at all.
     if (status === 400 || status === 404 || status === 405) {
       const requestUrl = (err.config && err.config.url) || '';
       const baseUrl    = (err.config && err.config.baseURL) || '';
@@ -72,6 +73,13 @@ function _normalizeHttpError(err, context) {
           `if this server uses a REST API. Full URL tried: ${fullUrl}`
         );
       }
+      // The JSONRPC endpoint itself returned a 4xx – the server may be a REST-only API
+      // (e.g. a custom POS/ERP that exposes /api/… endpoints but not /jsonrpc).
+      return new Error(
+        `${prefix}HTTP ${status}: The server rejected the JSONRPC request (${fullUrl}). ` +
+        `If this server uses a REST API instead of standard Odoo JSONRPC, ` +
+        `switch the auth type to "x-api-key" or "bearer" in the Server Credentials configuration.`
+      );
     }
     return new Error(`${prefix}HTTP ${status}: ${err.message}`);
   }
