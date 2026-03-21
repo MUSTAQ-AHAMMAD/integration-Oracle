@@ -60,7 +60,7 @@ function buildOdooClient(country) {
     if (!url || !apiKey) {
       throw new Error(
         `Odoo REST connection not configured for ${creds.mode} server. ` +
-        `Set Odoo URL and API key via the Configuration → Country Configurations page.`
+        `Set Odoo URL and API key via the Configuration → Server Credentials page.`
       );
     }
     // Build optional custom paths object – only include a key if the country

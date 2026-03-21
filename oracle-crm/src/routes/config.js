@@ -169,9 +169,11 @@ const ODOO_ENDPOINTS = [
 // itself.  This helper strips any /api/… (or similar) sub-path so callers
 // always work with just the base URL.
 //
-// Returns { url, wasNormalized, originalUrl }
+// Returns { url, wasNormalized, originalUrl, extractedPath }
+// extractedPath is the full path before stripping (e.g. '/api/vSales/Sale_detail/jsonrpc')
+// and can be used as the REST endpoint path override.
 function normalizeOdooUrl(rawUrl) {
-  if (!rawUrl) return { url: rawUrl, wasNormalized: false, originalUrl: rawUrl };
+  if (!rawUrl) return { url: rawUrl, wasNormalized: false, originalUrl: rawUrl, extractedPath: null };
   const stripped = rawUrl.replace(/\/$/, '');
   try {
     const parsed = new URL(stripped);
@@ -181,10 +183,11 @@ function normalizeOdooUrl(rawUrl) {
         url          : parsed.origin,
         wasNormalized: true,
         originalUrl  : stripped,
+        extractedPath: parsed.pathname,   // e.g. '/api/vSales/Sale_detail/jsonrpc'
       };
     }
   } catch (_) { /* invalid URL – return as-is */ }
-  return { url: stripped, wasNormalized: false, originalUrl: stripped };
+  return { url: stripped, wasNormalized: false, originalUrl: stripped, extractedPath: null };
 }
 
 // ── GET /api/config/status ────────────────────────────────────────────────────
@@ -221,6 +224,14 @@ router.get('/full', (req, res) => {
 
   const OdooRestClient = require('../odooRestClient');
   const defaultPaths   = OdooRestClient.getDefaultPaths();
+  // Use per-mode path overrides when set, falling back to defaults.
+  // Note: credentials store these as saleDetailPath/orderLinePath/paymentPath,
+  // while OdooRestClient uses keys saleDetail/posOrderLine/paymentLines.
+  const restPaths = {
+    saleDetail  : creds.odoo.saleDetailPath || defaultPaths.saleDetail,
+    posOrderLine: creds.odoo.orderLinePath  || defaultPaths.posOrderLine,  // orderLine → posOrderLine (OdooRestClient key)
+    paymentLines: creds.odoo.paymentPath    || defaultPaths.paymentLines,
+  };
 
   res.json({
     mode  : creds.mode,
@@ -238,8 +249,8 @@ router.get('/full', (req, res) => {
       username    : odooConfigured ? creds.odoo.username  : null,
       authType    : odooAuthType,
       jsonrpcPath : '/jsonrpc',
-      // REST endpoint paths (defaults; per-country overrides live in country_configs)
-      restPaths   : defaultPaths,
+      // REST endpoint paths – reflects actual configured paths, not just defaults
+      restPaths,
       endpoints   : ODOO_ENDPOINTS,
     },
     regions: (process.env.REGIONS || 'AE,KW,OM,SA,BH,QA').split(','),
@@ -313,9 +324,22 @@ router.post('/test-odoo', async (req, res) => {
       if (!apiKey) return res.status(400).json({ ok: false, error: 'apiKey is required for REST auth' });
       try {
         const OdooRestClient = require('../odooRestClient');
-        const client = new OdooRestClient(url, authType, apiKey);
+        // Normalize the URL so we always use the base URL as the axios baseURL.
+        // The extracted path (e.g. '/api/vSales/Sale_detail/jsonrpc') becomes the
+        // custom saleDetail path so the test hits exactly the endpoint the user entered.
+        const { url: baseUrl, extractedPath } = normalizeOdooUrl(url);
+        const customPaths = {};
+        if (extractedPath)          customPaths.saleDetail   = extractedPath;
+        if (body.saleDetailPath)    customPaths.saleDetail   = String(body.saleDetailPath).trim();
+        if (body.orderLinePath)     customPaths.posOrderLine = String(body.orderLinePath).trim();
+        if (body.paymentPath)       customPaths.paymentLines = String(body.paymentPath).trim();
+        const client = new OdooRestClient(
+          baseUrl, authType, apiKey,
+          Object.keys(customPaths).length ? customPaths : undefined
+        );
         await client.searchSalesOrders([], null, { limit: 1 });
-        res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url})` });
+        const usedPath = customPaths.saleDetail || OdooRestClient.getDefaultPaths().saleDetail;
+        res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${baseUrl}${usedPath})` });
       } catch (err) {
         res.status(200).json({ ok: false, error: err.message });
       }
@@ -337,6 +361,15 @@ router.post('/test-odoo', async (req, res) => {
 
     if (!username) return res.status(400).json({ ok: false, error: 'username is required for JSONRPC auth' });
     if (!password) return res.status(400).json({ ok: false, error: 'password is required for JSONRPC auth' });
+
+    // Detect the common mistake of entering a URL in the username field.
+    if (/^https?:\/\//i.test(username)) {
+      return res.status(200).json({
+        ok   : false,
+        error: `The username "${username}" looks like a URL, not a login username. ` +
+               `Set the username to your Odoo login email or username (e.g. "admin" or "user@example.com").`,
+      });
+    }
 
     // Build normalization hint once so both success and failure paths share the message.
     const normHintInline = wasNormalized
@@ -368,15 +401,24 @@ router.post('/test-odoo', async (req, res) => {
     if (!url || !apiKey) {
       return res.status(400).json({
         ok   : false,
-        error: 'REST Odoo credentials not configured. Set Odoo URL and API key in Country Configurations.',
+        error: 'REST Odoo credentials not configured. Set Odoo URL and API key in Server Credentials.',
       });
     }
     try {
       const OdooRestClient = require('../odooRestClient');
-      const client = new OdooRestClient(url, authType, apiKey);
+      // Use configured path overrides so the test hits exactly the right endpoint.
+      const customPaths = {};
+      if (creds.odoo.saleDetailPath) customPaths.saleDetail   = creds.odoo.saleDetailPath;
+      if (creds.odoo.orderLinePath)  customPaths.posOrderLine = creds.odoo.orderLinePath;
+      if (creds.odoo.paymentPath)    customPaths.paymentLines = creds.odoo.paymentPath;
+      const client = new OdooRestClient(
+        url, authType, apiKey,
+        Object.keys(customPaths).length ? customPaths : undefined
+      );
       // Fetch a small sample to verify connectivity
       await client.searchSalesOrders([], null, { limit: 1 });
-      res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url})` });
+      const usedPath = customPaths.saleDetail || OdooRestClient.getDefaultPaths().saleDetail;
+      res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url}${usedPath})` });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
     }
@@ -416,6 +458,19 @@ router.post('/test-odoo', async (req, res) => {
       ok   : false,
       error: 'Odoo credentials not configured. ' +
              'Set credentials via the Configuration page (Server Credentials section).',
+    });
+  }
+
+  // Detect the common misconfiguration where the Odoo URL was accidentally
+  // saved in the username field (e.g. username = "https://www.ibqpos.com/").
+  // Sending a URL as a username always causes the Odoo server to reject the
+  // request with HTTP 400, surfacing a confusing raw-axios error message.
+  if (/^https?:\/\//i.test(username)) {
+    return res.status(200).json({
+      ok   : false,
+      error: `The saved Odoo username "${username}" looks like a URL, not a login username. ` +
+             `Open Server Credentials and set the username to your Odoo login email or username ` +
+             `(e.g. "admin" or "user@example.com").`,
     });
   }
 
@@ -515,13 +570,16 @@ router.get('/credentials', (req, res) => {
         password: mask(db.getAppSetting(`oracle_${m}_password`) || (m === 'production' ? process.env.FUSION_PASSWORD : null)),
       },
       odoo: {
-        url      : db.getAppSetting(`odoo_${m}_url`)       || (m === 'production' ? process.env.ODOO_URL       || null : null),
-        username : db.getAppSetting(`odoo_${m}_username`)  || (m === 'production' ? process.env.ODOO_USERNAME   || null : null),
-        password : mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
-        authType : db.getAppSetting(`odoo_${m}_auth_type`) || (m === 'production' ? process.env.ODOO_AUTH_TYPE  || 'jsonrpc' : 'jsonrpc'),
-        apiKey   : mask(db.getAppSetting(`odoo_${m}_api_key`)  || (m === 'production' ? process.env.ODOO_API_KEY  : null)),
-        apiUrl   : db.getAppSetting(`odoo_${m}_api_url`)   || (m === 'production' ? process.env.ODOO_API_URL   || null : null),
-        version  : Number(db.getAppSetting(`odoo_${m}_version`) || (m === 'production' ? process.env.ODOO_VERSION || 0 : 0)),
+        url           : db.getAppSetting(`odoo_${m}_url`)       || (m === 'production' ? process.env.ODOO_URL       || null : null),
+        username      : db.getAppSetting(`odoo_${m}_username`)  || (m === 'production' ? process.env.ODOO_USERNAME   || null : null),
+        password      : mask(db.getAppSetting(`odoo_${m}_password`) || (m === 'production' ? process.env.ODOO_PASSWORD : null)),
+        authType      : db.getAppSetting(`odoo_${m}_auth_type`) || (m === 'production' ? process.env.ODOO_AUTH_TYPE  || 'jsonrpc' : 'jsonrpc'),
+        apiKey        : mask(db.getAppSetting(`odoo_${m}_api_key`)  || (m === 'production' ? process.env.ODOO_API_KEY  : null)),
+        apiUrl        : db.getAppSetting(`odoo_${m}_api_url`)   || (m === 'production' ? process.env.ODOO_API_URL   || null : null),
+        version       : Number(db.getAppSetting(`odoo_${m}_version`) || (m === 'production' ? process.env.ODOO_VERSION || 0 : 0)),
+        saleDetailPath: db.getAppSetting(`odoo_${m}_sale_detail_path`) || (m === 'production' ? process.env.ODOO_SALE_DETAIL_PATH || null : null),
+        orderLinePath : db.getAppSetting(`odoo_${m}_order_line_path`)  || (m === 'production' ? process.env.ODOO_ORDER_LINE_PATH  || null : null),
+        paymentPath   : db.getAppSetting(`odoo_${m}_payment_path`)     || (m === 'production' ? process.env.ODOO_PAYMENT_PATH     || null : null),
       },
     };
   }
@@ -577,6 +635,15 @@ router.put('/credentials', (req, res) => {
     if (odoo.version !== undefined) {
       persist(`odoo_${mode}_version`, odoo.version != null ? String(Number(odoo.version)) : null);
     }
+    // REST endpoint paths: explicit body values take highest priority.
+    // When the URL was normalized and no explicit path is provided, auto-save
+    // the extracted path (e.g. '/api/vSales/Sale_detail/jsonrpc') so that the
+    // REST client calls exactly the endpoint the user entered.
+    const autoPath = odooNorm?.extractedPath;
+    persist(`odoo_${mode}_sale_detail_path`,
+      odoo.saleDetailPath !== undefined ? odoo.saleDetailPath : autoPath);
+    persist(`odoo_${mode}_order_line_path`,  odoo.orderLinePath);
+    persist(`odoo_${mode}_payment_path`,     odoo.paymentPath);
   }
 
   res.json({
