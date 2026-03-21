@@ -557,11 +557,21 @@ router.put('/credentials', (req, res) => {
   // always stored.  This prevents OdooClient from appending /jsonrpc to a
   // REST endpoint path (e.g. /api/vSales/Sale_detail) which causes HTTP 400.
   const odooNorm = (odoo && odoo.url !== undefined) ? normalizeOdooUrl(odoo.url) : null;
+
+  // Auto-detect REST server: if the saved URL contained a REST API path (/api/…)
+  // and the caller did not explicitly choose a REST auth type, automatically
+  // switch auth type to 'x-api-key'.  This breaks the "repeating JSONRPC error"
+  // cycle where the user enters a REST URL but auth type stays jsonrpc and every
+  // connection test fails with the same mismatch error.
+  const odooAuthTypeAutoSwitched =
+    !!(odooNorm && odooNorm.wasNormalized &&
+       (!odoo || !odoo.authType || odoo.authType === 'jsonrpc'));
+
   if (odoo) {
     persist(`odoo_${mode}_url`,       odooNorm ? odooNorm.url : odoo.url);
     persist(`odoo_${mode}_username`,  odoo.username);
     persist(`odoo_${mode}_password`,  odoo.password);
-    persist(`odoo_${mode}_auth_type`, odoo.authType);
+    persist(`odoo_${mode}_auth_type`, odooAuthTypeAutoSwitched ? 'x-api-key' : odoo.authType);
     persist(`odoo_${mode}_api_key`,   odoo.apiKey);
     persist(`odoo_${mode}_api_url`,   odoo.apiUrl);
     if (odoo.version !== undefined) {
@@ -573,9 +583,12 @@ router.put('/credentials', (req, res) => {
     ok  : true,
     mode,
     ...(odooNorm && odooNorm.wasNormalized && {
-      warning: `Odoo URL was automatically normalized to the base URL "${odooNorm.url}". ` +
-               `The REST API path was stripped. ` +
-               `If this server uses a REST API, update the auth type to x-api-key / bearer.`,
+      warning: odooAuthTypeAutoSwitched
+        ? `REST API URL detected: "${odooNorm.originalUrl}". ` +
+          `URL normalized to base URL "${odooNorm.url}" and auth type automatically switched to "x-api-key". ` +
+          `Enter your API key to complete the REST API configuration.`
+        : `Odoo URL normalized to base URL "${odooNorm.url}" (REST API path stripped). ` +
+          `If this server uses a REST API, update the auth type to x-api-key / bearer.`,
     }),
   });
 });
@@ -635,6 +648,15 @@ router.put('/country-configs/:code', (req, res) => {
     return res.status(400).json({ error: 'odoo_version must be a non-negative number (e.g. 0, 15, 16, 17, 18)' });
   }
 
+  // Normalize the Odoo URL to base URL and auto-detect REST auth type.
+  // This prevents the "repeating JSONRPC error" cycle where a REST URL like
+  // https://example.com/api/vSales/Sale_detail is saved with authType=jsonrpc.
+  const odooNorm = odoo_url ? normalizeOdooUrl(odoo_url) : null;
+  const normalizedOdooUrl = odooNorm ? odooNorm.url : (odoo_url || null);
+  const ccAuthTypeAutoSwitched =
+    !!(odooNorm && odooNorm.wasNormalized && (!odoo_auth_type || odoo_auth_type === 'jsonrpc'));
+  const effectiveAuthType = ccAuthTypeAutoSwitched ? 'x-api-key' : (odoo_auth_type || 'jsonrpc');
+
   const existing = db.getCountryConfig(countryCode);
   const resolvePass = (incoming, field) => {
     if (incoming === PASSWORD_MASK) return existing ? existing[field] : null;
@@ -644,11 +666,11 @@ router.put('/country-configs/:code', (req, res) => {
   db.upsertCountryConfig({
     countryCode,
     countryName       : country_name,
-    odooUrl           : odoo_url             || null,
+    odooUrl           : normalizedOdooUrl,
     odooApiUrl        : odoo_api_url         || null,
     odooUsername      : odoo_username        || null,
     odooPassword      : resolvePass(odoo_password, 'odoo_password'),
-    odooAuthType      : odoo_auth_type       || 'jsonrpc',
+    odooAuthType      : effectiveAuthType,
     odooApiKey        : resolvePass(odoo_api_key,  'odoo_api_key'),
     odooVersion       : versionNum,
     odooSaleDetailPath: odoo_sale_detail_path || null,
@@ -659,7 +681,17 @@ router.put('/country-configs/:code', (req, res) => {
     oraclePassword    : resolvePass(oracle_password, 'oracle_password'),
     enabled           : enabled !== undefined ? (enabled ? 1 : 0) : 1,
   });
-  res.json({ ok: true, countryCode });
+  res.json({
+    ok: true,
+    countryCode,
+    ...(odooNorm && odooNorm.wasNormalized && {
+      warning: ccAuthTypeAutoSwitched
+        ? `REST API URL detected: "${odooNorm.originalUrl}". ` +
+          `URL normalized to "${odooNorm.url}" and auth type switched to "x-api-key". ` +
+          `Enter the API key to complete REST configuration.`
+        : `Odoo URL normalized to "${odooNorm.url}" (REST API path stripped).`,
+    }),
+  });
 });
 
 // ── DELETE /api/config/country-configs/:code ──────────────────────────────────

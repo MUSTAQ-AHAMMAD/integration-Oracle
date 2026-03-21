@@ -139,7 +139,7 @@
     </div>
 
     <!-- ── Server Credentials Management ─────────────────────────── -->
-    <div class="card">
+    <div class="card" id="section-credentials">
       <div class="card-header">
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
         Server Credentials
@@ -177,7 +177,8 @@
               <div style="font-weight:700;margin-bottom:10px">Odoo ERP (Test)</div>
               <div class="form-group">
                 <label class="form-label">URL</label>
-                <input class="form-control" id="cred-test-odoo-url" placeholder="https://www.ibqpos.com  or  https://test.odoo.com">
+                <input class="form-control" id="cred-test-odoo-url" placeholder="https://www.ibqpos.com  or  https://test.odoo.com" oninput="autoDetectOdooAuthType('test')">
+                <div id="cred-test-odoo-url-hint" style="display:none;margin-top:4px;padding:6px 8px;background:#e8f5e9;border:1px solid #66bb6a;border-radius:4px;font-size:12px;color:#1b5e20"></div>
               </div>
               <div class="form-group">
                 <label class="form-label">Auth Type</label>
@@ -239,7 +240,8 @@
               <div style="font-weight:700;margin-bottom:10px">Odoo ERP (Production)</div>
               <div class="form-group">
                 <label class="form-label">URL</label>
-                <input class="form-control" id="cred-prod-odoo-url" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com">
+                <input class="form-control" id="cred-prod-odoo-url" placeholder="https://www.ibqpos.com  or  https://mycompany.odoo.com" oninput="autoDetectOdooAuthType('production')">
+                <div id="cred-prod-odoo-url-hint" style="display:none;margin-top:4px;padding:6px 8px;background:#e8f5e9;border:1px solid #66bb6a;border-radius:4px;font-size:12px;color:#1b5e20"></div>
               </div>
               <div class="form-group">
                 <label class="form-label">Auth Type</label>
@@ -503,13 +505,15 @@ function esc(s) {
 
 // Cached full config – populated after the initial /api/config/full load.
 // Used by testConnection() to provide early warnings before hitting the backend.
-let _odooConfig = null;
+let _odooConfig  = null;
+let _activeMode  = 'production'; // active server mode (test | production)
 
 // ── Load full config on page load ────────────────────────
 fetch('/api/config/full')
   .then(r => r.json())
   .then(d => {
     _odooConfig = d.odoo;
+    _activeMode = d.mode || 'production';
     renderOraclePanel(d.oracle);
     renderOdooPanel(d.odoo);
     if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
@@ -714,7 +718,8 @@ async function testConnection(system) {
         `This server uses a REST API, not standard Odoo JSONRPC.<br>` +
         `<strong>To fix:</strong> open <strong>Server Credentials</strong> below and either —<br>` +
         `&nbsp;&nbsp;(A) switch auth type to <strong>x-api-key</strong> or <strong>bearer</strong> and enter your API key (recommended), or<br>` +
-        `&nbsp;&nbsp;(B) update the URL to the base URL <strong>${esc(baseUrl)}</strong> if the server supports Odoo JSONRPC.`;
+        `&nbsp;&nbsp;(B) update the URL to the base URL <strong>${esc(baseUrl)}</strong> if the server supports Odoo JSONRPC.<br>` +
+        `<button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="quickFixOdooRestAuth()">🔧 Quick Fix: Switch to REST Auth</button>`;
       result.classList.remove('hidden');
       return;
     }
@@ -791,6 +796,68 @@ function toggleGlobalOdooAuthFields(mode) {
   const jsonrpcEl = document.getElementById(`cred-${prefix}-odoo-jsonrpc-fields`);
   if (restEl)    restEl.style.display    = isRest ? '' : 'none';
   if (jsonrpcEl) jsonrpcEl.style.display = isRest ? 'none' : '';
+}
+
+/**
+ * Auto-detect a REST API URL in the Odoo URL field.
+ * When the URL contains /api/…, automatically switch the auth type dropdown
+ * to x-api-key and show an inline hint.  This prevents the common mistake of
+ * entering a REST URL with JSONRPC auth that causes a repeating error cycle.
+ */
+function autoDetectOdooAuthType(mode) {
+  const prefix = mode === 'test' ? 'test' : 'prod';
+  const urlEl  = document.getElementById(`cred-${prefix}-odoo-url`);
+  const authEl = document.getElementById(`cred-${prefix}-odoo-auth-type`);
+  const hintEl = document.getElementById(`cred-${prefix}-odoo-url-hint`);
+  if (!urlEl || !authEl) return;
+  const url    = urlEl.value.trim();
+  const isRest = authEl.value === 'x-api-key' || authEl.value === 'bearer';
+  if (/\/api\//i.test(url) && !isRest) {
+    authEl.value = 'x-api-key';
+    toggleGlobalOdooAuthFields(mode);
+    if (hintEl) {
+      hintEl.innerHTML = 'ℹ️ REST API URL detected — auth type switched to <strong>x-api-key</strong>. Enter your API key below.';
+      hintEl.style.display = '';
+    }
+  } else if (hintEl && !/\/api\//i.test(url)) {
+    hintEl.style.display = 'none';
+  }
+}
+
+/**
+ * Quick Fix: scroll to credentials panel, open the active mode tab,
+ * switch auth type to x-api-key, normalise the URL to base URL, and
+ * focus the API key field so the user can complete REST configuration.
+ */
+function quickFixOdooRestAuth() {
+  const mode   = _activeMode || 'production';
+  const prefix = mode === 'test' ? 'test' : 'prod';
+
+  // Scroll to and open the credentials section
+  const credSection = document.getElementById('section-credentials');
+  if (credSection) credSection.scrollIntoView({ behavior: 'smooth' });
+  showCredTab(mode);
+
+  // Switch auth type to x-api-key
+  const authEl = document.getElementById(`cred-${prefix}-odoo-auth-type`);
+  if (authEl) {
+    authEl.value = 'x-api-key';
+    toggleGlobalOdooAuthFields(mode);
+  }
+
+  // Normalize the URL to the base URL (strip any /api/… suffix)
+  const urlEl = document.getElementById(`cred-${prefix}-odoo-url`);
+  if (urlEl && urlEl.value && /\/api\//i.test(urlEl.value)) {
+    try { urlEl.value = new URL(urlEl.value).origin; } catch (_) {}
+  } else if (urlEl && !urlEl.value && _odooConfig && _odooConfig.url) {
+    urlEl.value = _odooBaseUrl(_odooConfig.url);
+  }
+
+  // Focus API key field
+  setTimeout(() => {
+    const apiKeyEl = document.getElementById(`cred-${prefix}-odoo-api-key`);
+    if (apiKeyEl) apiKeyEl.focus();
+  }, 350);
 }
 
 async function saveCredentials(mode) {
