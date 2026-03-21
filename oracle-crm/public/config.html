@@ -213,6 +213,20 @@
                       <label class="form-label">Payment Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
                       <input class="form-control" id="cred-test-odoo-pay-path" placeholder="/api/vSales/payment_lines">
                     </div>
+                    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+                      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">🔬 Endpoint Explorer</div>
+                      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+                        Test any path to discover which one your server accepts. Uses the API key entered above (or the saved key if blank).
+                      </div>
+                      <div style="display:flex;gap:6px">
+                        <input class="form-control" id="cred-test-odoo-probe-path"
+                          placeholder="/api/vSales/Sale_detail"
+                          style="font-family:monospace;font-size:12px;flex:1">
+                        <button class="btn btn-outline test-btn" onclick="probeEndpointPath('test')"
+                          style="white-space:nowrap">🧪 Test Path</button>
+                      </div>
+                      <div id="cred-test-odoo-probe-result" class="test-result hidden" style="margin-top:6px;font-size:12px"></div>
+                    </div>
                   </div>
                 </details>
               </div>
@@ -297,6 +311,20 @@
                     <div class="form-group">
                       <label class="form-label">Payment Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
                       <input class="form-control" id="cred-prod-odoo-pay-path" placeholder="/api/vSales/payment_lines">
+                    </div>
+                    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+                      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">🔬 Endpoint Explorer</div>
+                      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+                        Test any path to discover which one your server accepts. Uses the API key entered above (or the saved key if blank).
+                      </div>
+                      <div style="display:flex;gap:6px">
+                        <input class="form-control" id="cred-prod-odoo-probe-path"
+                          placeholder="/api/vSales/Sale_detail"
+                          style="font-family:monospace;font-size:12px;flex:1">
+                        <button class="btn btn-outline test-btn" onclick="probeEndpointPath('production')"
+                          style="white-space:nowrap">🧪 Test Path</button>
+                      </div>
+                      <div id="cred-prod-odoo-probe-result" class="test-result hidden" style="margin-top:6px;font-size:12px"></div>
                     </div>
                   </div>
                 </details>
@@ -1007,10 +1035,11 @@ async function saveCredentials(mode) {
       saleDetailPath : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-sale-path`)) : undefined,
       orderLinePath  : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-line-path`)) : undefined,
       paymentPath    : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-pay-path`))  : undefined,
-      // JSONRPC fields
+      // JSONRPC fields – when auth type is REST, explicitly clear stale JSONRPC
+      // username/password from the DB (e.g. a URL accidentally saved as username)
       apiUrl   : !isRest ? (gv(`cred-${prefix}-odoo-api-url`)  || undefined) : undefined,
-      username : !isRest ? (gv(`cred-${prefix}-odoo-user`)     || undefined) : undefined,
-      password : !isRest ? passOrUndef(gv(`cred-${prefix}-odoo-pass`))        : undefined,
+      username : !isRest ? (gv(`cred-${prefix}-odoo-user`)     || undefined) : null,
+      password : !isRest ? passOrUndef(gv(`cred-${prefix}-odoo-pass`))        : null,
     },
   };
 
@@ -1056,6 +1085,62 @@ async function refreshStatusPanels() {
     if (d.oracle.endpoints) renderOracleEndpoints(d.oracle);
     if (d.odoo.endpoints)   renderOdooEndpoints(d.odoo);
   } catch (e) { console.warn('[oracle-crm] refreshStatusPanels failed:', e.message); }
+}
+
+/**
+ * Endpoint Explorer – test an arbitrary REST path against the configured server
+ * without saving any changes.  Calls POST /api/config/test-endpoint so no DB
+ * writes occur.  Uses the API key currently typed in the form; if that field is
+ * blank the server falls back to the saved key.
+ *
+ * This lets users quickly discover which endpoint path their REST server accepts
+ * (e.g. /api/vSales/Sale_detail vs /api/vSales/Sale_detail/jsonrpc) before
+ * committing the path in the Sale Detail Path field above.
+ */
+async function probeEndpointPath(mode) {
+  const prefix   = mode === 'test' ? 'test' : 'prod';
+  const pathEl   = document.getElementById(`cred-${prefix}-odoo-probe-path`);
+  const resultEl = document.getElementById(`cred-${prefix}-odoo-probe-result`);
+  const gv       = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const probePath = pathEl ? pathEl.value.trim() : '';
+  if (!probePath) {
+    resultEl.className = 'test-result fail';
+    resultEl.textContent = '✗ Enter a path to test (e.g. /api/vSales/Sale_detail)';
+    resultEl.classList.remove('hidden');
+    return;
+  }
+
+  const url      = gv(`cred-${prefix}-odoo-url`)       || undefined;
+  const apiKey   = gv(`cred-${prefix}-odoo-api-key`)   || undefined;
+  const authType = gv(`cred-${prefix}-odoo-auth-type`) || 'x-api-key';
+
+  resultEl.className = 'test-result';
+  resultEl.textContent = `Testing GET ${esc(probePath)}…`;
+  resultEl.classList.remove('hidden');
+
+  try {
+    const body = { path: probePath, authType };
+    if (url)    body.url    = url;
+    if (apiKey) body.apiKey = apiKey;
+
+    const res  = await fetch('/api/config/test-endpoint', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.className = 'test-result ok';
+      resultEl.textContent = `✓ ${data.message} — copy this path into "Sale Detail Path" above`;
+    } else {
+      resultEl.className = 'test-result fail';
+      resultEl.textContent = `✗ ${data.error || 'Endpoint test failed'}`;
+    }
+  } catch (err) {
+    resultEl.className = 'test-result fail';
+    resultEl.textContent = `✗ Request failed: ${esc(err.message)}`;
+  }
 }
 
 /**

@@ -337,8 +337,11 @@ router.post('/test-odoo', async (req, res) => {
           baseUrl, authType, apiKey,
           Object.keys(customPaths).length ? customPaths : undefined
         );
-        await client.searchSalesOrders([], null, { limit: 1 });
+        // Use a parameter-free GET to avoid the HTTP 400 that servers like ibqpos.com
+        // return when an empty domain=[] query-param is sent.  testPath() is a pure
+        // connectivity check: any 2xx response confirms the path and API key are valid.
         const usedPath = customPaths.saleDetail || OdooRestClient.getDefaultPaths().saleDetail;
+        await client.testPath(usedPath);
         res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${baseUrl}${usedPath})` });
       } catch (err) {
         res.status(200).json({ ok: false, error: err.message });
@@ -416,9 +419,11 @@ router.post('/test-odoo', async (req, res) => {
         url, authType, apiKey,
         Object.keys(customPaths).length ? customPaths : undefined
       );
-      // Fetch a small sample to verify connectivity
-      await client.searchSalesOrders([], null, { limit: 1 });
+      // Use a parameter-free GET to avoid the HTTP 400 that servers like ibqpos.com
+      // return when an empty domain=[] query-param is sent.  testPath() is a pure
+      // connectivity check: any 2xx response confirms the path and API key are valid.
       const usedPath = customPaths.saleDetail || OdooRestClient.getDefaultPaths().saleDetail;
+      await client.testPath(usedPath);
       res.json({ ok: true, message: `REST Odoo connection successful (${authType}, ${url}${usedPath})` });
     } catch (err) {
       res.status(200).json({ ok: false, error: err.message });
