@@ -75,7 +75,7 @@ const VALID_COUNTRIES = ['AE','KW','OM','SA','BH','QA'];
 
 // ── POST /api/odoo/fetch ──────────────────────────────────────────────────────
 router.post('/fetch', (req, res) => {
-  const { dateFrom, dateTo, storeId, storeName, country, companyId } = req.body || {};
+  const { dateFrom, dateTo, storeId, storeName, country, companyId, tzOffset } = req.body || {};
 
   if (!dateFrom || !validateDate(dateFrom)) return badRequest(res, 'dateFrom is required (YYYY-MM-DD)');
   if (!dateTo   || !validateDate(dateTo))   return badRequest(res, 'dateTo is required (YYYY-MM-DD)');
@@ -87,6 +87,16 @@ router.post('/fetch', (req, res) => {
     const cid = Number(companyId);
     if (!Number.isInteger(cid) || cid < 1) return badRequest(res, 'companyId must be a positive integer');
   }
+  // tzOffset: decimal hours ahead of UTC (e.g. 3 for UTC+3, 5.5 for UTC+5:30).
+  // When provided it overrides the country-derived offset so dates are queried
+  // as the correct UTC range in Odoo (which always stores date_order in UTC).
+  let parsedTzOffset;
+  if (tzOffset !== undefined && tzOffset !== null && tzOffset !== '') {
+    parsedTzOffset = parseFloat(tzOffset);
+    if (isNaN(parsedTzOffset) || parsedTzOffset < -12 || parsedTzOffset > 14) {
+      return badRequest(res, 'tzOffset must be a number between -12 and 14');
+    }
+  }
 
   try {
     const jobId = startFetchJob({
@@ -96,9 +106,10 @@ router.post('/fetch', (req, res) => {
       storeName: storeName || undefined,
       country  : country   || undefined,
       companyId: companyId ? Number(companyId) : undefined,
+      tzOffset : parsedTzOffset,
     });
 
-    logger.info('Fetch job queued via API', { jobId, dateFrom, dateTo, storeId, country, companyId });
+    logger.info('Fetch job queued via API', { jobId, dateFrom, dateTo, storeId, country, companyId, tzOffset: parsedTzOffset });
     res.json({ jobId, status: 'QUEUED', message: 'Fetch job started in background' });
   } catch (err) {
     logger.error('Failed to start fetch job', { err: err.message });
