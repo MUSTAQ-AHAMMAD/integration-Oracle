@@ -291,68 +291,108 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
     jobLog(jobId, 'info', `Stored ${totalLines} sale lines in local DB`);
 
-    // ── Fetch + persist payments (3rd endpoint: account.payment) ─────────────
+    // ── Fetch + persist payments (3rd endpoint: account.payment / payment_lines) ─
     // Mirrors middleware BackupVendhqPayments table populated from the same fetch.
-    // Collect all invoice_ids from all fetched sale orders for lookup.
+    //
+    // Two strategies depending on client type:
+    //   JSONRPC (OdooClient):    re-read sale.order.invoice_ids → fetch account.payment
+    //   REST  (OdooRestClient):  query payment_lines directly with the same date domain
+    //                            (Java middleware approach: filter by date, not invoice IDs)
     jobLog(jobId, 'info', 'Fetching sale payments from Odoo (account.payment)…');
     try {
-      const allInvoiceIds = [];
-      const invoiceToSaleMap = new Map(); // invoiceId → { saleId, invoiceNumber, storeName, teamName, currency, country }
+      let paymentRows = [];
+      const now = new Date().toISOString();
 
-      // Re-read sale headers to collect invoice_ids
-      for (let i = 0; i < allOrderIds.length; i += 500) {
-        const idChunk  = allOrderIds.slice(i, i + 500);
-        const orderPage = await odoo.execute('sale.order', 'read', [idChunk], {
-          fields: ['id', 'name', 'invoice_ids', 'warehouse_id', 'team_id', 'currency_id'],
-        });
-        for (const o of orderPage) {
-          const invIds = Array.isArray(o.invoice_ids) ? o.invoice_ids : [];
-          const storeName  = Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : (o.warehouse_id || null);
-          const teamName   = Array.isArray(o.team_id) ? o.team_id[1] : (o.team_id || null);
-          const currency   = Array.isArray(o.currency_id) ? o.currency_id[1] : DEFAULT_CURRENCY;
-          for (const invId of invIds) {
-            allInvoiceIds.push(invId);
-            invoiceToSaleMap.set(invId, {
-              saleId       : db.getSaleInternalId(o.id),
-              invoiceNumber: o.name,
-              storeName,
-              teamName,
-              currency,
-              countryCode  : country || null,
-            });
-          }
-        }
-        await new Promise(resolve => setImmediate(resolve));
-      }
-
-      if (allInvoiceIds.length > 0) {
-        const now = new Date().toISOString();
-        const rawPayments = await odoo.getOrderPayments(allInvoiceIds);
-        const paymentRows = rawPayments.map(p => {
-          const moveId = Array.isArray(p.move_id) ? p.move_id[0] : p.move_id;
-          const meta   = invoiceToSaleMap.get(moveId) || {};
+      if (odoo instanceof OdooRestClient) {
+        // ── REST path: date-domain query on payment_lines ─────────────────────
+        // The REST payment_lines endpoint is filtered by payment date, matching
+        // the Java middleware's BackupVendhqPayments fetch strategy.
+        // Use the same UTC-converted date boundaries as the sale-header domain.
+        const startUtc = domain[0][2]; // ['date_order', '>=', startUtc]
+        const endUtc   = domain[1][2]; // ['date_order', '<=', endUtc]
+        const paymentDomain = [
+          ['date', '>=', startUtc],
+          ['date', '<=', endUtc],
+        ];
+        jobLog(jobId, 'info', 'REST: querying payment_lines by date domain', { paymentDomain });
+        const rawPayments = await odoo.getPaymentsByDateDomain(paymentDomain);
+        paymentRows = rawPayments.map(p => {
+          const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
+          const moveId       = Array.isArray(p.move_id)    ? p.move_id[0]    : p.move_id;
           return {
-            sale_id        : meta.saleId        || null,
-            invoice_number : meta.invoiceNumber  || '',
+            sale_id        : null,               // not linked via invoice ID for REST
+            invoice_number : p.name || (moveId ? String(moveId) : ''),
             odoo_payment_id: p.id,
-            payment_type   : Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown'),
-            amount         : Number(p.amount)    || 0,
-            currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : (meta.currency || DEFAULT_CURRENCY),
+            payment_type   : journalLabel,
+            amount         : Number(p.amount)   || 0,
+            currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
             payment_date   : (p.date || '').split(' ')[0] || null,
-            outlet_name    : meta.storeName      || null,
-            register_name  : meta.teamName       || null,
-            region         : meta.countryCode    || null,
+            outlet_name    : Array.isArray(p.partner_id) ? p.partner_id[1] : null,
+            register_name  : null,
+            region         : country || null,
             fetched_at     : now,
           };
         });
-        if (paymentRows.length > 0) {
-          db.upsertSalePayments(paymentRows);
-          jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);
-        } else {
-          jobLog(jobId, 'info', 'No payments found for fetched sale orders');
-        }
       } else {
-        jobLog(jobId, 'info', 'No invoices linked to fetched orders – skipping payment fetch');
+        // ── JSONRPC path: invoice-IDs lookup ──────────────────────────────────
+        const allInvoiceIds = [];
+        const invoiceToSaleMap = new Map(); // invoiceId → { saleId, invoiceNumber, storeName, teamName, currency, country }
+
+        // Re-read sale headers to collect invoice_ids
+        for (let i = 0; i < allOrderIds.length; i += 500) {
+          const idChunk  = allOrderIds.slice(i, i + 500);
+          const orderPage = await odoo.execute('sale.order', 'read', [idChunk], {
+            fields: ['id', 'name', 'invoice_ids', 'warehouse_id', 'team_id', 'currency_id'],
+          });
+          for (const o of orderPage) {
+            const invIds = Array.isArray(o.invoice_ids) ? o.invoice_ids : [];
+            const storeName  = Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : (o.warehouse_id || null);
+            const teamName   = Array.isArray(o.team_id) ? o.team_id[1] : (o.team_id || null);
+            const currency   = Array.isArray(o.currency_id) ? o.currency_id[1] : DEFAULT_CURRENCY;
+            for (const invId of invIds) {
+              allInvoiceIds.push(invId);
+              invoiceToSaleMap.set(invId, {
+                saleId       : db.getSaleInternalId(o.id),
+                invoiceNumber: o.name,
+                storeName,
+                teamName,
+                currency,
+                countryCode  : country || null,
+              });
+            }
+          }
+          await new Promise(resolve => setImmediate(resolve));
+        }
+
+        if (allInvoiceIds.length > 0) {
+          const rawPayments = await odoo.getOrderPayments(allInvoiceIds);
+          paymentRows = rawPayments.map(p => {
+            const moveId = Array.isArray(p.move_id) ? p.move_id[0] : p.move_id;
+            const meta   = invoiceToSaleMap.get(moveId) || {};
+            return {
+              sale_id        : meta.saleId        || null,
+              invoice_number : meta.invoiceNumber  || '',
+              odoo_payment_id: p.id,
+              payment_type   : Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown'),
+              amount         : Number(p.amount)    || 0,
+              currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : (meta.currency || DEFAULT_CURRENCY),
+              payment_date   : (p.date || '').split(' ')[0] || null,
+              outlet_name    : meta.storeName      || null,
+              register_name  : meta.teamName       || null,
+              region         : meta.countryCode    || null,
+              fetched_at     : now,
+            };
+          });
+        } else {
+          jobLog(jobId, 'info', 'No invoices linked to fetched orders – skipping payment fetch');
+        }
+      }
+
+      if (paymentRows.length > 0) {
+        db.upsertSalePayments(paymentRows);
+        jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);
+      } else {
+        jobLog(jobId, 'info', 'No payments found for fetched sale orders');
       }
     } catch (payErr) {
       // Payment fetch failure is non-fatal – log and continue

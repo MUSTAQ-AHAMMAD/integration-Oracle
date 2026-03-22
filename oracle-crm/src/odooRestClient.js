@@ -46,13 +46,28 @@ const PATHS = {
  *
  * Example input  : [['date_order','>=','2026-02-01 21:00:00'],['company_id','=',1]]
  * Example output : [('date_order','>=','2026-02-01 21:00:00'),('company_id','=',1)]
+ *
+ * Array values (used with the 'in' operator) are serialised as Python lists:
+ * Example input  : [['state','in',['sale','done']]]
+ * Example output : [('state','in',['sale','done'])]
  */
 function domainToString(domain) {
   if (!Array.isArray(domain) || domain.length === 0) return '[]';
   const parts = domain.map(clause => {
     if (!Array.isArray(clause) || clause.length !== 3) return String(clause);
     const [field, op, value] = clause;
-    const valStr = typeof value === 'string' ? `'${value}'` : String(value);
+    // Escape backslashes first, then single quotes inside string values
+    // to prevent broken Python notation (e.g. O\'Brien → O\\'Brien)
+    const escStr = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    let valStr;
+    if (typeof value === 'string') {
+      valStr = `'${escStr(value)}'`;
+    } else if (Array.isArray(value)) {
+      const items = value.map(v => (typeof v === 'string' ? `'${escStr(v)}'` : String(v))).join(',');
+      valStr = `[${items}]`;
+    } else {
+      valStr = String(value);
+    }
     return `('${field}','${op}',${valStr})`;
   });
   return `[${parts.join(',')}]`;
@@ -245,6 +260,28 @@ class OdooRestClient {
     // domain built by the fetch job.  Returning empty here keeps the JSONRPC
     // payment-via-invoice-ids path from running on REST configs.
     return [];
+  }
+
+  /**
+   * Fetch payment records from the payment_lines REST endpoint using a
+   * date-based domain.  Mirrors the Java middleware's BackupVendhqPayments
+   * table which is populated using sale_date / payment_date as the filter key
+   * (not invoice IDs, which are a JSONRPC-only concept).
+   *
+   * This method is called by odooSync._runFetchJob() for REST-auth configs
+   * instead of the invoice-ID path used by the JSONRPC client.
+   *
+   * @param {Array} domain  Odoo-style domain, e.g.
+   *                        [['date','>=','2026-02-01 21:00:00'],
+   *                         ['date','<=','2026-02-02 20:59:59']]
+   * @returns {object[]} normalised payment rows
+   */
+  async getPaymentsByDateDomain(domain) {
+    if (!domain || domain.length === 0) return [];
+    logger.debug('REST: fetching payments by date domain', { domain });
+    const rows = await this._get(this.paths.paymentLines, { domain: domainToString(domain) });
+    logger.info('REST: fetched payments by date domain', { count: rows.length });
+    return rows.map(r => this._normalisePayment(r));
   }
 
   /**
