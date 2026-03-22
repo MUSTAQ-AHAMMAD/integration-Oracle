@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Speed Benchmark</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Page-specific styles ──────────────────────────────────────────── */
+    .bench-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .bench-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .bench-card .bc-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .bench-card .bc-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+    .bench-card .bc-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .bench-card.accent-green .bc-value { color: #198754; }
+    .bench-card.accent-orange .bc-value { color: #fd7e14; }
+    .bench-card.accent-red .bc-value { color: #dc3545; }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .param-row { display: flex; flex-direction: column; gap: 4px; }
+    .param-row label { font-size: 12px; font-weight: 600; color: var(--dark); }
+    .param-row small { font-size: 11px; color: var(--muted); }
+
+    .phase-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .phase-table th {
+      text-align: left; padding: 8px 12px;
+      background: #f8f9fa; font-size: 11px;
+      text-transform: uppercase; color: var(--muted);
+      border-bottom: 2px solid var(--border);
+    }
+    .phase-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    .phase-table tr:last-child td { border-bottom: none; }
+    .phase-table .row-total td { font-weight: 700; background: #f0f4ff; }
+
+    .report-box {
+      background: #0d1117; color: #c9d1d9;
+      border-radius: var(--radius);
+      padding: 16px; font-family: monospace;
+      font-size: 12px; line-height: 1.75;
+      white-space: pre-wrap; word-break: break-word;
+      max-height: 420px; overflow-y: auto;
+    }
+
+    .progress-wrap { margin: 18px 0; }
+    .progress-bar { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; background: var(--primary); border-radius: 4px;
+      transition: width .3s ease; width: 0%;
+    }
+    .progress-fill.done    { background: #198754; }
+    .progress-fill.running {
+      background: repeating-linear-gradient(90deg,var(--primary) 0%,var(--primary) 40%,#1a56db 40%,#1a56db 100%);
+      animation: slide 1s linear infinite; background-size: 40px 100%;
+    }
+    @keyframes slide { from{background-position:0 0} to{background-position:40px 0} }
+
+    .results-section { display: none; }
+    .results-section.visible { display: block; }
+
+    #print-btn { display: none; }
+    #print-btn.visible { display: inline-flex; }
+
+    @media print {
+      .sidebar, .btn, #run-btn, #print-btn,
+      .param-section, .card-header .btn { display: none !important; }
+      .main-content { margin: 0 !important; }
+      .results-section { display: block !important; }
+      .report-box { max-height: none; background: #fff; color: #000; border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span>Oracle</span> CRM
+    <small>Odoo → Fusion Sync</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/odoo-sales.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+      Odoo Sales
+    </a>
+    <a href="/orders.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+      Orders Search
+    </a>
+    <a href="/reports.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Reports
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/odoo-endpoints.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      Odoo Endpoints
+    </a>
+    <a href="/api-test.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      API Test
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/benchmark.html" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Speed Benchmark
+    </a>
+    <a href="/users.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </a>
+    <a href="/profile.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+  <div class="sidebar-user" id="sidebar-user" style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);margin-top:auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="sidebar-avatar" style="width:32px;height:32px;border-radius:50%;background:#C74634;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="sidebar-username" style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="sidebar-role" style="font-size:11px;color:rgba(255,255,255,0.6);"></div>
+      </div>
+      <button onclick="logout()" title="Logout" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:16px;padding:2px;">⏏</button>
+    </div>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<!-- ── Main content ──────────────────────────────────────────────────────── -->
+<main class="main-content">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Speed Benchmark</h1>
+      <p class="page-subtitle">Estimate how long it will take to pull data from Odoo and push it to Oracle Fusion</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="print-btn" class="btn btn-secondary" onclick="window.print()">
+        🖨 Print / Export PDF
+      </button>
+      <button id="run-btn" class="btn btn-primary" onclick="runBenchmark()">
+        ▶ Run Benchmark
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Parameter configuration ────────────────────────────────────────── -->
+  <div class="card param-section" style="margin-bottom:20px;">
+    <div class="card-header">
+      <h2 class="card-title">Configuration</h2>
+      <button class="btn btn-secondary btn-sm" onclick="resetDefaults()">Reset to defaults</button>
+    </div>
+    <div style="padding:16px 20px;">
+
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+        SQLite read/write speeds are <strong>actually measured</strong> on this server.
+        Odoo JSONRPC and Oracle API call latencies are <strong>estimated</strong> —
+        adjust them to match your measured network latency for accurate projections.
+      </p>
+
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;">📊 Dataset</h3>
+      <div class="param-grid" style="margin-bottom:20px;">
+        <div class="param-row">
+          <label for="p-rpd">Records per day</label>
+          <input id="p-rpd" type="number" class="form-input" value="8000" min="1" max="1000000">
+          <small>Odoo sale orders created per calendar day</small>
+        </div>
+        <div class="param-row">
+          <label for="p-days">Days</label>
+          <input id="p-days" type="number" class="form-input" value="30" min="1" max="3650">
+          <small>Number of calendar days in the sync window</small>
+        </div>
+        <div class="param-row">
+          <label for="p-lpo">Lines per order</label>
+          <input id="p-lpo" type="number" class="form-input" value="3" min="1" max="100" step="0.1">
+          <small>Average sale.order.line records per order</small>
+        </div>
+        <div class="param-row">
+          <label for="p-ppo">Payments per order</label>
+          <input id="p-ppo" type="number" class="form-input" value="1.5" min="0.1" max="20" step="0.1">
+          <small>Average account.payment records per order</small>
+        </div>
+      </div>
+
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;">⚡ Odoo API Latency</h3>
+      <div class="param-grid" style="margin-bottom:20px;">
+        <div class="param-row">
+          <label for="p-ohl">Header page latency (ms)</label>
+          <input id="p-ohl" type="number" class="form-input" value="300" min="10" max="30000">
+          <small>One JSONRPC call for 500 sale order headers</small>
+        </div>
+        <div class="param-row">
+          <label for="p-oll">Line-chunk latency (ms)</label>
+          <input id="p-oll" type="number" class="form-input" value="200" min="10" max="30000">
+          <small>One JSONRPC call for 200-order line chunk</small>
+        </div>
+        <div class="param-row">
+          <label for="p-opl">Payment latency (ms)</label>
+          <input id="p-opl" type="number" class="form-input" value="150" min="10" max="30000">
+          <small>One JSONRPC call for payment page</small>
+        </div>
+      </div>
+
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;">🔴 Oracle Fusion API</h3>
+      <div class="param-grid" style="margin-bottom:20px;">
+        <div class="param-row">
+          <label for="p-oal">Oracle call latency (ms)</label>
+          <input id="p-oal" type="number" class="form-input" value="400" min="10" max="30000">
+          <small>Avg Oracle Fusion REST API round-trip time</small>
+        </div>
+        <div class="param-row">
+          <label for="p-oac">Oracle calls per order</label>
+          <input id="p-oac" type="number" class="form-input" value="5" min="1" max="20">
+          <small>Invoice + receipts + apply + inv-txn (typical: 4–7)</small>
+        </div>
+        <div class="param-row">
+          <label for="p-mc">Push concurrency</label>
+          <input id="p-mc" type="number" class="form-input" value="10" min="1" max="100">
+          <small>Max simultaneous Oracle push threads (ODOO_PUSH_CONCURRENCY)</small>
+        </div>
+      </div>
+
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;">⚙️ Pipeline Tuning</h3>
+      <div class="param-grid">
+        <div class="param-row">
+          <label for="p-fps">Fetch page size</label>
+          <input id="p-fps" type="number" class="form-input" value="500" min="1" max="5000">
+          <small>ODOO_FETCH_PAGE_SIZE (records per Odoo page)</small>
+        </div>
+        <div class="param-row">
+          <label for="p-lfc">Line fetch concurrency</label>
+          <input id="p-lfc" type="number" class="form-input" value="5" min="1" max="50">
+          <small>ODOO_LINE_FETCH_CONCURRENCY (parallel line requests)</small>
+        </div>
+        <div class="param-row">
+          <label for="p-lcs">Line chunk size</label>
+          <input id="p-lcs" type="number" class="form-input" value="200" min="1" max="1000">
+          <small>Order IDs per line-fetch JSONRPC call</small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Progress ───────────────────────────────────────────────────────── -->
+  <div id="progress-section" class="card" style="display:none;margin-bottom:20px;">
+    <div class="card-header"><h2 class="card-title">Running benchmark…</h2></div>
+    <div style="padding:16px 20px;">
+      <div class="progress-wrap">
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill running" style="width:100%"></div></div>
+      </div>
+      <p id="progress-msg" style="font-size:13px;color:var(--muted);">Measuring SQLite performance and calculating estimates…</p>
+    </div>
+  </div>
+
+  <!-- ── Results ────────────────────────────────────────────────────────── -->
+  <div id="results-section" class="results-section">
+
+    <!-- Headline KPIs -->
+    <div class="bench-grid" id="kpi-grid"></div>
+
+    <!-- Pull phase detail -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><h2 class="card-title">📥 Odoo Pull Phase</h2></div>
+      <div style="padding:0 4px 4px;">
+        <table class="phase-table" id="pull-table">
+          <thead>
+            <tr>
+              <th>Step</th><th>Count</th><th>Latency</th><th>Concurrency</th><th>Estimated Time</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Push phase detail -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><h2 class="card-title">📤 Oracle Push Phase</h2></div>
+      <div style="padding:0 4px 4px;">
+        <table class="phase-table" id="push-table">
+          <thead>
+            <tr>
+              <th>Step</th><th>Count</th><th>Latency / Order</th><th>Concurrency</th><th>Estimated Time</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SQLite perf -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><h2 class="card-title">🗄 SQLite Performance (measured on this server)</h2></div>
+      <div style="padding:0 4px 4px;">
+        <table class="phase-table" id="sqlite-table">
+          <thead>
+            <tr><th>Metric</th><th>Sample</th><th>Measured (sample)</th><th>Projected (full dataset)</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Full text report -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <h2 class="card-title">📋 Full Text Report</h2>
+        <button class="btn btn-secondary btn-sm" onclick="copyReport()">📋 Copy</button>
+      </div>
+      <div style="padding:16px 20px 20px;">
+        <pre id="text-report" class="report-box"></pre>
+      </div>
+    </div>
+
+  </div><!-- /#results-section -->
+
+</main><!-- /.main-content -->
+
+<script src="/js/app.js"></script>
+<script>
+'use strict';
+
+// ── Defaults (mirrors server-side benchmark.js) ───────────────────────────
+const DEFAULTS = {
+  recordsPerDay          : 8000,
+  days                   : 30,
+  linesPerOrder          : 3,
+  paymentsPerOrder       : 1.5,
+  odooHeaderLatencyMs    : 300,
+  odooLineLatencyMs      : 200,
+  odooPaymentLatencyMs   : 150,
+  oracleApiCallLatencyMs : 400,
+  oracleApiCallsPerOrder : 5,
+  fetchPageSize          : 500,
+  maxConcurrent          : 10,
+  lineFetchConcurrency   : 5,
+  lineChunkSize          : 200,
+};
+
+function resetDefaults() {
+  document.getElementById('p-rpd').value  = DEFAULTS.recordsPerDay;
+  document.getElementById('p-days').value = DEFAULTS.days;
+  document.getElementById('p-lpo').value  = DEFAULTS.linesPerOrder;
+  document.getElementById('p-ppo').value  = DEFAULTS.paymentsPerOrder;
+  document.getElementById('p-ohl').value  = DEFAULTS.odooHeaderLatencyMs;
+  document.getElementById('p-oll').value  = DEFAULTS.odooLineLatencyMs;
+  document.getElementById('p-opl').value  = DEFAULTS.odooPaymentLatencyMs;
+  document.getElementById('p-oal').value  = DEFAULTS.oracleApiCallLatencyMs;
+  document.getElementById('p-oac').value  = DEFAULTS.oracleApiCallsPerOrder;
+  document.getElementById('p-mc').value   = DEFAULTS.maxConcurrent;
+  document.getElementById('p-fps').value  = DEFAULTS.fetchPageSize;
+  document.getElementById('p-lfc').value  = DEFAULTS.lineFetchConcurrency;
+  document.getElementById('p-lcs').value  = DEFAULTS.lineChunkSize;
+}
+
+function readParams() {
+  return {
+    recordsPerDay          : Number(document.getElementById('p-rpd').value),
+    days                   : Number(document.getElementById('p-days').value),
+    linesPerOrder          : Number(document.getElementById('p-lpo').value),
+    paymentsPerOrder       : Number(document.getElementById('p-ppo').value),
+    odooHeaderLatencyMs    : Number(document.getElementById('p-ohl').value),
+    odooLineLatencyMs      : Number(document.getElementById('p-oll').value),
+    odooPaymentLatencyMs   : Number(document.getElementById('p-opl').value),
+    oracleApiCallLatencyMs : Number(document.getElementById('p-oal').value),
+    oracleApiCallsPerOrder : Number(document.getElementById('p-oac').value),
+    fetchPageSize          : Number(document.getElementById('p-fps').value),
+    pushBatchSize          : 500,
+    maxConcurrent          : Number(document.getElementById('p-mc').value),
+    lineFetchConcurrency   : Number(document.getElementById('p-lfc').value),
+    lineChunkSize          : Number(document.getElementById('p-lcs').value),
+  };
+}
+
+async function runBenchmark() {
+  const token = localStorage.getItem('crm_token');
+  if (!token) { window.location.href = '/login.html'; return; }
+
+  const params = readParams();
+
+  // Show progress
+  document.getElementById('progress-section').style.display = '';
+  document.getElementById('results-section').classList.remove('visible');
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-btn').textContent = '⏳ Running…';
+  document.getElementById('print-btn').classList.remove('visible');
+
+  try {
+    const resp = await fetch('/api/benchmark/run', {
+      method  : 'POST',
+      headers : { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body    : JSON.stringify(params),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: resp.statusText }));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+
+    const report = await resp.json();
+    renderReport(report);
+
+  } catch (err) {
+    alert('Benchmark failed: ' + err.message);
+  } finally {
+    document.getElementById('progress-section').style.display = 'none';
+    document.getElementById('run-btn').disabled    = false;
+    document.getElementById('run-btn').textContent = '▶ Run Benchmark';
+  }
+}
+
+// ── Rendering helpers ─────────────────────────────────────────────────────
+
+function fmt(n) { return typeof n === 'number' ? n.toLocaleString() : String(n); }
+function fmtMs(ms) {
+  if (!ms && ms !== 0) return '–';
+  if (ms < 1000)  return `${ms} ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)} s`;
+  if (ms < 3600000) {
+    const m = Math.floor(ms / 60000);
+    const s = Math.round((ms % 60000) / 1000);
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  const h = Math.floor(ms / 3600000);
+  const m = Math.round((ms % 3600000) / 60000);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function renderKPIs(report) {
+  const { odooPull: p, oraclePush: q, combined: c, totals: t, sqliteWrite: sw } = report;
+  const kpis = [
+    { label: 'Total Orders',          value: fmt(t.totalOrders),           sub: `${fmt(t.totalLines)} lines · ${fmt(t.totalPayments)} payments` },
+    { label: 'Odoo Pull Duration',     value: p.humanDuration,              sub: `${fmtMs(p.headerFetchMs)} fetch + ${fmtMs(p.sqliteMs)} SQLite write`, cls: 'accent-green' },
+    { label: 'Oracle Push Duration',   value: q.humanDuration,              sub: `${fmt(q.ordersPerMinute)} orders/min · ${fmt(q.ordersPerHour)}/hr`, cls: 'accent-orange' },
+    { label: 'Total (Pull + Push)',    value: c.humanDuration,              sub: `end-to-end wall-clock time`, cls: 'accent-red' },
+    { label: 'SQLite Write Speed',     value: `${fmt(sw.throughputPerSec)}/s`, sub: `records/sec (measured)` },
+  ];
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = kpis.map(k => `
+    <div class="bench-card ${k.cls || ''}">
+      <div class="bc-label">${escHtml(k.label)}</div>
+      <div class="bc-value">${escHtml(k.value)}</div>
+      <div class="bc-sub">${escHtml(k.sub)}</div>
+    </div>
+  `).join('');
+}
+
+function renderPullTable(report) {
+  const p = report.odooPull;
+  const params = report.params;
+  const rows = [
+    ['Authenticate to Odoo',  '1 call',          `${params.odooHeaderLatencyMs} ms`,   '1',                               fmtMs(params.odooHeaderLatencyMs)],
+    ['Fetch sale headers',    `${fmt(p.headerPages)} pages`,   `${params.odooHeaderLatencyMs} ms/page`, '1 (sequential)', fmtMs(p.headerFetchMs)],
+    ['Write headers → SQLite', `${fmt(report.totals.totalOrders)} rows`, 'measured',  'batch tx',  fmtMs(p.sqliteMs / 2)],
+    ['Fetch sale lines',      `${fmt(p.lineFetchRounds)} rounds (${fmt(p.lineChunks)} chunks)`, `${params.odooLineLatencyMs} ms/chunk`, `${params.lineFetchConcurrency} parallel`, fmtMs(p.lineFetchMs)],
+    ['Write lines → SQLite',  `${fmt(report.totals.totalLines)} rows`, 'measured',   'batch tx',  fmtMs(p.sqliteMs / 2)],
+    ['Fetch payments',        `${fmt(p.paymentPages)} pages`,  `${params.odooPaymentLatencyMs} ms/page`, '1 (sequential)', fmtMs(p.paymentFetchMs)],
+  ];
+  const totalRow = ['<strong>TOTAL PULL</strong>', '', '', '', `<strong>${p.humanDuration}</strong>`];
+
+  const tbody = document.querySelector('#pull-table tbody');
+  tbody.innerHTML = rows.map(r =>
+    `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`
+  ).join('') + `<tr class="row-total">${totalRow.map(c => `<td>${c}</td>`).join('')}</tr>`;
+}
+
+function renderPushTable(report) {
+  const q = report.oraclePush;
+  const params = report.params;
+  const rows = [
+    ['Read from SQLite',           `${fmt(report.totals.totalOrders)} orders`,   'measured',            'batch',                   fmtMs(q.sqliteMs)],
+    ['Build Oracle payloads',      `${fmt(report.totals.totalOrders)} payloads`,  '< 1 ms/order',        'in-memory',               '< 1 s'],
+    ['Create Invoice',             `${fmt(report.totals.totalOrders)} calls`,    `${params.oracleApiCallLatencyMs} ms`,  `${params.maxConcurrent}`,  '—'],
+    ['Create Receipt + Apply',     `${fmt(report.totals.totalOrders)} orders`,   `${params.oracleApiCallLatencyMs} ms ×2`, `${params.maxConcurrent}`, '—'],
+    ['Inventory Transaction',      `${fmt(report.totals.totalOrders)} calls`,    `${params.oracleApiCallLatencyMs} ms`,  `${params.maxConcurrent}`,  '—'],
+    [`All Oracle API calls combined`, `${fmt(q.pushRounds)} rounds`,            `${q.timePerOrderMs} ms/order`,         `${params.maxConcurrent} parallel`, fmtMs(q.oracleApiMs)],
+  ];
+  const totalRow = ['<strong>TOTAL PUSH</strong>', '', '', '', `<strong>${q.humanDuration}</strong>`];
+
+  const tbody = document.querySelector('#push-table tbody');
+  tbody.innerHTML = rows.map(r =>
+    `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`
+  ).join('') + `<tr class="row-total">${totalRow.map(c => `<td>${c}</td>`).join('')}</tr>`;
+}
+
+function renderSqliteTable(report) {
+  const { sqliteWrite: sw, sqliteRead: sr, totals: t } = report;
+  const rows = [
+    ['Write (sale headers + lines)', `${fmt(sw.sampleOrders)} orders`,  fmtMs(sw.sampleWriteMs),  fmtMs(sw.writeMs)],
+    ['Read (paginated scan)',         `${fmt(sr.sampleOrders)} orders`,  fmtMs(sr.sampleReadMs),   fmtMs(sr.readMs)],
+    ['Write throughput',              '—',                               `${fmt(sw.throughputPerSec)} rows/s`, '—'],
+    ['Read throughput',               '—',                               `${fmt(sr.throughputPerSec)} rows/s`, '—'],
+  ];
+
+  const tbody = document.querySelector('#sqlite-table tbody');
+  tbody.innerHTML = rows.map(r =>
+    `<tr>${r.map(c => `<td>${escHtml(String(c))}</td>`).join('')}</tr>`
+  ).join('');
+}
+
+function renderReport(report) {
+  renderKPIs(report);
+  renderPullTable(report);
+  renderPushTable(report);
+  renderSqliteTable(report);
+  document.getElementById('text-report').textContent = report.summary;
+
+  document.getElementById('results-section').classList.add('visible');
+  document.getElementById('print-btn').classList.add('visible');
+
+  // Scroll to results
+  document.getElementById('kpi-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyReport() {
+  const text = document.getElementById('text-report').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+// ── Auth / sidebar init ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const token = localStorage.getItem('crm_token');
+  if (!token) { window.location.href = '/login.html'; return; }
+
+  // Populate sidebar user info
+  fetch('/api/auth/profile', { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.ok ? r.json() : null)
+    .then(u => {
+      if (!u) return;
+      const av = document.getElementById('sidebar-avatar');
+      const un = document.getElementById('sidebar-username');
+      const rl = document.getElementById('sidebar-role');
+      if (av) av.textContent = (u.displayName || u.username || '?')[0].toUpperCase();
+      if (un) un.textContent = u.displayName || u.username;
+      if (rl) rl.textContent = u.role;
+    })
+    .catch(() => {});
+
+  // Status dot
+  fetch('/api/config/full', { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.ok ? r.json() : null)
+    .then(cfg => {
+      const dot   = document.getElementById('status-dot');
+      const label = document.getElementById('status-label');
+      if (!cfg) return;
+      const ok = cfg.odoo?.configured && cfg.oracle?.configured;
+      if (dot)   dot.className   = 'dot ' + (ok ? 'dot-ok' : 'dot-warn');
+      if (label) label.textContent = ok ? 'Connected' : 'Config needed';
+    })
+    .catch(() => {});
+
+  // Auto-run with defaults on first load
+  runBenchmark();
+});
+</script>
+</body>
+</html>
