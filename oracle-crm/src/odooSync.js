@@ -36,6 +36,18 @@ const OraclePushService = require('./pushOracle');
 const db              = require('./db');
 const logger          = require('./logger').child('OdooSync');
 
+// Country timezone offsets (hours ahead of UTC) used when converting local
+// calendar days to UTC timestamps for the Odoo REST API domain filter.
+// Matches the region reference table in config.html / calculations.js.
+const COUNTRY_TZ_OFFSETS = {
+  AE: 4, // UAE (UTC+4)
+  OM: 4, // Oman (UTC+4)
+  KW: 3, // Kuwait (UTC+3)
+  SA: 3, // Saudi Arabia (UTC+3)
+  BH: 3, // Bahrain (UTC+3)
+  QA: 3, // Qatar (UTC+3)
+};
+
 // Max concurrent Oracle pushes per job chunk (keep CRM responsive)
 const MAX_CONCURRENT    = Number(process.env.ODOO_PUSH_CONCURRENCY)  || 10;
 // How many orders to fetch from Odoo per page
@@ -147,7 +159,13 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
   try {
     const odoo   = buildOdooClient(country);
-    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, ['sale', 'done'], companyId ? Number(companyId) : null);
+    // Determine timezone offset for the country so dates are converted to UTC
+    // when querying the Odoo REST API (which stores date_order in UTC).
+    const tzOffset = (country && (COUNTRY_TZ_OFFSETS[country.toUpperCase()] ?? 0)) || 0;
+    if (tzOffset) {
+      jobLog(jobId, 'info', `UTC date conversion active: ${country} (UTC+${tzOffset})`, { tzOffset });
+    }
+    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, ['sale', 'done'], companyId ? Number(companyId) : null, tzOffset);
 
     jobLog(jobId, 'info', 'Connecting to Odoo…');
     await odoo.authenticate();
