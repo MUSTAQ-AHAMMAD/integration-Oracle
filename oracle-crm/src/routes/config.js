@@ -394,8 +394,13 @@ router.post('/test-odoo', async (req, res) => {
   }
 
   // ── Saved-credentials mode (existing behaviour) ───────────────────────────
-  const country  = body.country ? String(body.country).toUpperCase() : null;
-  const creds    = country ? db.getCredentialsForCountry(country) : db.getActiveCredentials();
+  let creds;
+  try {
+    const country = body.country ? String(body.country).toUpperCase() : null;
+    creds = country ? db.getCredentialsForCountry(country) : db.getActiveCredentials();
+  } catch (err) {
+    return res.status(200).json({ ok: false, error: `Failed to load saved credentials: ${err.message}` });
+  }
   const authType = (creds.odoo.authType || 'jsonrpc').toLowerCase();
 
   if (authType === 'x-api-key' || authType === 'bearer') {
@@ -488,7 +493,7 @@ router.post('/test-odoo', async (req, res) => {
     const uid    = await client.authenticate();
     res.json({ ok: true, message: `Odoo connection successful (uid=${uid}, ${creds.mode} server, version=${version === 0 ? 'legacy' : version})`, uid });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(200).json({ ok: false, error: err.message });
   }
 });
 
@@ -507,12 +512,16 @@ router.post('/test-endpoint', async (req, res) => {
 
   // If url / apiKey not provided, load from country config (or global defaults)
   if (!url || !apiKey) {
-    const creds = country
-      ? db.getCredentialsForCountry(String(country).toUpperCase())
-      : db.getActiveCredentials();
-    url      = url      || creds.odoo.url;
-    apiKey   = apiKey   || creds.odoo.apiKey;
-    authType = authType || creds.odoo.authType;
+    try {
+      const creds = country
+        ? db.getCredentialsForCountry(String(country).toUpperCase())
+        : db.getActiveCredentials();
+      url      = url      || creds.odoo.url;
+      apiKey   = apiKey   || creds.odoo.apiKey;
+      authType = authType || creds.odoo.authType;
+    } catch (err) {
+      return res.status(200).json({ ok: false, error: `Failed to load saved credentials: ${err.message}` });
+    }
   }
 
   authType = (authType || 'x-api-key').toLowerCase();
@@ -542,10 +551,6 @@ router.post('/test-endpoint', async (req, res) => {
       count  : Array.isArray(rows) ? rows.length : null,
     });
   } catch (err) {
-    const status = err.response ? err.response.status : null;
-    if (status === 401 || status === 403) {
-      return res.status(200).json({ ok: false, error: `Authentication failed (HTTP ${status}) – check API key` });
-    }
     res.status(200).json({ ok: false, error: err.message, url: baseUrl, path: effectivePath });
   }
 });
