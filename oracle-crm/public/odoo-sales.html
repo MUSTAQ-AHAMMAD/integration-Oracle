@@ -173,30 +173,33 @@
           </div>
           <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:12px">
             <!-- Endpoint 1 -->
-            <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+            <div id="ep1-box" style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px;position:relative">
               <div style="font-weight:700;color:#1a56db">① Sale Headers</div>
               <div style="color:#1a56db;font-size:10px;font-family:monospace">Sale_detail</div>
               <div style="color:#374151;margin-top:3px">Invoice # · Date</div>
               <div style="color:#374151">Store · Customer</div>
               <div style="color:#374151">Totals · Currency</div>
+              <div id="ep1-count" style="display:none;margin-top:5px;font-weight:700;font-size:11px;color:#1a56db"></div>
             </div>
             <div style="color:var(--muted);font-size:16px;padding:0 6px">+</div>
             <!-- Endpoint 2 -->
-            <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+            <div id="ep2-box" style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px;position:relative">
               <div style="font-weight:700;color:#1a56db">② Order Lines</div>
               <div style="color:#1a56db;font-size:10px;font-family:monospace">PosOrderLine</div>
               <div style="color:#374151;margin-top:3px">Item # (SKU) · Qty</div>
               <div style="color:#374151">Price · Tax Name</div>
               <div style="color:#374151">Discount</div>
+              <div id="ep2-count" style="display:none;margin-top:5px;font-weight:700;font-size:11px;color:#1a56db"></div>
             </div>
             <div style="color:var(--muted);font-size:16px;padding:0 6px">+</div>
             <!-- Endpoint 3 -->
-            <div style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px">
+            <div id="ep3-box" style="background:#e7f0ff;border:1px solid #b6d0ff;border-radius:6px;padding:8px 12px;text-align:center;min-width:130px;position:relative">
               <div style="font-weight:700;color:#1a56db">③ Payments</div>
               <div style="color:#1a56db;font-size:10px;font-family:monospace">payment_lines</div>
               <div style="color:#374151;margin-top:3px">Payment Type · Amount</div>
               <div style="color:#374151">Currency · Date</div>
               <div style="color:#374151">Outlet · Register</div>
+              <div id="ep3-count" style="display:none;margin-top:5px;font-weight:700;font-size:11px;color:#1a56db"></div>
             </div>
             <!-- Arrow -->
             <div style="color:var(--primary);font-size:20px;font-weight:700;padding:0 10px">→</div>
@@ -260,7 +263,7 @@
             <div class="form-group" style="margin-top:16px">
               <button id="btn-fetch" class="btn btn-primary btn-lg" style="width:100%">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Fetch from Odoo
+                Fetch from Odoo (All 3 Endpoints)
               </button>
             </div>
           </div>
@@ -911,6 +914,8 @@ function startFetchPoll(jobId) {
   $('fetch-progress').classList.remove('hidden');
   $('fetch-job-id-label').textContent = 'Job: ' + jobId.slice(0,8) + '…';
   setFetchStatus('QUEUED');
+  // Reset endpoint count badges while new job runs
+  resetEndpointCounts();
   if (fetchPollTimer) clearInterval(fetchPollTimer);
   fetchPollTimer = setInterval(() => pollJob(jobId, 'fetch'), 1500);
 }
@@ -926,6 +931,8 @@ async function pollJob(jobId, kind) {
       const pct = job.total > 0 ? Math.round((job.processed / job.total) * 100) : (isDone ? 100 : 0);
       setBar($('fetch-fill'), pct, job.status);
       $('fetch-counter').textContent = job.total ? `${job.processed} / ${job.total}` : '';
+      // Update per-endpoint count badges from job logs (visible during + after fetch)
+      updateEndpointCounts(job.recent_logs);
       if (isDone) {
         clearInterval(fetchPollTimer);
         $('btn-fetch').disabled = false;
@@ -955,6 +962,64 @@ function setFetchStatus(s) {
 function setPushStatus(s) {
   $('push-status-label').textContent = s;
   $('push-status-label').style.color = statusColour(s);
+}
+
+/**
+ * Parse the job's recent_logs to extract per-endpoint record counts and
+ * display them as badges on the pipeline diagram nodes.
+ *
+ * Patterns matched (from odooSync.js jobLog calls):
+ *   "All X sale headers stored in local DB"    → Endpoint ① Sale_detail
+ *   "Stored X sale lines in local DB"          → Endpoint ② PosOrderLine
+ *   "Stored X payment records in local DB"     → Endpoint ③ payment_lines
+ *   "No orders found – job complete"           → Endpoint ① = 0 records
+ *   "No payments found for fetched sale orders"→ Endpoint ③ = 0 records
+ */
+function updateEndpointCounts(logs) {
+  if (!Array.isArray(logs)) return;
+  for (const entry of logs) {
+    let msg = '';
+    try {
+      const meta = typeof entry.meta_json === 'string' ? JSON.parse(entry.meta_json) : (entry.meta_json || {});
+      msg = meta.message || '';
+    } catch(parseErr) {
+      console.warn('updateEndpointCounts: failed to parse log meta_json', parseErr);
+      continue;
+    }
+
+    // Endpoint 1 – Sale_detail
+    const m1 = msg.match(/All (\d+) sale headers stored/i);
+    if (m1) setEndpointCount(1, Number(m1[1]));
+    if (/No orders found/i.test(msg)) setEndpointCount(1, 0);
+
+    // Endpoint 2 – PosOrderLine
+    const m2 = msg.match(/Stored (\d+) sale lines/i);
+    if (m2) setEndpointCount(2, Number(m2[1]));
+
+    // Endpoint 3 – payment_lines
+    const m3 = msg.match(/Stored (\d+) payment records/i);
+    if (m3) setEndpointCount(3, Number(m3[1]));
+    if (/No payments found/i.test(msg) || /No invoices linked/i.test(msg)) setEndpointCount(3, 0);
+  }
+}
+
+function setEndpointCount(ep, count) {
+  const el = $('ep' + ep + '-count');
+  if (!el) return;
+  el.textContent = count === 0 ? '0 records' : count + ' record' + (count === 1 ? '' : 's');
+  el.style.display = 'block';
+  el.style.color   = count > 0 ? '#0a3622' : '#6b7280';
+  const box = $('ep' + ep + '-box');
+  if (box) box.style.borderColor = count > 0 ? '#a3cfbb' : '#b6d0ff';
+}
+
+function resetEndpointCounts() {
+  [1,2,3].forEach(ep => {
+    const el = $('ep' + ep + '-count');
+    if (el) { el.style.display = 'none'; el.textContent = ''; }
+    const box = $('ep' + ep + '-box');
+    if (box) box.style.borderColor = '#b6d0ff';
+  });
 }
 
 // ── Sales table ──────────────────────────────────────────────────────
