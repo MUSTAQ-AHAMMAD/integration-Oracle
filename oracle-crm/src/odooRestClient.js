@@ -172,10 +172,10 @@ class OdooRestClient {
       );
     }
 
-    if (Array.isArray(body))          return body;
-    if (Array.isArray(body.result))   return body.result;
-    if (Array.isArray(body.data))     return body.data;
-    if (Array.isArray(body.records))  return body.records;
+    if (Array.isArray(body))                            return body;
+    if (body && Array.isArray(body.result))              return body.result;
+    if (body && Array.isArray(body.data))                return body.data;
+    if (body && Array.isArray(body.records))             return body.records;
     return [];
   }
 
