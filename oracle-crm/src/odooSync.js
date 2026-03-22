@@ -137,6 +137,10 @@ function jobLog(jobId, level, message, meta = {}) {
  * @param {string}  [options.storeName]
  * @param {string}  [options.mode]      'BY_DATE' | 'BY_STORE_DATE' | 'ALL_STORES_DATE'
  * @param {number}  [options.companyId] filter by Odoo company_id (multi-company)
+ * @param {number}  [options.tzOffset]  explicit UTC offset in hours (e.g. 3 for UTC+3).
+ *                                      Overrides the country-derived offset when provided.
+ *                                      Required when Odoo stores dates in UTC and you want
+ *                                      to fetch a specific local-calendar day correctly.
  * @returns {string} jobId
  */
 function startFetchJob(options) {
@@ -153,17 +157,24 @@ function startFetchJob(options) {
   return jobId;
 }
 
-async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, companyId }) {
+async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, companyId, tzOffset: explicitTzOffset }) {
   db.updateJob(jobId, { status: 'RUNNING', started_at: new Date().toISOString() });
   jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country, companyId });
 
   try {
     const odoo   = buildOdooClient(country);
-    // Determine timezone offset for the country so dates are converted to UTC
-    // when querying the Odoo REST API (which stores date_order in UTC).
-    const tzOffset = (country && (COUNTRY_TZ_OFFSETS[country.toUpperCase()] ?? 0)) || 0;
-    if (tzOffset) {
-      jobLog(jobId, 'info', `UTC date conversion active: ${country} (UTC+${tzOffset})`, { tzOffset });
+    // Determine timezone offset so that local calendar-day boundaries are
+    // converted to UTC before querying Odoo (which stores date_order in UTC).
+    // Priority: explicit tzOffset passed in options → country-derived offset → 0.
+    let tzOffset;
+    if (explicitTzOffset !== null && explicitTzOffset !== undefined && typeof explicitTzOffset === 'number') {
+      tzOffset = explicitTzOffset;
+      jobLog(jobId, 'info', `UTC date conversion active: explicit tzOffset (UTC+${tzOffset})`, { tzOffset });
+    } else {
+      tzOffset = (country && (COUNTRY_TZ_OFFSETS[country.toUpperCase()] ?? 0)) || 0;
+      if (tzOffset) {
+        jobLog(jobId, 'info', `UTC date conversion active: ${country} (UTC+${tzOffset})`, { tzOffset });
+      }
     }
     const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, ['sale', 'done'], companyId ? Number(companyId) : null, tzOffset);
 

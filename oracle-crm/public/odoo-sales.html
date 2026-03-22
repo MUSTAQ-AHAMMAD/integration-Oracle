@@ -264,6 +264,15 @@
                 <option value="QA">🇶🇦 QA – Qatar</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">Timezone Offset (UTC+) <span class="req">*</span></label>
+              <input type="number" id="fetch-tz-offset" class="form-control" value="3" step="0.5" min="-12" max="14">
+              <small class="text-muted">
+                Hours ahead of UTC for your Odoo server's local time.<br>
+                e.g. <strong>3</strong> = Kuwait/Saudi/Qatar (UTC+3) &nbsp;|&nbsp; <strong>4</strong> = UAE/Oman (UTC+4)<br>
+                Ensures the correct UTC date range is sent to Odoo so the right day's orders are fetched.
+              </small>
+            </div>
             <div class="form-group" style="margin-top:16px">
               <button id="btn-fetch" class="btn btn-primary btn-lg" style="width:100%">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -890,23 +899,37 @@ async function loadStores() {
 }
 
 // ── Fetch section ────────────────────────────────────────────────────
+
+// Auto-fill tzOffset when a country is selected in the fetch form
+const FETCH_COUNTRY_TZ = { AE: 4, OM: 4, KW: 3, SA: 3, BH: 3, QA: 3 };
+$('fetch-country').addEventListener('change', () => {
+  const code = $('fetch-country').value;
+  if (code && FETCH_COUNTRY_TZ[code] != null) {
+    $('fetch-tz-offset').value = FETCH_COUNTRY_TZ[code];
+  }
+});
+
 $('btn-fetch').addEventListener('click', async () => {
   const dateFrom  = $('fetch-date-from').value;
   const dateTo    = $('fetch-date-to').value;
   const storeId   = $('fetch-store').value || undefined;
   const country   = $('fetch-country').value || undefined;
   const companyId = $('fetch-company-id').value ? Number($('fetch-company-id').value) : undefined;
+  const tzOffset  = parseFloat($('fetch-tz-offset').value);
   const storeName = storeId
     ? (storeList.find(s => String(s.id) === String(storeId)) || {}).name
     : undefined;
 
   if (!dateFrom || !dateTo) { showAlert($('alert-area'),'warning','Please select date range'); return; }
+  if (isNaN(tzOffset) || tzOffset < -12 || tzOffset > 14) {
+    showAlert($('alert-area'),'warning','Please enter a valid Timezone Offset between -12 and 14'); return;
+  }
 
   hideAlert($('alert-area'));
   $('btn-fetch').disabled = true;
 
   try {
-    const res = await api('/api/odoo/fetch', 'POST', { dateFrom, dateTo, storeId, storeName, country, companyId });
+    const res = await api('/api/odoo/fetch', 'POST', { dateFrom, dateTo, storeId, storeName, country, companyId, tzOffset });
     startFetchPoll(res.jobId);
   } catch(e) {
     showAlert($('alert-area'),'danger',e.message);
