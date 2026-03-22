@@ -569,16 +569,46 @@ class OdooClient {
   /**
    * Build a standard domain for filtering by date range and optional store/company.
    *
+   * When tzOffset is provided the local day boundaries (00:00:00 and 23:59:59)
+   * are shifted to UTC so that Odoo's UTC-stored date_order field is queried
+   * correctly for a specific local-time calendar day.
+   *
+   * Example: dateFrom='2026-02-01', tzOffset=4 (UAE, UTC+4)
+   *   → UTC start: '2026-01-31 20:00:00'  (midnight UAE = 20:00 UTC the day before)
+   *   → UTC end  : '2026-02-01 19:59:59'  (23:59:59 UAE = 19:59:59 UTC)
+   *
    * @param {string}  dateFrom    YYYY-MM-DD
    * @param {string}  dateTo      YYYY-MM-DD (inclusive)
    * @param {number}  [storeId]   warehouse id
    * @param {string[]} [states]   default: ['sale','done']
    * @param {number}  [companyId] Odoo company id (for multi-company instances)
+   * @param {number}  [tzOffset]  positive integer hours ahead of UTC (e.g. 4 for UAE, 3 for Kuwait)
    */
-  static buildDomain(dateFrom, dateTo, storeId, states = ['sale', 'done'], companyId = null) {
+  static buildDomain(dateFrom, dateTo, storeId, states = ['sale', 'done'], companyId = null, tzOffset = 0) {
+    let startUtc, endUtc;
+
+    if (tzOffset && typeof tzOffset === 'number') {
+      // Convert local day boundaries to UTC by treating the input as a local date
+      // and subtracting the UTC offset.  Use Date.UTC() to avoid Node.js host-TZ
+      // interference – all arithmetic is performed in UTC milliseconds.
+      const shiftDatetime = (dateStr, hour, minute, second, offsetHours) => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const utcMs = Date.UTC(y, m - 1, d, hour - offsetHours, minute, second);
+        const dt    = new Date(utcMs);
+        const pad   = n => String(n).padStart(2, '0');
+        return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())} ` +
+               `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())}`;
+      };
+      startUtc = shiftDatetime(dateFrom, 0,  0,  0,  tzOffset);
+      endUtc   = shiftDatetime(dateTo,   23, 59, 59, tzOffset);
+    } else {
+      startUtc = `${dateFrom} 00:00:00`;
+      endUtc   = `${dateTo} 23:59:59`;
+    }
+
     const d = [
-      ['date_order', '>=', `${dateFrom} 00:00:00`],
-      ['date_order', '<=', `${dateTo} 23:59:59`],
+      ['date_order', '>=', startUtc],
+      ['date_order', '<=', endUtc],
       ['state', 'in', states],
     ];
     if (storeId)   d.push(['warehouse_id', '=', storeId]);

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Odoo Endpoints</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .ep-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .ep-table th { background:#f6f8fa; padding:9px 12px; text-align:left; border-bottom:2px solid var(--border); font-weight:600; white-space:nowrap; }
+    .ep-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .ep-table tr:last-child td { border-bottom:none; }
+    .ep-table tr:hover td { background:#f9fafb; }
+    .badge-rest    { background:#cff4fc; color:#055160; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+    .badge-jsonrpc { background:#e2e3e5; color:#41464b; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+    .path-mono { font-family:monospace; font-size:11px; color:#1a56db; }
+    .test-result { font-size:12px; padding:5px 10px; border-radius:4px; margin-top:6px; }
+    .test-result.ok   { background:#d1e7dd; color:#0a3622; }
+    .test-result.fail { background:#f8d7da; color:#842029; }
+
+    /* Modal */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .modal-box { background:#fff; border-radius:10px; padding:28px 32px; width:100%; max-width:680px; box-shadow:0 8px 40px rgba(0,0,0,.2); max-height:92vh; overflow-y:auto; }
+    .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; }
+    .modal-grid  { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .full-col    { grid-column:1 / -1; }
+    .section-sep { grid-column:1 / -1; border:none; border-top:1px solid var(--border); margin:4px 0; }
+    .section-hdr { grid-column:1 / -1; font-weight:700; font-size:13px; padding-bottom:4px; }
+
+    /* Per-endpoint test grid */
+    .ep-test-row { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; margin-bottom:8px; }
+    .ep-test-row .form-group { margin:0; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><span>Oracle</span> CRM<small>Odoo → Fusion Sync</small></div>
+  <div class="sidebar-nav">
+    <a href="/">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="/new-sale.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Sale Push
+    </a>
+    <a href="/odoo-sales.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+      Odoo Sales
+    </a>
+    <a href="/orders.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+      Orders Search
+    </a>
+    <a href="/reports.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Reports
+    </a>
+    <a href="/sync-history.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Sync History
+    </a>
+    <a href="/odoo-endpoints.html" class="active">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      Odoo Endpoints
+    </a>
+    <a href="/api-test.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      API Test
+    </a>
+    <a href="/config.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </a>
+    <a href="/calculations.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      Calculations Ref
+    </a>
+    <a href="/users.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </a>
+    <a href="/profile.html">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </a>
+  </div>
+  <div class="sidebar-user" id="sidebar-user" style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);margin-top:auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="sidebar-avatar" style="width:32px;height:32px;border-radius:50%;background:#C74634;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="sidebar-username" style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="sidebar-role" style="font-size:11px;color:rgba(255,255,255,0.6);"></div>
+      </div>
+      <button onclick="logout()" title="Logout" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:16px;padding:2px;">⏏</button>
+    </div>
+  </div>
+  <div class="sidebar-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-label">Checking…</span>
+  </div>
+</nav>
+
+<div class="main-content">
+  <div class="topbar">
+    <h1>Odoo Endpoints</h1>
+    <button class="btn btn-primary" onclick="openModal()">+ Add Country Config</button>
+  </div>
+  <div class="page-body">
+
+    <div id="alert-area" class="alert hidden"></div>
+
+    <!-- ── Quick Connection Test ─────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Quick Connection Test
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+          Select a country and test its saved API credentials from the database
+        </span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;min-width:220px">
+            <label class="form-label">Country</label>
+            <select id="quick-test-country" class="form-control form-select">
+              <option value="">— Select Country —</option>
+              <option value="AE">🇦🇪 AE – UAE</option>
+              <option value="KW">🇰🇼 KW – Kuwait</option>
+              <option value="OM">🇴🇲 OM – Oman</option>
+              <option value="SA">🇸🇦 SA – Saudi Arabia</option>
+              <option value="BH">🇧🇭 BH – Bahrain</option>
+              <option value="QA">🇶🇦 QA – Qatar</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="runQuickTest()">⚡ Test Connection</button>
+        </div>
+        <div id="quick-test-result" style="margin-top:10px;display:none" class="test-result"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">
+          The test loads saved API credentials from the database for the selected country and verifies connectivity.
+          Auth type: <strong>x-api-key</strong> (REST). No credentials need to be entered — they are read from the stored configuration below.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Country Endpoint Configurations ────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+        Per-Country Odoo Endpoint Configurations
+      </div>
+      <div class="card-body" style="padding-top:6px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Each country can have its own Odoo base URL, API key (x-api-key), and three REST endpoint paths.
+          When a fetch job runs for a country, its credentials here take precedence over the global settings.
+        </p>
+        <div class="table-wrap">
+          <table class="ep-table" id="ep-table">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Odoo Base URL</th>
+                <th>Auth</th>
+                <th>① Sale Detail</th>
+                <th>② Order Lines</th>
+                <th>③ Payments</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ep-tbody">
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Default Endpoint Paths Reference ───────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        Default Endpoint Paths
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Used when no override is configured</span>
+      </div>
+      <div class="card-body">
+        <table style="width:100%;font-size:13px;border-collapse:collapse">
+          <thead><tr>
+            <th style="padding:7px 12px;border-bottom:1px solid var(--border);text-align:left">Endpoint</th>
+            <th style="padding:7px 12px;border-bottom:1px solid var(--border);text-align:left">Default Path</th>
+            <th style="padding:7px 12px;border-bottom:1px solid var(--border);text-align:left">Data Stored In</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:7px 12px;border-bottom:1px solid var(--border)">① Sale Headers</td><td style="padding:7px 12px;border-bottom:1px solid var(--border)"><code>/api/vSales/Sale_detail</code></td><td style="padding:7px 12px;border-bottom:1px solid var(--border)">odoo_sales</td></tr>
+            <tr><td style="padding:7px 12px;border-bottom:1px solid var(--border)">② Order Lines</td><td style="padding:7px 12px;border-bottom:1px solid var(--border)"><code>/api/vSales/PosOrderLine</code></td><td style="padding:7px 12px;border-bottom:1px solid var(--border)">odoo_sale_lines</td></tr>
+            <tr><td style="padding:7px 12px">③ Payment Lines</td><td style="padding:7px 12px"><code>/api/vSales/payment_lines</code></td><td style="padding:7px 12px">odoo_sale_payments</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px">
+          Auth header: <code>x-api-key: &lt;your-api-key&gt;</code><br>
+          Date filters are automatically converted to UTC based on country timezone (AE/OM: UTC+4, KW/SA/BH/QA: UTC+3).
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Add / Edit Modal ────────────────────────────────────────────────── -->
+<div id="ep-modal" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Add Country Config</div>
+    <div class="modal-grid">
+
+      <div class="form-group">
+        <label class="form-label">Country Code <span class="req">*</span></label>
+        <input class="form-control" id="m-code" placeholder="e.g. BH" maxlength="3" style="text-transform:uppercase">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Country Name <span class="req">*</span></label>
+        <input class="form-control" id="m-name" placeholder="e.g. Bahrain">
+      </div>
+
+      <hr class="section-sep">
+      <div class="section-hdr">🟣 Odoo REST API Connection</div>
+
+      <div class="form-group full-col">
+        <label class="form-label">Odoo Base URL <span class="req">*</span></label>
+        <input class="form-control" id="m-url" placeholder="https://ibraqperfumes.odoo.com" oninput="autoDetectModalAuthType()">
+        <div id="m-url-hint" style="display:none;margin-top:4px;padding:6px 8px;background:#e8f5e9;border:1px solid #66bb6a;border-radius:4px;font-size:12px;color:#1b5e20"></div>
+      </div>
+
+      <div class="form-group full-col">
+        <label class="form-label">Auth Type</label>
+        <select class="form-control" id="m-auth-type" onchange="toggleModalAuthFields()">
+          <option value="x-api-key">REST – X-Api-Key header (recommended)</option>
+          <option value="bearer">REST – Bearer Token</option>
+          <option value="jsonrpc">JSONRPC (username + password)</option>
+        </select>
+      </div>
+
+      <!-- REST fields -->
+      <div id="m-rest-section" class="full-col">
+        <div class="form-group">
+          <label class="form-label">API Key <span class="req">*</span> <span style="font-size:11px;color:var(--muted)">(sent as x-api-key header)</span></label>
+          <input type="password" class="form-control" id="m-api-key" placeholder="Leave blank to keep existing" autocomplete="new-password">
+        </div>
+      </div>
+
+      <!-- JSONRPC fields (hidden by default) -->
+      <div id="m-jsonrpc-section" class="full-col" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="form-group">
+            <label class="form-label">Odoo Username</label>
+            <input class="form-control" id="m-odoo-user" placeholder="admin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Odoo Password</label>
+            <input type="password" class="form-control" id="m-odoo-pass" placeholder="Leave blank to keep">
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-sep">
+      <div class="section-hdr">
+        🔗 REST Endpoint Paths
+        <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:6px">Leave blank to use defaults</span>
+      </div>
+
+      <div class="full-col">
+        <div class="ep-test-row">
+          <div class="form-group">
+            <label class="form-label">① Sale Headers path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/Sale_detail</span></label>
+            <input class="form-control" id="m-sale-path" placeholder="/api/vSales/Sale_detail" style="font-family:monospace;font-size:12px">
+          </div>
+          <button class="btn btn-outline" style="height:38px;white-space:nowrap;font-size:12px" onclick="testModalEndpoint('sale')">⚡ Test</button>
+        </div>
+        <div class="ep-test-row">
+          <div class="form-group">
+            <label class="form-label">② Order Lines path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/PosOrderLine</span></label>
+            <input class="form-control" id="m-line-path" placeholder="/api/vSales/PosOrderLine" style="font-family:monospace;font-size:12px">
+          </div>
+          <button class="btn btn-outline" style="height:38px;white-space:nowrap;font-size:12px" onclick="testModalEndpoint('line')">⚡ Test</button>
+        </div>
+        <div class="ep-test-row">
+          <div class="form-group">
+            <label class="form-label">③ Payment Lines path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
+            <input class="form-control" id="m-pay-path" placeholder="/api/vSales/payment_lines" style="font-family:monospace;font-size:12px">
+          </div>
+          <button class="btn btn-outline" style="height:38px;white-space:nowrap;font-size:12px" onclick="testModalEndpoint('payment')">⚡ Test</button>
+        </div>
+        <div id="m-ep-result" class="test-result" style="display:none;margin-top:4px"></div>
+      </div>
+
+      <hr class="section-sep">
+      <div class="section-hdr">🔵 Oracle Fusion <span style="font-size:11px;font-weight:400;color:var(--muted)">(leave blank to use global defaults)</span></div>
+
+      <div class="form-group">
+        <label class="form-label">Oracle Base URL</label>
+        <input class="form-control" id="m-oracle-url" placeholder="https://instance.fa.em2.oraclecloud.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Oracle Username</label>
+        <input class="form-control" id="m-oracle-user" placeholder="admin@example.com">
+      </div>
+      <div class="form-group full-col">
+        <label class="form-label">Oracle Password</label>
+        <input type="password" class="form-control" id="m-oracle-pass" placeholder="Leave blank to keep">
+      </div>
+
+      <div class="form-group full-col" style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="m-enabled" checked>
+          <span>Enabled (use this config for sync jobs)</span>
+        </label>
+      </div>
+
+    </div>
+
+    <div id="m-save-result" class="test-result" style="display:none;margin-top:10px"></div>
+
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveModal()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+requireLogin();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const PASSWORD_MASK = '••••••••';
+
+let _configs = {};   // code → row (with masked secrets)
+let _editCode = null; // null = add mode, string = edit mode
+
+// ── Bootstrap ────────────────────────────────────────────────────────
+loadEndpoints();
+
+async function loadEndpoints() {
+  try {
+    const res  = await fetch('/api/config/country-configs');
+    const data = await res.json();
+    _configs = {};
+    data.forEach(c => { _configs[c.country_code] = c; });
+    renderTable(data);
+  } catch (e) {
+    $('ep-tbody').innerHTML = `<tr><td colspan="8" style="color:var(--danger);padding:16px">${esc(e.message)}</td></tr>`;
+  }
+}
+
+function renderTable(rows) {
+  const tbody = $('ep-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No country configurations yet. Click <strong>+ Add Country Config</strong> to get started.</td></tr>';
+    return;
+  }
+  const defaultPaths = { saleDetail: '/api/vSales/Sale_detail', posOrderLine: '/api/vSales/PosOrderLine', paymentLines: '/api/vSales/payment_lines' };
+  tbody.innerHTML = rows.map(c => {
+    const isRest = c.odoo_auth_type === 'x-api-key' || c.odoo_auth_type === 'bearer';
+    const authBadge = isRest
+      ? `<span class="badge-rest">${c.odoo_auth_type === 'bearer' ? 'Bearer' : 'X-Api-Key'}</span>`
+      : `<span class="badge-jsonrpc">JSONRPC</span>`;
+    const p1 = c.odoo_sale_detail_path || defaultPaths.saleDetail;
+    const p2 = c.odoo_order_line_path  || defaultPaths.posOrderLine;
+    const p3 = c.odoo_payment_path     || defaultPaths.paymentLines;
+    const isDefault1 = !c.odoo_sale_detail_path;
+    const isDefault2 = !c.odoo_order_line_path;
+    const isDefault3 = !c.odoo_payment_path;
+    return `
+    <tr>
+      <td><strong>${esc(c.country_code)}</strong><br><small style="color:var(--muted)">${esc(c.country_name)}</small></td>
+      <td style="font-size:12px">${esc(c.odoo_url || '–')}</td>
+      <td>${authBadge}</td>
+      <td class="path-mono" style="font-size:11px">${esc(p1)}${isDefault1 ? ' <span style="color:var(--muted);font-style:italic">(default)</span>' : ''}</td>
+      <td class="path-mono" style="font-size:11px">${esc(p2)}${isDefault2 ? ' <span style="color:var(--muted);font-style:italic">(default)</span>' : ''}</td>
+      <td class="path-mono" style="font-size:11px">${esc(p3)}${isDefault3 ? ' <span style="color:var(--muted);font-style:italic">(default)</span>' : ''}</td>
+      <td><span class="badge ${c.enabled ? 'badge-success' : 'badge-muted'}">${c.enabled ? 'Enabled' : 'Disabled'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px" onclick="openModal('${esc(c.country_code)}')">Edit</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px;background:#dc3545;color:#fff;border:none;margin-left:4px" onclick="deleteConfig('${esc(c.country_code)}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Quick connection test ─────────────────────────────────────────────
+async function runQuickTest() {
+  const country = $('quick-test-country').value;
+  if (!country) {
+    showTestResult('quick-test-result', false, 'Please select a country first.');
+    return;
+  }
+  const resultEl = $('quick-test-result');
+  resultEl.style.display = '';
+  resultEl.className = 'test-result';
+  resultEl.textContent = `Testing connection for ${country}…`;
+
+  try {
+    const res  = await fetch('/api/config/test-odoo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country }),
+    });
+    const data = await res.json();
+    showTestResult('quick-test-result', data.ok, data.ok ? data.message : (data.error || 'Connection failed'));
+  } catch (e) {
+    showTestResult('quick-test-result', false, e.message);
+  }
+}
+
+function showTestResult(elId, ok, msg) {
+  const el = $(elId);
+  el.style.display = '';
+  el.className = 'test-result ' + (ok ? 'ok' : 'fail');
+  el.textContent = (ok ? '✓ ' : '✗ ') + msg;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────
+function openModal(code) {
+  _editCode = code || null;
+  const ex  = code ? (_configs[code] || {}) : {};
+  const authType = ex.odoo_auth_type || 'x-api-key';
+
+  $('modal-title').textContent = code ? `Edit – ${code}` : 'Add Country Config';
+
+  $('m-code').value        = ex.country_code  || '';
+  $('m-code').disabled     = !!code;
+  $('m-name').value        = ex.country_name  || '';
+  $('m-url').value         = ex.odoo_url      || '';
+  $('m-auth-type').value   = authType;
+  $('m-api-key').value     = '';
+  $('m-odoo-user').value   = ex.odoo_username || '';
+  $('m-odoo-pass').value   = '';
+  $('m-sale-path').value   = ex.odoo_sale_detail_path || '';
+  $('m-line-path').value   = ex.odoo_order_line_path  || '';
+  $('m-pay-path').value    = ex.odoo_payment_path     || '';
+  $('m-oracle-url').value  = ex.oracle_base_url       || '';
+  $('m-oracle-user').value = ex.oracle_username       || '';
+  $('m-oracle-pass').value = '';
+  $('m-enabled').checked   = ex.enabled !== 0;
+
+  $('m-url-hint').style.display = 'none';
+  $('m-save-result').style.display = 'none';
+  $('m-ep-result').style.display = 'none';
+
+  toggleModalAuthFields();
+  $('ep-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  $('ep-modal').style.display = 'none';
+}
+
+// Close modal when clicking the backdrop
+$('ep-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function toggleModalAuthFields() {
+  const authType = $('m-auth-type').value;
+  const isRest = authType === 'x-api-key' || authType === 'bearer';
+  $('m-rest-section').style.display    = isRest ? '' : 'none';
+  $('m-jsonrpc-section').style.display = isRest ? 'none' : '';
+}
+
+function autoDetectModalAuthType() {
+  const url = $('m-url').value.trim();
+  const hintEl = $('m-url-hint');
+  if (/\/api\//i.test(url)) {
+    $('m-auth-type').value = 'x-api-key';
+    toggleModalAuthFields();
+    hintEl.innerHTML = 'ℹ️ REST API URL detected — auth type set to <strong>x-api-key</strong>. Enter your API key below.';
+    hintEl.style.display = '';
+    // Normalize URL to base URL and auto-fill sale path
+    try {
+      const parsed = new URL(url);
+      if (/^\/api\//i.test(parsed.pathname)) {
+        const salePathEl = $('m-sale-path');
+        if (!salePathEl.value) salePathEl.value = parsed.pathname.replace(/\/$/, '');
+        $('m-url').value = parsed.origin;
+      }
+    } catch (_) {}
+  } else if (!/\/api\//i.test(url)) {
+    hintEl.style.display = 'none';
+  }
+}
+
+async function testModalEndpoint(which) {
+  const url     = $('m-url').value.trim();
+  const apiKey  = $('m-api-key').value.trim();
+  const authType = $('m-auth-type').value;
+  const pathEl  = which === 'sale' ? $('m-sale-path') : which === 'line' ? $('m-line-path') : $('m-pay-path');
+  const path    = pathEl.value.trim();
+
+  const resultEl = $('m-ep-result');
+  resultEl.style.display = '';
+  resultEl.className = 'test-result';
+  resultEl.textContent = `Testing ${path || '(default path)'}…`;
+
+  if (!url) { showResultEl(resultEl, false, 'Enter a base URL first'); return; }
+
+  try {
+    const body = { authType };
+    if (url)    body.url    = url;
+    if (apiKey) body.apiKey = apiKey;
+    if (path)   body.path   = path;
+    // If editing, fall back to saved key when field is blank
+    if (!apiKey && _editCode) body.country = _editCode;
+
+    const res  = await fetch('/api/config/test-endpoint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    showResultEl(resultEl, data.ok, data.ok ? data.message : (data.error || 'Test failed'));
+  } catch (e) {
+    showResultEl(resultEl, false, e.message);
+  }
+}
+
+function showResultEl(el, ok, msg) {
+  el.style.display = '';
+  el.className = 'test-result ' + (ok ? 'ok' : 'fail');
+  el.textContent = (ok ? '✓ ' : '✗ ') + msg;
+}
+
+async function saveModal() {
+  const code  = $('m-code').value.trim().toUpperCase();
+  const name  = $('m-name').value.trim();
+  if (!code) { showResultEl($('m-save-result'), false, 'Country code is required'); return; }
+  if (!name) { showResultEl($('m-save-result'), false, 'Country name is required'); return; }
+
+  const authType = $('m-auth-type').value;
+  const isRest   = authType === 'x-api-key' || authType === 'bearer';
+
+  const body = {
+    country_name          : name,
+    odoo_url              : $('m-url').value.trim()  || null,
+    odoo_auth_type        : authType,
+    odoo_api_key          : isRest   ? ($('m-api-key').value  || null) : null,
+    odoo_username         : !isRest  ? ($('m-odoo-user').value.trim()  || null) : null,
+    odoo_password         : !isRest  ? ($('m-odoo-pass').value || null) : null,
+    odoo_sale_detail_path : $('m-sale-path').value.trim() || null,
+    odoo_order_line_path  : $('m-line-path').value.trim() || null,
+    odoo_payment_path     : $('m-pay-path').value.trim()  || null,
+    oracle_base_url       : $('m-oracle-url').value.trim()  || null,
+    oracle_username       : $('m-oracle-user').value.trim() || null,
+    oracle_password       : $('m-oracle-pass').value || null,
+    enabled               : $('m-enabled').checked ? 1 : 0,
+  };
+
+  $('m-save-result').style.display = '';
+  $('m-save-result').className = 'test-result';
+  $('m-save-result').textContent = 'Saving…';
+
+  try {
+    const res  = await fetch(`/api/config/country-configs/${code}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok || data.countryCode) {
+      showResultEl($('m-save-result'), true, `Saved ${code}` + (data.warning ? ` — ⚠️ ${data.warning}` : ''));
+      setTimeout(() => { closeModal(); loadEndpoints(); }, 700);
+    } else {
+      showResultEl($('m-save-result'), false, data.error || 'Save failed');
+    }
+  } catch (e) {
+    showResultEl($('m-save-result'), false, e.message);
+  }
+}
+
+async function deleteConfig(code) {
+  if (!confirm(`Delete configuration for ${code}? This cannot be undone.`)) return;
+  try {
+    await fetch(`/api/config/country-configs/${code}`, { method: 'DELETE' });
+    await loadEndpoints();
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+async function apiFetch(url, method = 'GET', body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  const data = await res.json();
+  if (!res.ok && !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+</script>
+</body>
+</html>
