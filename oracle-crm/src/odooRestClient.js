@@ -46,13 +46,25 @@ const PATHS = {
  *
  * Example input  : [['date_order','>=','2026-02-01 21:00:00'],['company_id','=',1]]
  * Example output : [('date_order','>=','2026-02-01 21:00:00'),('company_id','=',1)]
+ *
+ * Array values (used with the 'in' operator) are serialised as Python lists:
+ * Example input  : [['state','in',['sale','done']]]
+ * Example output : [('state','in',['sale','done'])]
  */
 function domainToString(domain) {
   if (!Array.isArray(domain) || domain.length === 0) return '[]';
   const parts = domain.map(clause => {
     if (!Array.isArray(clause) || clause.length !== 3) return String(clause);
     const [field, op, value] = clause;
-    const valStr = typeof value === 'string' ? `'${value}'` : String(value);
+    let valStr;
+    if (typeof value === 'string') {
+      valStr = `'${value}'`;
+    } else if (Array.isArray(value)) {
+      const items = value.map(v => (typeof v === 'string' ? `'${v}'` : String(v))).join(',');
+      valStr = `[${items}]`;
+    } else {
+      valStr = String(value);
+    }
     return `('${field}','${op}',${valStr})`;
   });
   return `[${parts.join(',')}]`;
