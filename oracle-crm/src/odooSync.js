@@ -36,18 +36,6 @@ const OraclePushService = require('./pushOracle');
 const db              = require('./db');
 const logger          = require('./logger').child('OdooSync');
 
-// Country timezone offsets (hours ahead of UTC) used when converting local
-// calendar days to UTC timestamps for the Odoo REST API domain filter.
-// Matches the region reference table in config.html / calculations.js.
-const COUNTRY_TZ_OFFSETS = {
-  AE: 4, // UAE (UTC+4)
-  OM: 4, // Oman (UTC+4)
-  KW: 3, // Kuwait (UTC+3)
-  SA: 3, // Saudi Arabia (UTC+3)
-  BH: 3, // Bahrain (UTC+3)
-  QA: 3, // Qatar (UTC+3)
-};
-
 // Max concurrent Oracle pushes per job chunk (keep CRM responsive)
 const MAX_CONCURRENT    = Number(process.env.ODOO_PUSH_CONCURRENCY)  || 10;
 // How many orders to fetch from Odoo per page
@@ -162,19 +150,20 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
   jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country, companyId });
 
   try {
-    const odoo   = buildOdooClient(country);
-    // Determine timezone offset so that local calendar-day boundaries are
-    // converted to UTC before querying Odoo (which stores date_order in UTC).
-    // Priority: explicit tzOffset passed in options → country-derived offset → 0.
-    let tzOffset;
-    if (explicitTzOffset !== null && explicitTzOffset !== undefined && typeof explicitTzOffset === 'number') {
-      tzOffset = explicitTzOffset;
-      jobLog(jobId, 'info', `UTC date conversion active: explicit tzOffset (UTC+${tzOffset})`, { tzOffset });
-    } else {
-      tzOffset = (country && (COUNTRY_TZ_OFFSETS[country.toUpperCase()] ?? 0)) || 0;
-      if (tzOffset) {
-        jobLog(jobId, 'info', `UTC date conversion active: ${country} (UTC+${tzOffset})`, { tzOffset });
-      }
+    // Always use the globally-configured Odoo credentials.
+    // The `country` value is a data label only – it tags the fetched records so
+    // operators know which country they came from.  It does NOT affect which
+    // Odoo instance is called (each deployment connects to its own Odoo URL).
+    const odoo = buildOdooClient(null);
+
+    // tzOffset must be supplied explicitly (the UI "Timezone Offset" field).
+    // It converts local calendar-day boundaries to UTC before querying Odoo,
+    // which always stores date_order in UTC.
+    const tzOffset = (explicitTzOffset !== null && explicitTzOffset !== undefined && typeof explicitTzOffset === 'number')
+      ? explicitTzOffset
+      : 0;
+    if (tzOffset) {
+      jobLog(jobId, 'info', `UTC date conversion active (UTC+${tzOffset})`, { tzOffset });
     }
     const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, ['sale', 'done'], companyId ? Number(companyId) : null, tzOffset);
 
