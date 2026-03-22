@@ -266,11 +266,12 @@
             </div>
             <div class="form-group">
               <label class="form-label">Timezone Offset (UTC+) <span class="req">*</span></label>
-              <input type="number" id="fetch-tz-offset" class="form-control" value="3" step="0.5" min="-12" max="14">
+              <input type="number" id="fetch-tz-offset" class="form-control" value="0" step="0.5" min="-12" max="14">
               <small class="text-muted">
                 Hours ahead of UTC for your Odoo server's local time.<br>
                 e.g. <strong>3</strong> = Kuwait/Saudi/Qatar (UTC+3) &nbsp;|&nbsp; <strong>4</strong> = UAE/Oman (UTC+4)<br>
                 Ensures the correct UTC date range is sent to Odoo so the right day's orders are fetched.
+                Default is loaded from the <strong>Timezone Offset</strong> set in <a href="/config.html">Configuration</a>.
               </small>
             </div>
             <div class="form-group" style="margin-top:16px">
@@ -837,7 +838,7 @@ const PAGE_SIZE    = 50;
 // ── Bootstrap ────────────────────────────────────────────────────────
 (async function init() {
   setDefaultDates();
-  await Promise.all([checkOdooConfig(), loadStores()]);
+  await Promise.all([checkOdooConfig(), loadStores(), loadGlobalTzOffset()]);
   loadJobs();
   loadLastPush();
 })();
@@ -879,6 +880,19 @@ async function checkOdooConfig() {
         'Odoo credentials are not configured. Add ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD to .env');
     }
   } catch(e) { /* ignore */ }
+}
+
+// Load the globally-configured default timezone offset from the Config page
+// and pre-fill the fetch form so it matches without the user needing to set it twice.
+async function loadGlobalTzOffset() {
+  try {
+    const mode = await api('/api/config/server-mode').then(d => d.mode || 'production').catch(() => 'production');
+    const data = await api('/api/config/credentials');
+    const tz = data?.[mode]?.odoo?.tzOffset;
+    if (tz !== undefined && tz !== null && !isNaN(tz)) {
+      $('fetch-tz-offset').value = String(tz);
+    }
+  } catch(_) { /* non-fatal */ }
 }
 
 async function loadStores() {
