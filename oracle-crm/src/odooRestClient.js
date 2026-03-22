@@ -189,6 +189,7 @@ class OdooRestClient {
 
     if (Array.isArray(body))                            return body;
     if (body && Array.isArray(body.result))              return body.result;
+    if (body && Array.isArray(body.results))             return body.results;
     if (body && Array.isArray(body.data))                return body.data;
     if (body && Array.isArray(body.records))             return body.records;
     return [];
