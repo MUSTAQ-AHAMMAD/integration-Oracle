@@ -10,11 +10,12 @@ const db         = require('./src/db');
 const bcrypt     = require('bcryptjs');
 const { readMiddlewareCredentials } = require('./src/middlewareCredentials');
 
-const salesRoutes  = require('./src/routes/sales');
-const configRoutes = require('./src/routes/config');
-const odooRoutes   = require('./src/routes/odoo');
-const authRoutes   = require('./src/routes/auth');
-const usersRoutes  = require('./src/routes/users');
+const salesRoutes      = require('./src/routes/sales');
+const configRoutes     = require('./src/routes/config');
+const odooRoutes       = require('./src/routes/odoo');
+const authRoutes       = require('./src/routes/auth');
+const usersRoutes      = require('./src/routes/users');
+const benchmarkRoutes  = require('./src/routes/benchmark');
 const { requireAuth } = require('./src/middleware/auth');
 
 const app  = express();
@@ -39,10 +40,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoutes);
 
 // Protected API routes
-app.use('/api/sales',  requireAuth, salesRoutes);
-app.use('/api/config', requireAuth, configRoutes);
-app.use('/api/odoo',   requireAuth, odooRoutes);
-app.use('/api/users',  usersRoutes);  // admin check is inside
+app.use('/api/sales',     requireAuth, salesRoutes);
+app.use('/api/config',    requireAuth, configRoutes);
+app.use('/api/odoo',      requireAuth, odooRoutes);
+app.use('/api/benchmark', requireAuth, benchmarkRoutes);
+app.use('/api/users',     usersRoutes);  // admin check is inside
 
 // SPA fallback – serve index.html for unknown routes (except /api/*)
 app.get('*', (req, res, next) => {
