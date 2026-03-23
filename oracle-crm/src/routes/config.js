@@ -575,6 +575,14 @@ router.put('/server-mode', (req, res) => {
   res.json({ ok: true, mode });
 });
 
+// Parse a raw timezone offset value (from app_settings or env var) into a number.
+// Returns 0 for null/empty/invalid input to ensure safe defaults.
+function parseTzOffset(raw) {
+  if (raw === null || raw === undefined || raw === '') return 0;
+  const n = parseFloat(raw);
+  return Number.isNaN(n) ? 0 : n;
+}
+
 // ── GET /api/config/credentials ───────────────────────────────────────────────
 // Returns all stored credentials for both modes.
 // Passwords are masked; pass ?reveal=1 to receive the raw values (admin use only).
@@ -601,6 +609,7 @@ router.get('/credentials', (req, res) => {
         saleDetailPath: db.getAppSetting(`odoo_${m}_sale_detail_path`) || (m === 'production' ? process.env.ODOO_SALE_DETAIL_PATH || null : null),
         orderLinePath : db.getAppSetting(`odoo_${m}_order_line_path`)  || (m === 'production' ? process.env.ODOO_ORDER_LINE_PATH  || null : null),
         paymentPath   : db.getAppSetting(`odoo_${m}_payment_path`)     || (m === 'production' ? process.env.ODOO_PAYMENT_PATH     || null : null),
+        tzOffset      : parseTzOffset(db.getAppSetting(`odoo_${m}_tz_offset`) ?? (m === 'production' ? process.env.ODOO_TZ_OFFSET ?? null : null)),
       },
     };
   }
@@ -665,6 +674,13 @@ router.put('/credentials', (req, res) => {
       odoo.saleDetailPath !== undefined ? odoo.saleDetailPath : autoPath);
     persist(`odoo_${mode}_order_line_path`,  odoo.orderLinePath);
     persist(`odoo_${mode}_payment_path`,     odoo.paymentPath);
+    if (odoo.tzOffset !== undefined) {
+      const tzNum = parseFloat(odoo.tzOffset);
+      const tzVal = (odoo.tzOffset !== null && odoo.tzOffset !== '' && !Number.isNaN(tzNum))
+        ? String(tzNum)
+        : null;
+      persist(`odoo_${mode}_tz_offset`, tzVal);
+    }
   }
 
   res.json({

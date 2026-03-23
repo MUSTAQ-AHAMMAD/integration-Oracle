@@ -156,12 +156,14 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     // Odoo instance is called (each deployment connects to its own Odoo URL).
     const odoo = buildOdooClient(null);
 
-    // tzOffset must be supplied explicitly (the UI "Timezone Offset" field).
-    // It converts local calendar-day boundaries to UTC before querying Odoo,
+    // tzOffset converts local calendar-day boundaries to UTC before querying Odoo,
     // which always stores date_order in UTC.
+    // Priority: explicit per-request value > global app_settings default > 0.
+    let globalTzOffset = 0;
+    try { globalTzOffset = db.getActiveCredentials().odoo.tzOffset || 0; } catch (_) { /* ignore */ }
     const tzOffset = (explicitTzOffset !== null && explicitTzOffset !== undefined && typeof explicitTzOffset === 'number')
       ? explicitTzOffset
-      : 0;
+      : globalTzOffset;
     if (tzOffset) {
       jobLog(jobId, 'info', `UTC date conversion active (UTC+${tzOffset})`, { tzOffset });
     }

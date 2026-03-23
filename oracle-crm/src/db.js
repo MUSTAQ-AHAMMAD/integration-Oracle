@@ -871,6 +871,12 @@ function getActiveCredentials() {
   const odooSaleDetailPath = getAppSetting(`odoo_${mode}_sale_detail_path`) || (mode === 'production' ? process.env.ODOO_SALE_DETAIL_PATH || null : null);
   const odooOrderLinePath  = getAppSetting(`odoo_${mode}_order_line_path`)  || (mode === 'production' ? process.env.ODOO_ORDER_LINE_PATH  || null : null);
   const odooPaymentPath    = getAppSetting(`odoo_${mode}_payment_path`)     || (mode === 'production' ? process.env.ODOO_PAYMENT_PATH     || null : null);
+  // Default timezone offset (hours ahead of UTC) used when fetching sales from Odoo.
+  // Odoo stores date_order in UTC; this offset converts local calendar-day boundaries
+  // to UTC before querying.  Set via the Config page or ODOO_TZ_OFFSET env var.
+  const odooTzOffsetRaw    = getAppSetting(`odoo_${mode}_tz_offset`) ?? (mode === 'production' ? process.env.ODOO_TZ_OFFSET ?? null : null);
+  const odooTzOffsetParsed = odooTzOffsetRaw !== null && odooTzOffsetRaw !== '' ? parseFloat(odooTzOffsetRaw) : NaN;
+  const odooTzOffset       = Number.isNaN(odooTzOffsetParsed) ? 0 : odooTzOffsetParsed;
 
   return {
     mode,
@@ -887,6 +893,7 @@ function getActiveCredentials() {
       saleDetailPath: odooSaleDetailPath,
       orderLinePath : odooOrderLinePath,
       paymentPath   : odooPaymentPath,
+      tzOffset      : odooTzOffset,
     },
   };
 }
