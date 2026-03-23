@@ -241,13 +241,16 @@ class OdooRestClient {
    * @param {Array}  domain  Odoo-style domain, e.g. [['date_order','>=','...']]
    * @param {Array}  [fields]  ignored (REST API returns its own fields)
    * @param {object} [opts]
-   * @param {number} [opts.limit]   ignored (REST API does not paginate the same way)
-   * @param {number} [opts.offset]  ignored
+   * @param {number} [opts.limit]   forwarded as ?limit= query parameter to the REST API
+   * @param {number} [opts.offset]  forwarded as ?offset= query parameter for pagination
    * @returns {object[]} normalised sale-order rows
    */
   async searchSalesOrders(domain = [], fields, opts = {}) {
     logger.debug('REST: fetching sale headers', { domain });
-    const rows = await this._get(this.paths.saleDetail, { domain: domainToString(domain) });
+    const params = { domain: domainToString(domain) };
+    if (opts.limit  != null) params.limit  = opts.limit;
+    if (opts.offset != null) params.offset = opts.offset;
+    const rows = await this._get(this.paths.saleDetail, params);
     logger.info('REST: fetched sale headers', { count: rows.length });
     return rows.map(r => this._normaliseSaleOrder(r));
   }
@@ -378,12 +381,15 @@ class OdooRestClient {
     const name        = r.name        ?? r.pos_reference ?? r.ref ?? `POS-${id}`;
     const dateOrder   = r.date_order  ?? r.create_date   ?? r.order_date ?? '';
     const state       = r.state       ?? r.status        ?? 'done';
-    const amtTotal    = Number(r.amount_total   ?? r.total    ?? 0);
+    // amount_paid is the POS custom REST API field; fall back to amount_total then total
+    const amtTotal    = Number(r.amount_total   ?? r.amount_paid ?? r.total    ?? 0);
     const amtTax      = Number(r.amount_tax     ?? r.taxes    ?? 0);
     const amtUntaxed  = Number(r.amount_untaxed ?? (amtTotal - amtTax));
-    // warehouse_id / store: accept [id, name] or plain name string
-    const warehouseId = r.warehouse_id ?? r.location_id ?? false;
-    const teamId      = r.team_id      ?? r.sales_team_id ?? false;
+    // warehouse_id / store: accept [id, name] or plain name string.
+    // branch_id and config_id are POS-specific alternatives for the store/terminal.
+    const warehouseId = r.warehouse_id ?? r.branch_id ?? r.config_id ?? r.location_id ?? false;
+    // team_id / register: pos_name is the POS terminal name used as the register label
+    const teamId      = r.team_id ?? r.sales_team_id ?? (r.pos_name ? [null, r.pos_name] : false);
     const partnerId   = r.partner_id   ?? r.customer_id   ?? false;
     const currencyId  = r.currency_id  ?? false;
 
