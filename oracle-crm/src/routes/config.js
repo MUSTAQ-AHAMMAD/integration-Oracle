@@ -541,14 +541,16 @@ router.post('/test-endpoint', async (req, res) => {
 
   try {
     const client = new OdooRestClient(baseUrl, authType, apiKey);
-    // Use the public testPath helper to probe any arbitrary endpoint path
-    const rows = await client.testPath(effectivePath);
+    // Use the public testPath helper to probe any arbitrary endpoint path.
+    // testPath() returns { rows, rawBody } so callers can show diagnostic info.
+    const { rows, rawBody } = await client.testPath(effectivePath);
     res.json({
-      ok     : true,
-      message: `Endpoint reachable – received ${Array.isArray(rows) ? rows.length : '?'} record(s)`,
-      url    : baseUrl,
-      path   : effectivePath,
-      count  : Array.isArray(rows) ? rows.length : null,
+      ok      : true,
+      message : `Endpoint reachable – received ${rows.length} record(s)`,
+      url     : baseUrl,
+      path    : effectivePath,
+      count   : rows.length,
+      rawBody,
     });
   } catch (err) {
     res.status(200).json({ ok: false, error: err.message, url: baseUrl, path: effectivePath });

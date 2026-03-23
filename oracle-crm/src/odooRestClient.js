@@ -166,6 +166,32 @@ class OdooRestClient {
     return err;
   }
 
+  /**
+   * Extract a row array from a REST API response body.
+   *
+   * Handles the common response envelope formats used by Odoo REST APIs:
+   *   - Plain array                          [ {...}, ... ]
+   *   - JSONRPC result array                 { result: [ ... ] }
+   *   - Paginated wrapper                    { results: [ ... ] }
+   *   - Data wrapper                         { data: [ ... ] }
+   *   - Records wrapper                      { records: [ ... ] }
+   *   - Odoo 17 JSONRPC + nested records     { result: { records: [ ... ] } }
+   *   - Odoo 17 JSONRPC + nested results     { result: { results: [ ... ] } }
+   *   - Odoo 17 JSONRPC + nested data        { result: { data: [ ... ] } }
+   */
+  _extractRows(body) {
+    if (Array.isArray(body))                                        return body;
+    if (body && Array.isArray(body.result))                         return body.result;
+    if (body && Array.isArray(body.results))                        return body.results;
+    if (body && Array.isArray(body.data))                           return body.data;
+    if (body && Array.isArray(body.records))                        return body.records;
+    // Odoo 17 native REST: JSONRPC envelope wrapping a paginated object
+    if (body && body.result && Array.isArray(body.result.records))  return body.result.records;
+    if (body && body.result && Array.isArray(body.result.results))  return body.result.results;
+    if (body && body.result && Array.isArray(body.result.data))     return body.result.data;
+    return [];
+  }
+
   async _get(path, params = {}) {
     let res;
     try {
@@ -187,12 +213,7 @@ class OdooRestClient {
       );
     }
 
-    if (Array.isArray(body))                            return body;
-    if (body && Array.isArray(body.result))              return body.result;
-    if (body && Array.isArray(body.results))             return body.results;
-    if (body && Array.isArray(body.data))                return body.data;
-    if (body && Array.isArray(body.records))             return body.records;
-    return [];
+    return this._extractRows(body);
   }
 
   // ── Public interface (mirrors OdooClient) ─────────────────────────────────
@@ -450,14 +471,28 @@ class OdooRestClient {
 
   /**
    * Lightweight connectivity test – fetches an arbitrary path with no filters.
-   * Returns the raw response body (array or object).  Suitable for checking
-   * whether an endpoint is reachable and the API key is accepted.
+   * Returns an object with both the parsed rows array and the raw response body
+   * so callers can surface diagnostic information when row count is 0.
    *
    * @param {string} path  API path to test, e.g. '/api/vSales/Sale_detail'
-   * @returns {Promise<any>}
+   * @returns {Promise<{ rows: object[], rawBody: any }>}
    */
   async testPath(path) {
-    return this._get(path, {});
+    let res;
+    try {
+      res = await this.http.get(path, { params: {} });
+    } catch (err) {
+      throw this._normalizeHttpError(err, path);
+    }
+    const rawBody = res.data;
+    if (typeof rawBody === 'string' && rawBody.trimStart().startsWith('<')) {
+      throw new Error(
+        `Odoo REST endpoint returned HTML instead of JSON. ` +
+        `Check the endpoint URL and API key. URL: ${this.url}${path}`
+      );
+    }
+    const rows = this._extractRows(rawBody);
+    return { rows, rawBody };
   }
 }
 
