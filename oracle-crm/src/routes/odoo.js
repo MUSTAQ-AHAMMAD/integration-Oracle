@@ -361,17 +361,19 @@ router.get('/payments', (req, res) => {
 
 // ── GET /api/odoo/config ──────────────────────────────────────────────────────
 router.get('/config', (req, res) => {
-  const configured = !!(
-    process.env.ODOO_URL &&
-    process.env.ODOO_DB  &&
-    process.env.ODOO_USERNAME &&
-    process.env.ODOO_PASSWORD
-  );
+  const creds = db.getActiveCredentials();
+  const odoo = creds && creds.odoo ? creds.odoo : {};
+  const { url, db: odooDb, username, password, authType, apiKey } = odoo;
+  // REST auth modes only require url + apiKey; JSONRPC requires url+db+username+password
+  const isRest = authType === 'x-api-key' || authType === 'bearer';
+  const configured = isRest
+    ? !!(url && apiKey)
+    : !!(url && odooDb && username && password);
   res.json({
     configured,
-    url     : configured ? process.env.ODOO_URL      : null,
-    db      : configured ? process.env.ODOO_DB        : null,
-    username: configured ? process.env.ODOO_USERNAME  : null,
+    url     : url      || null,
+    db      : odooDb   || null,
+    username: username || null,
   });
 });
 

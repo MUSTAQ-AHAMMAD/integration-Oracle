@@ -877,7 +877,7 @@ async function checkOdooConfig() {
       badge.textContent = 'Odoo not configured';
       badge.className = 'badge badge-danger';
       showAlert($('alert-area'), 'warning',
-        'Odoo credentials are not configured. Add ODOO_URL, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD to .env');
+        'Odoo credentials are not configured. Set them on the <a href="/config.html">Configuration</a> page.');
     }
   } catch(e) { /* ignore */ }
 }
