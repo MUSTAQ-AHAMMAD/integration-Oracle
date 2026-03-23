@@ -947,7 +947,7 @@ $('btn-fetch').addEventListener('click', async () => {
     const res = await api('/api/odoo/fetch', 'POST', { dateFrom, dateTo, storeId, storeName, country, companyId, tzOffset });
     startFetchPoll(res.jobId);
   } catch(e) {
-    showAlert($('alert-area'),'danger',e.message);
+    showAlert($('alert-area'),'danger',escHtml(e.message));
     $('btn-fetch').disabled = false;
   }
 });
@@ -1090,7 +1090,7 @@ async function loadSales(offset) {
     renderSalesTable(d.sales, d.total, offset);
     currentOffset = offset;
   } catch(e) {
-    showAlert($('alert-area'),'danger','Failed to load sales: ' + e.message);
+    showAlert($('alert-area'),'danger','Failed to load sales: ' + escHtml(e.message));
   }
 }
 
@@ -1376,7 +1376,7 @@ $('btn-push').addEventListener('click', async () => {
     });
     startPushPoll(res.jobId);
   } catch(e) {
-    showAlert($('alert-area'),'danger',e.message);
+    showAlert($('alert-area'),'danger',escHtml(e.message));
     $('btn-push').disabled = false;
   }
 });
