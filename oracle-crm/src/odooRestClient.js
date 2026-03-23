@@ -437,10 +437,10 @@ class OdooRestClient {
 
   // ── Static helpers (kept for parity with OdooClient) ─────────────────────
 
-  static buildDomain(dateFrom, dateTo, storeId, states) {
+  static buildDomain(dateFrom, dateTo, storeId) {
     // Delegate to OdooClient's static method for consistent domain building
     const OdooClient = require('./odooClient');
-    return OdooClient.buildDomain(dateFrom, dateTo, storeId, states);
+    return OdooClient.buildDomain(dateFrom, dateTo, storeId);
   }
 
   /** Return the module-level default endpoint paths. */

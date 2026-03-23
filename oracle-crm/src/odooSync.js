@@ -167,7 +167,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     if (tzOffset) {
       jobLog(jobId, 'info', `UTC date conversion active (UTC+${tzOffset})`, { tzOffset });
     }
-    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, ['sale', 'done'], companyId ? Number(companyId) : null, tzOffset);
+    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, companyId ? Number(companyId) : null, tzOffset);
 
     jobLog(jobId, 'info', 'Connecting to Odoo…');
     await odoo.authenticate();
