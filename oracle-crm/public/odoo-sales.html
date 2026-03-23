@@ -841,6 +841,7 @@ const PAGE_SIZE    = 50;
   await Promise.all([checkOdooConfig(), loadStores(), loadGlobalTzOffset()]);
   loadJobs();
   loadLastPush();
+  loadSales();       // auto-load stored sales on page init
 })();
 
 async function loadLastPush() {
@@ -1406,7 +1407,7 @@ function renderJobsTable(jobs) {
   }
   tbody.innerHTML = jobs.map(j => {
     const pct   = j.total > 0 ? Math.round(((j.processed + j.failed) / j.total) * 100) : (j.status === 'DONE' ? 100 : 0);
-    const type  = j.mode && j.mode.includes('STORE') ? 'Push' : (j.status === 'DONE' && j.processed > 0 ? 'Fetch/Push' : 'Fetch');
+    const type  = j.job_type || 'FETCH';
     const dr    = [j.date_from, j.date_to].filter(Boolean).join(' → ') || '–';
     return `<tr>
       <td style="font-size:11px;color:var(--muted)">${escHtml(j.job_id.slice(0,8))}…</td>
@@ -1499,7 +1500,7 @@ function fmtMoney(n, decimals = 2) {
 function showAlert(el, type, msg) {
   if (!el) return;
   el.className = `alert alert-${type}`;
-  el.textContent = msg;
+  el.innerHTML = msg;
   el.classList.remove('hidden');
 }
 function hideAlert(el) { if (el) el.classList.add('hidden'); }

@@ -257,6 +257,17 @@ router.get('/failed-records', (req, res) => {
 // ── GET /api/odoo/stores ──────────────────────────────────────────────────────
 router.get('/stores', async (req, res) => {
   try {
+    // If Odoo is not configured, return an empty store list gracefully
+    // instead of throwing a 500 error.
+    const creds = db.getActiveCredentials();
+    const odoo  = creds && creds.odoo ? creds.odoo : {};
+    const isRest = odoo.authType === 'x-api-key' || odoo.authType === 'bearer';
+    const configured = isRest
+      ? !!(odoo.url && odoo.apiKey)
+      : !!(odoo.url && odoo.db && odoo.username && odoo.password);
+    if (!configured) {
+      return res.json({ stores: [] });
+    }
     const stores = await getOdooStores();
     res.json({ stores });
   } catch (err) {

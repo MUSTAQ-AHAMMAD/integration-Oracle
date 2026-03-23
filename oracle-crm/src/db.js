@@ -568,7 +568,7 @@ function getJob(jobId) {
 function listJobs(limit = 50) {
   const db = getDb();
   return db.prepare(
-    'SELECT id, job_id, mode, date_from, date_to, store_id, store_name, status, total, processed, failed, started_at, finished_at, created_at FROM push_jobs ORDER BY created_at DESC LIMIT ?'
+    'SELECT id, job_id, job_type, mode, date_from, date_to, store_id, store_name, status, total, processed, failed, started_at, finished_at, created_at FROM push_jobs ORDER BY created_at DESC LIMIT ?'
   ).all(limit);
 }
 
