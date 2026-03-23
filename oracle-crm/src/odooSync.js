@@ -165,7 +165,10 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       ? explicitTzOffset
       : globalTzOffset;
     if (tzOffset) {
-      jobLog(jobId, 'info', `UTC date conversion active (UTC+${tzOffset})`, { tzOffset });
+      const tzMsg = country
+        ? `UTC date conversion active: ${country} (UTC+${tzOffset})`
+        : `UTC date conversion active (UTC+${tzOffset})`;
+      jobLog(jobId, 'info', tzMsg, { tzOffset });
     }
     const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, companyId ? Number(companyId) : null, tzOffset);
 
