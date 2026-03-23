@@ -337,7 +337,15 @@ async function testEndpoint(n) {
     });
     const data = await res.json();
     if (data.ok) {
-      setResult(n, true, `✓ Endpoint reachable — ${data.count !== null ? data.count + ' record(s) returned' : 'response received'}`, JSON.stringify({ ok: true, count: data.count, url: data.url, path: data.path }, null, 2));
+      const countMsg = data.count !== null ? `${data.count} record(s) returned` : 'response received';
+      const zeroNote = data.count === 0
+        ? `\n\n⚠ count=0: The endpoint is reachable but returned no records.\nThis may mean no data exists for the given date range,\nor the response format is unexpected (see raw body below).`
+        : '';
+      const display = { ok: true, count: data.count, url: data.url, path: data.path };
+      if (data.rawBody !== undefined) display.rawBody = data.rawBody;
+      setResult(n, true,
+        `✓ Endpoint reachable — ${countMsg}${zeroNote}`,
+        JSON.stringify(display, null, 2));
     } else {
       setResult(n, false, '✗ ' + (data.error || 'Endpoint test failed'), JSON.stringify({ ok: false, error: data.error, url: data.url, path: data.path }, null, 2));
     }
@@ -397,7 +405,12 @@ async function testCustom() {
     });
     const data = await res.json();
     if (data.ok) {
-      setCustomResult(true, JSON.stringify({ ok: true, count: data.count, url: data.url, path: data.path }, null, 2));
+      const display = { ok: true, count: data.count, url: data.url, path: data.path };
+      if (data.rawBody !== undefined) display.rawBody = data.rawBody;
+      const zeroNote = data.count === 0
+        ? `\n\n⚠ count=0: The endpoint responded but returned no records.\nCheck the date range or response format (see rawBody).`
+        : '';
+      setCustomResult(true, JSON.stringify(display, null, 2) + zeroNote);
     } else {
       setCustomResult(false, JSON.stringify({ ok: false, error: data.error, url: data.url, path: data.path }, null, 2));
     }
