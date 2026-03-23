@@ -88,12 +88,31 @@ const ORACLE_ENDPOINTS = [
     description: 'Link each standard receipt to the invoice to clear the AR open balance.',
   },
   {
+    name       : 'GET Miscellaneous Receipts',
+    path       : '/fscmRestApi/resources/11.13.18.05/receivablesMiscellaneousReceipts',
+    method     : 'GET',
+    javaSource : 'FusionReceiptClient.saveMiscReceipt() – MiscellaneousReceiptService.createMiscellaneousReceipt()',
+    description: 'List miscellaneous receipts. Supports ?q= filter by ReceiptNumber or OrgId, ' +
+                 '?fields= projection, and ?limit= / ?offset= pagination.',
+  },
+  {
+    name       : 'GET Miscellaneous Receipt by ID',
+    path       : '/fscmRestApi/resources/11.13.18.05/receivablesMiscellaneousReceipts/{MiscReceiptId}',
+    method     : 'GET',
+    javaSource : 'FusionReceiptClient.saveMiscReceipt() – MiscellaneousReceiptService.createMiscellaneousReceipt()',
+    description: 'Retrieve a single miscellaneous receipt by its MiscReceiptId. ' +
+                 'Use the MiscReceiptId returned from the POST Create Miscellaneous Receipt response.',
+  },
+  {
     name       : 'POST Create Miscellaneous Receipt',
-    path       : '/fscmRestApi/resources/11.13.18.05/receivablesReceipts',
+    path       : '/fscmRestApi/resources/11.13.18.05/receivablesMiscellaneousReceipts',
     method     : 'POST',
-    javaSource : 'FusionReceiptClient.createMiscReceipt() – FusionMiscReceiptMapping',
-    description: 'Bank charge / cash-rounding misc receipt. ' +
-                 'Amount = miscCharges computed by calculateMiscCharges() in calculations.js.',
+    javaSource : 'FusionReceiptClient.saveMiscReceipt() – FusionMiscReceiptTransform.mapMiscReceiptModel()',
+    description: 'Create a miscellaneous (non-customer) receipt for cash-rounding adjustments. ' +
+                 'ReceiptNumber format: {PaymentType}-{TransactionNumber}-MISC. ' +
+                 'Amount = miscCharges computed by calculateMiscCharges() in calculations.js. ' +
+                 'Negative Amount.Value = cash-rounding deduction. ' +
+                 'SOAP service: MiscellaneousReceiptService.createMiscellaneousReceipt().',
   },
   {
     name       : 'POST Inventory Transaction',

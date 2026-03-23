@@ -313,6 +313,168 @@
           ]
         },
         {
+          "name": "GET Miscellaneous Receipts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts?q=OrgId=300000001001000&fields=MiscReceiptId,ReceiptNumber,ReceiptDate,CurrencyCode,Amount,Status,OrgId&limit=25&offset=0",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "receivablesMiscellaneousReceipts"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "OrgId=300000001001000",
+                  "description": "Filter expression. Examples: OrgId=300000001001000 or ReceiptNumber='Cash-INV-10001-MISC'"
+                },
+                {
+                  "key": "fields",
+                  "value": "MiscReceiptId,ReceiptNumber,ReceiptDate,CurrencyCode,Amount,Status,OrgId",
+                  "description": "Comma-separated list of fields to return"
+                },
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "Maximum records per page (default 25, max 500)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Zero-based starting offset for pagination"
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of Oracle Fusion AR miscellaneous receipts. Supports server-side filtering, field projection, and pagination.\n\n**Mapped to:** `FusionReceiptClient.saveMiscReceipt()` → `MiscellaneousReceiptService`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts`\n\n### Query parameters\n| Parameter | Example | Description |\n|-----------|---------|-------------|\n| q | OrgId=300000001001000 | Filter expression (supports OrgId, ReceiptNumber, ReceiptDate) |\n| fields | MiscReceiptId,ReceiptNumber,… | Comma-separated fields to include |\n| limit | 25 | Records per page (max 500) |\n| offset | 0 | Pagination offset |\n\n### Key response fields\n| Field | Type | Description |\n|-------|------|-------------|\n| MiscReceiptId | Long | Internal Fusion receipt ID |\n| ReceiptNumber | String | Format: {PaymentType}-{TxnNumber}-MISC |\n| ReceiptDate | String | ISO date (YYYY-MM-DD) |\n| CurrencyCode | String | ISO 4217 currency |\n| Amount | Number | Receipt amount (negative for cash-rounding) |\n| Status | String | Confirmed / Remitted / Cleared |\n| OrgId | Long | Fusion business unit / org ID |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Miscellaneous receipts list",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"MiscReceiptId\": 300000001500001,\n      \"ReceiptNumber\": \"Cash-INV-10001-MISC\",\n      \"ReceiptDate\": \"2024-03-14\",\n      \"GlDate\": \"2024-03-14\",\n      \"CurrencyCode\": \"AED\",\n      \"Amount\": -0.5,\n      \"Status\": \"Confirmed\",\n      \"OrgId\": 300000001001000,\n      \"ReceiptMethodId\": 300000001001002,\n      \"ReceiptMethodName\": \"Cash Rounding\",\n      \"ReceivableActivityName\": \"Cash Rounding\",\n      \"RemittanceBankAccountName\": \"Main Cash Account\",\n      \"links\": [\n        {\n          \"rel\": \"self\",\n          \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/300000001500001\"\n        }\n      ]\n    }\n  ],\n  \"count\": 1,\n  \"hasMore\": false,\n  \"limit\": 25,\n  \"offset\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET Miscellaneous Receipt by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{fusion_username}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{fusion_password}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/{{misc_receipt_id}}",
+              "host": [
+                "{{fusion_base_url}}"
+              ],
+              "path": [
+                "fscmRestApi",
+                "resources",
+                "11.13.17.11",
+                "receivablesMiscellaneousReceipts",
+                "{{misc_receipt_id}}"
+              ],
+              "variable": [
+                {
+                  "key": "misc_receipt_id",
+                  "value": "300000001500001",
+                  "description": "MiscReceiptId returned by POST Create Miscellaneous Receipt"
+                }
+              ]
+            },
+            "description": "Retrieves a single miscellaneous receipt from Oracle Fusion AR by its internal `MiscReceiptId`. Obtain this ID from the `MiscReceiptId` field in the POST Create Miscellaneous Receipt response.\n\n**Mapped to:** `FusionReceiptClient.saveMiscReceipt()` → `MiscellaneousReceiptService`\n**REST path:** `GET /fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/{MiscReceiptId}`\n\nSet `misc_receipt_id` in the Postman environment (e.g. `300000001500001`) after running **POST Create Miscellaneous Receipt**.\n\n### Path variable\n| Variable | Example | Description |\n|----------|---------|-------------|\n| misc_receipt_id | 300000001500001 | Internal Fusion miscellaneous receipt ID |\n\n### Key response fields\n| Field | Type | Description |\n|-------|------|-------------|\n| MiscReceiptId | Long | Fusion internal receipt ID |\n| ReceiptNumber | String | Format: {PaymentType}-{TxnNumber}-MISC |\n| ReceiptDate | String | Receipt/GL date |\n| CurrencyCode | String | ISO 4217 currency |\n| Amount | Number | Negative for cash-rounding deductions |\n| Status | String | Confirmed / Remitted / Cleared |\n| ReceiptMethodId | Long | Payment method used |\n| ReceiptMethodName | String | e.g. Cash Rounding |\n| ReceivableActivityName | String | AR activity account used |\n| RemittanceBankAccountName | String | Cash or bank account name |\n| OrgId | Long | Fusion business unit / org ID |"
+          },
+          "response": [
+            {
+              "name": "200 OK – Miscellaneous receipt found",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"MiscReceiptId\": 300000001500001,\n  \"ReceiptNumber\": \"Cash-INV-10001-MISC\",\n  \"ReceiptDate\": \"2024-03-14\",\n  \"GlDate\": \"2024-03-14\",\n  \"CurrencyCode\": \"AED\",\n  \"Amount\": -0.5,\n  \"Status\": \"Confirmed\",\n  \"OrgId\": 300000001001000,\n  \"ReceiptMethodId\": 300000001001002,\n  \"ReceiptMethodName\": \"Cash Rounding\",\n  \"ReceivableActivityName\": \"Cash Rounding\",\n  \"RemittanceBankAccountName\": \"Main Cash Account\",\n  \"links\": [\n    {\n      \"rel\": \"self\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/300000001500001\"\n    },\n    {\n      \"rel\": \"canonical\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/300000001500001\"\n    },\n    {\n      \"rel\": \"lov\",\n      \"href\": \"{{fusion_base_url}}/fscmRestApi/resources/11.13.17.11/receivablesMiscellaneousReceipts/300000001500001/lov\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Not Found – Receipt does not exist",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"type\": \"https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.5\",\n  \"title\": \"Not Found\",\n  \"detail\": \"No MiscellaneousReceipt was found for MiscReceiptId: 999999999.\",\n  \"o:errorPath\": \"MiscReceiptId\",\n  \"o:errorCode\": \"FUSION_REST_NOTFOUND\"\n}"
+            }
+          ]
+        },
+        {
           "name": "POST Create Miscellaneous Receipt",
           "request": {
             "method": "POST",
