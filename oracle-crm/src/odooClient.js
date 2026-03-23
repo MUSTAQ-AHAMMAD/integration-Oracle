@@ -580,11 +580,10 @@ class OdooClient {
    * @param {string}  dateFrom    YYYY-MM-DD
    * @param {string}  dateTo      YYYY-MM-DD (inclusive)
    * @param {number}  [storeId]   warehouse id
-   * @param {string[]} [states]   default: ['sale','done']
    * @param {number}  [companyId] Odoo company id (for multi-company instances)
    * @param {number}  [tzOffset]  positive integer hours ahead of UTC (e.g. 4 for UAE, 3 for Kuwait)
    */
-  static buildDomain(dateFrom, dateTo, storeId, states = ['sale', 'done'], companyId = null, tzOffset = 0) {
+  static buildDomain(dateFrom, dateTo, storeId, companyId = null, tzOffset = 0) {
     let startUtc, endUtc;
 
     if (tzOffset && typeof tzOffset === 'number') {
@@ -609,7 +608,6 @@ class OdooClient {
     const d = [
       ['date_order', '>=', startUtc],
       ['date_order', '<=', endUtc],
-      ['state', 'in', states],
     ];
     if (storeId)   d.push(['warehouse_id', '=', storeId]);
     if (companyId) d.push(['company_id', '=', companyId]);

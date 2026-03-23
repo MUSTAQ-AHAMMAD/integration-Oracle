@@ -170,14 +170,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         : `UTC date conversion active (UTC+${tzOffset})`;
       jobLog(jobId, 'info', tzMsg, { tzOffset });
     }
-    // POS REST endpoints expose pos.order records whose valid non-cancelled states
-    // are 'paid', 'done', and 'invoiced'.  The standard JSONRPC path targets
-    // sale.order which uses 'sale' and 'done'.  Using the wrong states causes the
-    // server-side domain filter to exclude all records, returning 0 results.
-    const saleStates = odoo instanceof OdooRestClient
-      ? ['paid', 'done', 'invoiced']
-      : ['sale', 'done'];
-    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, saleStates, companyId ? Number(companyId) : null, tzOffset);
+    const domain = OdooClient.buildDomain(dateFrom, dateTo, storeId, companyId ? Number(companyId) : null, tzOffset);
 
     jobLog(jobId, 'info', 'Connecting to Odoo…');
     await odoo.authenticate();
