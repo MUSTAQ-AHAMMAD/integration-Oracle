@@ -150,11 +150,12 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
   jobLog(jobId, 'info', 'Fetch job started', { dateFrom, dateTo, storeId, country, companyId });
 
   try {
-    // Always use the globally-configured Odoo credentials.
-    // The `country` value is a data label only – it tags the fetched records so
-    // operators know which country they came from.  It does NOT affect which
-    // Odoo instance is called (each deployment connects to its own Odoo URL).
-    const odoo = buildOdooClient(null);
+    // When a country is specified, use the per-country Odoo credentials stored in
+    // country_configs (URL, auth type, API key, and all three REST endpoint path
+    // overrides: Sale_detail, PosOrderLine, payment_lines).
+    // If no country is given, or no country config row exists, falls back to the
+    // globally-configured Odoo credentials.
+    const odoo = buildOdooClient(country || null);
 
     // tzOffset converts local calendar-day boundaries to UTC before querying Odoo,
     // which always stores date_order in UTC.
