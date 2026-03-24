@@ -504,9 +504,12 @@ class OdooRestClient {
   _normalisePayment(r) {
     const id        = r.id           ?? r.payment_id ?? 0;
     const journalId = r.journal_id   ?? r.payment_method_id ?? false;
-    const moveId    = r.move_id      ?? r.invoice_id ?? r.session_id ?? false;
+    const moveId    = r.move_id      ?? r.invoice_id ?? r.pos_order_id ?? r.order_id ?? r.session_id ?? false;
     const partnerId = r.partner_id   ?? r.customer_id ?? false;
     const currencyId = r.currency_id ?? false;
+    // Capture the POS order ID separately for direct sale-to-payment linking.
+    // pos.payment records use pos_order_id to reference the parent POS order.
+    const posOrderId = r.pos_order_id ?? r.order_id ?? null;
 
     return {
       id,
@@ -519,6 +522,7 @@ class OdooRestClient {
       partner_id  : partnerId,
       state       : r.state ?? 'posted',
       move_id     : Array.isArray(moveId) ? moveId : [moveId, ''],
+      pos_order_id: posOrderId,
       _raw        : r,
     };
   }
