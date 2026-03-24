@@ -360,7 +360,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
           const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
           const moveId       = Array.isArray(p.move_id)    ? p.move_id[0]    : p.move_id;
           return {
-            sale_id        : null,               // not linked via invoice ID for REST
+            sale_id        : null,               // linked in post-process step below
             invoice_number : p.name || (moveId ? String(moveId) : ''),
             odoo_payment_id: p.id,
             payment_type   : journalLabel,
@@ -371,6 +371,9 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
             register_name  : null,
             region         : country || null,
             fetched_at     : now,
+            // Temporary field: POS order ID for direct sale-to-payment linking.
+            // Removed before DB upsert.
+            _pos_order_id  : p.pos_order_id || null,
           };
         });
       } else {
@@ -428,32 +431,58 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         }
       }
 
-      // ── Post-process: link unlinked payments to sales by invoice_number ──
+      // ── Post-process: link unlinked payments to sales ───────────────────
       // REST payments are fetched by date domain and don't have sale_id set.
-      // Try to match invoice_number to sale.name so getSaleWithLines() can
-      // retrieve them during the push phase.
+      // Try to match by:
+      //   1. invoice_number → sale.name  (works for account.payment records)
+      //   2. _pos_order_id  → odoo_id    (works for pos.payment records)
+      // so that getSaleWithLines() can retrieve them during the push phase.
       if (paymentRows.length > 0) {
         let linked = 0;
-        const unlinked = paymentRows.filter(p => p.sale_id === null && p.invoice_number);
+        const unlinked = paymentRows.filter(p => p.sale_id === null);
         if (unlinked.length > 0) {
-          // Build a map of sale name → internal DB id from the orders we just fetched
-          const nameMap = new Map();
-          const internalIdMap = db.getSaleInternalIdMap(allOrderIds);
+          // Build maps for both linking strategies
+          const nameMap       = new Map();  // sale.name   → internalId
+          const idToNameMap   = new Map();  // internalId  → sale.name
+          const internalIdMap = db.getSaleInternalIdMap(allOrderIds); // odooId → internalId
           for (const [odooId, internalId] of internalIdMap) {
             const sale = db.getSaleWithLines(internalId);
-            if (sale) nameMap.set(sale.name, internalId);
+            if (sale) {
+              nameMap.set(sale.name, internalId);
+              idToNameMap.set(internalId, sale.name);
+            }
           }
           for (const p of unlinked) {
-            const internalId = nameMap.get(p.invoice_number);
+            let internalId = null;
+
+            // Strategy 1: match invoice_number to sale.name
+            if (p.invoice_number) {
+              internalId = nameMap.get(p.invoice_number) ?? null;
+            }
+
+            // Strategy 2: match _pos_order_id (POS order Odoo ID) via internalIdMap
+            if (internalId == null && p._pos_order_id) {
+              internalId = internalIdMap.get(p._pos_order_id) ?? null;
+            }
+
             if (internalId != null) {
               p.sale_id = internalId;
+              // Update invoice_number to the sale's actual name for consistency
+              const saleName = idToNameMap.get(internalId);
+              if (saleName) p.invoice_number = saleName;
               linked++;
             }
           }
           if (linked > 0) {
-            jobLog(jobId, 'info', `Linked ${linked}/${unlinked.length} REST payments to sales by invoice_number`);
+            jobLog(jobId, 'info', `Linked ${linked}/${unlinked.length} REST payments to sales by invoice_number / pos_order_id`);
+          }
+          if (unlinked.length - linked > 0) {
+            jobLog(jobId, 'debug', `${unlinked.length - linked} payments could not be linked to any fetched sale`);
           }
         }
+
+        // Remove temporary linking fields before DB upsert
+        for (const p of paymentRows) delete p._pos_order_id;
 
         db.upsertSalePayments(paymentRows);
         jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);
