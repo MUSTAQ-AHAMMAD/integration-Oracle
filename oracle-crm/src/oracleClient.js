@@ -10,7 +10,7 @@
  *   3. POST receivablesInvoices
  *   4. POST receivablesReceipts  (standard)
  *   5. POST receivablesReceipts/{id}/child/applyReceiptOnAccount
- *   6. POST receivablesReceipts  (miscellaneous)
+ *   6. POST receivablesMiscellaneousReceipts  (bank charges / cash rounding)
  *   7. POST inventoryTransactions
  *   8. POST journals
  *
@@ -84,9 +84,15 @@ class OracleClient {
     }
   }
 
-  /** 4 & 6. Create a receipt (standard or miscellaneous) */
+  /** 4. Create a standard receipt */
   async createReceipt(payload) {
     const res = await this.http.post('/receivablesReceipts', payload);
+    return res.data;
+  }
+
+  /** 6. Create a miscellaneous receipt (bank charges / cash rounding) */
+  async createMiscReceipt(payload) {
+    const res = await this.http.post('/receivablesMiscellaneousReceipts', payload);
     return res.data;
   }
 
