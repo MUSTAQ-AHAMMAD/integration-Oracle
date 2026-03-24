@@ -239,7 +239,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         totalFetchedSoFar: totalFetched,
         uniqueOrderIds   : allOrderIdSet.size,
       });
-      db.updateJob(jobId, { total: totalFetched, processed: totalFetched });
+      db.updateJob(jobId, { total: totalFetched });
 
       // Yield to the event loop between pages to keep the server responsive
       await new Promise(resolve => setImmediate(resolve));
@@ -324,9 +324,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       }
 
       // Update progress so the UI shows incremental line-fetch progress
-      if (idChunks.length > 0) {
-        jobLog(jobId, 'debug', `Line fetch progress: ${lineChunksDone}/${idChunks.length} chunks, ${totalLines} lines stored`);
-      }
+      jobLog(jobId, 'debug', `Line fetch progress: ${lineChunksDone}/${idChunks.length} chunks, ${totalLines} lines stored`);
       await new Promise(resolve => setImmediate(resolve));
     }
 

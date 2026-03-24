@@ -162,7 +162,7 @@ class OraclePushService {
             const applyPayload = stripNulls({
               TransactionNumber  : transactionNumber,
               ReceiptNumber      : receiptResult.ReceiptNumber,
-              AmountApplied      : Math.round(applyAmount * 100) / 100,
+              AmountApplied      : applyAmount,
               ReceiptCurrencyCode: outlet.currency,
               TransactionSource  : metadata.txnSource,
               ApplicationDate    : dateStr,
@@ -174,7 +174,8 @@ class OraclePushService {
             break;
           } catch (applyErr) {
             if (attempt < APPLY_RECEIPT_MAX_RETRIES) {
-              applyAmount -= APPLY_RECEIPT_DECREMENT;
+              // Round after decrement to avoid floating-point drift over 50 iterations
+              applyAmount = Math.round((applyAmount - APPLY_RECEIPT_DECREMENT) * 100) / 100;
             } else {
               // Final attempt failed – log and continue
               const applyMsg = applyErr.response
