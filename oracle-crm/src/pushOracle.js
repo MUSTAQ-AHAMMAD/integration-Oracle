@@ -122,6 +122,24 @@ class OraclePushService {
         invoiceLine         : invoiceLines,
       });
 
+      // Validate that the invoice has at least one line – Oracle rejects empty invoices
+      if (!invoiceLines || invoiceLines.length === 0) {
+        const msg = `Invoice has no line items (${preview.lines.length} lines computed, all filtered out). Check that sale order lines were fetched from Odoo (PosOrderLine endpoint).`;
+        step('createInvoice', 'failed', { message: msg, invoicePayload });
+        errors.push(msg);
+        return { success: false, steps: log, errors, preview: null };
+      }
+
+      // Log the payload being sent for diagnostic purposes
+      step('invoicePayload', 'debug', {
+        lineCount: invoiceLines.length,
+        billToName: metadata.billToName,
+        businessUnit: metadata.businessUnit,
+        currency: outlet.currency,
+        paymentTermsName,
+        date: dateStr,
+      });
+
       const invoiceResult = await this.client.createInvoice(invoicePayload);
       step('createInvoice', 'ok', {
         transactionNumber: invoiceResult.TransactionNumber,
@@ -368,11 +386,29 @@ class OraclePushService {
     } catch (err) {
       const lastOkStep = log.filter(s => s.status === 'ok').pop();
       const failedAfter = lastOkStep ? lastOkStep.step : '(before first API call)';
-      const msg = err.response
-        ? `Oracle API error ${err.response.status} (after ${failedAfter}): ${JSON.stringify(err.response.data)}`
-        : `${err.message} (after ${failedAfter})`;
+
+      // Build a detailed message including request details when Oracle returns
+      // an empty body (common with 400 errors for missing/invalid fields).
+      let msg;
+      if (err.response) {
+        const respBody = err.response.data;
+        const bodyStr = respBody && typeof respBody === 'object'
+          ? JSON.stringify(respBody)
+          : JSON.stringify(respBody);
+        const reqUrl   = err.config ? err.config.url : 'unknown';
+        const reqData  = err.config && err.config.data
+          ? (typeof err.config.data === 'string' ? err.config.data.substring(0, 500) : JSON.stringify(err.config.data).substring(0, 500))
+          : '';
+        const emptyHint = (!respBody || respBody === '')
+          ? '. Empty response body typically means a required field is missing or has an invalid value. Check BillToCustomerName, BillToAccountNumber, BusinessUnit, TransactionSource, TransactionType, PaymentTermsName, InvoiceCurrencyCode, and invoice line items.'
+          : '';
+        msg = `Oracle API error ${err.response.status} (after ${failedAfter}): ${bodyStr}${emptyHint}`;
+        step('ERROR', 'failed', { message: msg, requestUrl: reqUrl, requestPayload: reqData });
+      } else {
+        msg = `${err.message} (after ${failedAfter})`;
+        step('ERROR', 'failed', { message: msg });
+      }
       errors.push(msg);
-      step('ERROR', 'failed', { message: msg });
 
       return {
         success : false,

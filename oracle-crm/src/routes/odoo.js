@@ -57,7 +57,8 @@
 
 const express       = require('express');
 const router        = express.Router();
-const { startFetchJob, startPushJob, startRetryJob, getOdooStores } = require('../odooSync');
+const { startFetchJob, startPushJob, startRetryJob, getOdooStores, buildOracleSalePayload } = require('../odooSync');
+const { computeSalePreview } = require('../calculations');
 const db            = require('../db');
 const logger        = require('../logger').child('OdooRoutes');
 
@@ -377,6 +378,90 @@ router.get('/payments', (req, res) => {
     res.json({ payments: rows, total, count: rows.length, limit, offset });
   } catch (err) {
     logger.error('Failed to query sale payments', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/odoo/sale-lines ──────────────────────────────────────────────────
+// List stored sale order lines (from PosOrderLine endpoint).
+// Query: ?saleId=&dateFrom=&dateTo=&storeId=&country=&limit=100&offset=0
+router.get('/sale-lines', (req, res) => {
+  const { saleId, dateFrom, dateTo, storeId, country } = req.query;
+  const limit  = Math.min(Number(req.query.limit)  || 100, 500);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  try {
+    const { rows, total } = db.querySaleLines({
+      saleId  : saleId   ? Number(saleId) : undefined,
+      dateFrom: dateFrom  || undefined,
+      dateTo  : dateTo    || undefined,
+      storeId : storeId   ? Number(storeId) : undefined,
+      country : country   || undefined,
+      limit,
+      offset,
+    });
+    res.json({ lines: rows, total, count: rows.length, limit, offset });
+  } catch (err) {
+    logger.error('Failed to query sale lines', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/odoo/sales/:id/preview ───────────────────────────────────────────
+// Return a complete sale detail with lines, payments, and Oracle payload preview.
+// Used by the data verification modal in the UI.
+router.get('/sales/:id/preview', (req, res) => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) return badRequest(res, 'Invalid sale id');
+
+  try {
+    const sale = db.getSaleWithLines(id);
+    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+
+    // Build Oracle payload preview using optional metadata from query params
+    let oraclePreview = null;
+    try {
+      const salePayload = buildOracleSalePayload(sale, req.query.metadata ? JSON.parse(req.query.metadata) : {}, req.query.outlet ? JSON.parse(req.query.outlet) : undefined);
+      const preview     = computeSalePreview(salePayload.sale);
+      oraclePreview = {
+        sale    : salePayload.sale,
+        metadata: salePayload.metadata,
+        outlet  : salePayload.outlet,
+        preview,
+      };
+    } catch (previewErr) {
+      oraclePreview = { error: previewErr.message };
+    }
+
+    res.json({
+      sale: {
+        id             : sale.id,
+        odoo_id        : sale.odoo_id,
+        name           : sale.name,
+        store_id       : sale.store_id,
+        store_name     : sale.store_name,
+        country        : sale.country,
+        date_order     : sale.date_order,
+        partner_id     : sale.partner_id,
+        partner_name   : sale.partner_name,
+        currency       : sale.currency,
+        amount_untaxed : sale.amount_untaxed,
+        amount_tax     : sale.amount_tax,
+        amount_total   : sale.amount_total,
+        state          : sale.state,
+        customer_type  : sale.customer_type,
+        register_name  : sale.register_name,
+        oracle_txn_id  : sale.oracle_txn_id,
+        pushed_at      : sale.pushed_at,
+      },
+      lines       : sale.lines    || [],
+      payments    : sale.payments || [],
+      lineCount   : (sale.lines    || []).length,
+      paymentCount: (sale.payments || []).length,
+      oraclePreview,
+    });
+  } catch (err) {
+    logger.error('Failed to get sale preview', { err: err.message });
     res.status(500).json({ error: err.message });
   }
 });
