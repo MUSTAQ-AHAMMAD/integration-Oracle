@@ -314,6 +314,10 @@
             style="padding:7px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">
             Payments
           </button>
+          <button id="tab-btn-lines" onclick="switchDataTab('lines')"
+            style="padding:7px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)">
+            Order Lines
+          </button>
         </div>
 
         <!-- ── Sales tab ───────────────────────────────────────────────── -->
@@ -448,6 +452,65 @@
           </div>
           <div id="payments-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
         </div><!-- end #tab-payments -->
+
+        <!-- ── Order Lines tab ─────────────────────────────────────────── -->
+        <div id="tab-lines" style="display:none">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
+            <div style="flex:1;min-width:130px">
+              <label class="form-label" style="font-size:12px">From</label>
+              <input type="date" id="lines-date-from" class="form-control">
+            </div>
+            <div style="flex:1;min-width:130px">
+              <label class="form-label" style="font-size:12px">To</label>
+              <input type="date" id="lines-date-to" class="form-control">
+            </div>
+            <div style="flex:1;min-width:120px">
+              <label class="form-label" style="font-size:12px">Country</label>
+              <select id="lines-country" class="form-control form-select">
+                <option value="">All</option>
+                <option value="AE">🇦🇪 AE</option>
+                <option value="KW">🇰🇼 KW</option>
+                <option value="OM">🇴🇲 OM</option>
+                <option value="SA">🇸🇦 SA</option>
+                <option value="BH">🇧🇭 BH</option>
+                <option value="QA">🇶🇦 QA</option>
+              </select>
+            </div>
+            <button id="btn-load-lines" class="btn btn-outline" style="height:38px">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+              Filter
+            </button>
+            <button id="btn-refresh-lines" class="btn btn-outline" style="height:38px" title="Refresh lines">⟳</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+            Order lines fetched from Odoo <code>PosOrderLine</code> (2nd API endpoint). Each row is a product line within a sale order.
+          </p>
+          <div class="sales-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Sale Order</th>
+                  <th>Product</th>
+                  <th>SKU / Item No.</th>
+                  <th>Qty Ordered</th>
+                  <th>Unit Price</th>
+                  <th>Subtotal</th>
+                  <th>Tax</th>
+                  <th>Discount</th>
+                  <th>Store</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="lines-tbody">
+                <tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px">
+                  Click Filter or Refresh to load stored order lines.
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="lines-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div><!-- end #tab-lines -->
 
       </div>
     </div>
@@ -816,8 +879,83 @@
       </div>
     </div>
 
+    <!-- ── Failed Records ──────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.73 4a2 2 0 00-3.46 0L3.34 16a2 2 0 001.73 3z"/></svg>
+        Failed Records
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Records that failed to push to Oracle – retry individually or in bulk</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
+          <div style="flex:1;min-width:160px">
+            <label class="form-label" style="font-size:12px">Filter by Job ID</label>
+            <input type="text" id="failed-job-id" class="form-control" placeholder="All jobs">
+          </div>
+          <div style="flex:1;min-width:130px">
+            <label class="form-label" style="font-size:12px">Status</label>
+            <select id="failed-status" class="form-control form-select">
+              <option value="PENDING">Pending</option>
+              <option value="">All</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="SKIPPED">Skipped</option>
+            </select>
+          </div>
+          <button id="btn-load-failed" class="btn btn-outline" style="height:38px">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+            Filter
+          </button>
+          <button id="btn-retry-failed" class="btn btn-primary" style="height:38px">
+            🔄 Retry All Pending
+          </button>
+        </div>
+        <div id="failed-alert" class="alert hidden"></div>
+        <div id="retry-progress" class="hidden" style="margin-bottom:14px">
+          <div class="d-flex gap-10" style="align-items:center;margin-bottom:8px">
+            <strong id="retry-status-label">Queued</strong>
+            <span class="badge badge-muted" id="retry-job-id-label" style="font-size:11px"></span>
+            <span id="retry-counter" class="text-muted" style="font-size:13px"></span>
+          </div>
+          <div class="pipeline-bar"><div class="pipeline-fill" id="retry-fill"></div></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Sale Name</th>
+                <th>Odoo ID</th>
+                <th>Error</th>
+                <th>Retries</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Last Attempt</th>
+              </tr>
+            </thead>
+            <tbody id="failed-tbody">
+              <tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">Click Filter to load failed records.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="failed-pagination" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+
   </div><!-- /page-body -->
 </div><!-- /main-content -->
+
+<!-- ── Sale Detail Modal ──────────────────────────────────────────────── -->
+<div id="sale-detail-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);overflow-y:auto;padding:30px 16px">
+  <div style="max-width:900px;margin:0 auto;background:var(--white);border-radius:var(--radius);box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0;font-size:16px" id="detail-title">Sale Detail</h3>
+      <button onclick="closeSaleDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">&times;</button>
+    </div>
+    <div style="padding:20px 24px" id="detail-body">
+      <p class="text-muted">Loading…</p>
+    </div>
+  </div>
+</div>
 
 <script src="/js/app.js"></script>
 <script>
@@ -863,8 +1001,8 @@ async function loadLastPush() {
 function setDefaultDates() {
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  ['fetch-date-from','push-date-from','view-date-from'].forEach(id => $(id).value = weekAgo);
-  ['fetch-date-to','push-date-to','view-date-to'].forEach(id => $(id).value = today);
+  ['fetch-date-from','push-date-from','view-date-from','lines-date-from','pay-date-from'].forEach(id => { if ($(id)) $(id).value = weekAgo; });
+  ['fetch-date-to','push-date-to','view-date-to','lines-date-to','pay-date-to'].forEach(id => { if ($(id)) $(id).value = today; });
 }
 
 async function checkOdooConfig() {
@@ -1125,7 +1263,7 @@ function renderSalesTable(rows, total, offset) {
     const pushCell = s.oracle_txn_id
       ? `<td><span class="tag" style="background:#d1e7dd;color:#0a3622" title="Pushed at ${escHtml(s.pushed_at||'')}">✓ ${escHtml(s.oracle_txn_id)}</span></td>`
       : `<td><span class="tag" style="background:#fff3cd;color:#664d03">Pending</span></td>`;
-    return `<tr>
+    return `<tr style="cursor:pointer" onclick="openSaleDetail(${s.id})" title="Click to view details">
       <td style="color:var(--muted);font-size:12px">${offset + i + 1}</td>
       <td><strong>${escHtml(s.name)}</strong></td>
       <td>${escHtml(s.date_order)}</td>
@@ -1165,18 +1303,18 @@ function renderSalesTable(rows, total, offset) {
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchDataTab(tab) {
-  const isPayments = tab === 'payments';
-  $('tab-sales').style.display     = isPayments ? 'none' : '';
-  $('tab-payments').style.display  = isPayments ? ''     : 'none';
+  $('tab-sales').style.display     = tab === 'sales' ? '' : 'none';
+  $('tab-payments').style.display  = tab === 'payments' ? '' : 'none';
+  $('tab-lines').style.display     = tab === 'lines' ? '' : 'none';
 
-  const salesBtn    = $('tab-btn-sales');
-  const paymentsBtn = $('tab-btn-payments');
-  salesBtn.style.borderBottomColor    = isPayments ? 'transparent' : 'var(--primary)';
-  salesBtn.style.color                = isPayments ? 'var(--muted)' : 'var(--primary)';
-  paymentsBtn.style.borderBottomColor = isPayments ? 'var(--primary)' : 'transparent';
-  paymentsBtn.style.color             = isPayments ? 'var(--primary)' : 'var(--muted)';
+  const tabs = { sales: $('tab-btn-sales'), payments: $('tab-btn-payments'), lines: $('tab-btn-lines') };
+  for (const [k, btn] of Object.entries(tabs)) {
+    btn.style.borderBottomColor = k === tab ? 'var(--primary)' : 'transparent';
+    btn.style.color             = k === tab ? 'var(--primary)' : 'var(--muted)';
+  }
 
-  if (isPayments) loadPayments();
+  if (tab === 'payments') loadPayments();
+  if (tab === 'lines')    loadLines();
 }
 
 // ── Payments table ─────────────────────────────────────────────────────────────
@@ -1236,6 +1374,72 @@ function renderPaymentsTable(rows, total, offset) {
     next.style.marginLeft = '6px';
     next.textContent = 'Next →';
     next.addEventListener('click', () => loadPayments(offset + PAGE_SIZE));
+    pag.appendChild(next);
+  }
+}
+
+// ── Order Lines table ─────────────────────────────────────────────────────────
+let currentLineOffset = 0;
+$('btn-load-lines').addEventListener('click', () => { currentLineOffset = 0; loadLines(); });
+$('btn-refresh-lines').addEventListener('click', () => loadLines(currentLineOffset));
+
+async function loadLines(offset = 0) {
+  currentLineOffset = offset;
+  const params = new URLSearchParams({
+    dateFrom: $('lines-date-from').value || '',
+    dateTo  : $('lines-date-to').value   || '',
+    country : $('lines-country').value   || '',
+    limit   : PAGE_SIZE,
+    offset,
+  });
+  for (const [k,v] of [...params]) if (!v) params.delete(k);
+  try {
+    const data = await api('/api/odoo/sale-lines?' + params);
+    renderLinesTable(data.lines || [], data.total || 0, offset);
+  } catch (err) {
+    $('lines-tbody').innerHTML = '<tr><td colspan="11" style="color:var(--danger);padding:16px">Error: ' + escHtml(err.message) + '</td></tr>';
+  }
+}
+
+function renderLinesTable(rows, total, offset) {
+  const tbody = $('lines-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px">No order lines found. Run a Fetch job to pull line data from Odoo (PosOrderLine endpoint).</td></tr>';
+    $('lines-pagination').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((l, i) => '<tr>' +
+    '<td style="color:var(--muted);font-size:12px">' + (offset + i + 1) + '</td>' +
+    '<td><strong>' + escHtml(l.sale_name || '–') + '</strong></td>' +
+    '<td>' + escHtml(l.product_name || '–') + '</td>' +
+    '<td style="font-size:12px">' + escHtml(l.item_number || '–') + '</td>' +
+    '<td style="text-align:right">' + fmtMoney(l.qty_ordered, 0) + '</td>' +
+    '<td style="text-align:right">' + fmtMoney(l.price_unit) + '</td>' +
+    '<td style="text-align:right;font-weight:600">' + fmtMoney(l.price_subtotal) + '</td>' +
+    '<td style="font-size:12px">' + escHtml(l.tax_name || '–') + '</td>' +
+    '<td style="text-align:right">' + fmtMoney(l.total_discount || 0) + '%</td>' +
+    '<td style="font-size:12px">' + escHtml(l.store_name || '–') + '</td>' +
+    '<td style="font-size:12px">' + escHtml(l.date_order || '–') + '</td>' +
+    '</tr>').join('');
+
+  const from = offset + 1;
+  const to   = Math.min(offset + rows.length, total);
+  const pag  = $('lines-pagination');
+  pag.innerHTML = 'Showing ' + from + '–' + to + ' of ' + total + ' &nbsp;';
+  if (offset > 0) {
+    const prev = document.createElement('button');
+    prev.className = 'btn btn-outline btn-sm';
+    prev.textContent = '← Previous';
+    prev.addEventListener('click', () => loadLines(Math.max(0, offset - PAGE_SIZE)));
+    pag.appendChild(prev);
+  }
+  if (to < total) {
+    const next = document.createElement('button');
+    next.className = 'btn btn-outline btn-sm';
+    next.style.marginLeft = '6px';
+    next.textContent = 'Next →';
+    next.addEventListener('click', () => loadLines(offset + PAGE_SIZE));
     pag.appendChild(next);
   }
 }
@@ -1504,6 +1708,195 @@ function showAlert(el, type, msg) {
   el.classList.remove('hidden');
 }
 function hideAlert(el) { if (el) el.classList.add('hidden'); }
+
+// ── Sale Detail Modal ─────────────────────────────────────────────────────────
+async function openSaleDetail(saleId) {
+  $('sale-detail-modal').style.display = '';
+  $('detail-body').innerHTML = '<p class="text-muted">Loading sale detail…</p>';
+  $('detail-title').textContent = 'Sale Detail';
+
+  try {
+    const data = await api('/api/odoo/sales/' + saleId + '/preview');
+    const s = data.sale;
+    $('detail-title').textContent = 'Sale Detail – ' + escHtml(s.name);
+
+    let html = '';
+
+    // Sale header info
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:18px;font-size:13px">';
+    html += '<div><strong>Invoice No.:</strong> ' + escHtml(s.name) + '</div>';
+    html += '<div><strong>Date:</strong> ' + escHtml(s.date_order) + '</div>';
+    html += '<div><strong>Store:</strong> ' + escHtml(s.store_name || '–') + '</div>';
+    html += '<div><strong>Country:</strong> ' + escHtml(s.country || '–') + '</div>';
+    html += '<div><strong>Customer:</strong> ' + escHtml(s.partner_name || '–') + '</div>';
+    html += '<div><strong>Type:</strong> ' + escHtml(s.customer_type || 'NORMAL') + '</div>';
+    html += '<div><strong>Total:</strong> ' + fmtMoney(s.amount_total) + ' ' + escHtml(s.currency || '') + '</div>';
+    html += '<div><strong>Oracle Txn:</strong> ' + (s.oracle_txn_id ? '<span style="color:var(--success)">✓ ' + escHtml(s.oracle_txn_id) + '</span>' : '<span style="color:var(--muted)">Not pushed</span>') + '</div>';
+    html += '</div>';
+
+    // Data completeness summary
+    const hasLines = data.lineCount > 0;
+    const hasPayments = data.paymentCount > 0;
+    html += '<div style="display:flex;gap:12px;margin-bottom:16px">';
+    html += '<div style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;' + (hasLines ? 'background:#d1e7dd;color:#0a3622' : 'background:#f8d7da;color:#842029') + '">📦 ' + data.lineCount + ' Order Line' + (data.lineCount !== 1 ? 's' : '') + (hasLines ? ' ✓' : ' ⚠ MISSING') + '</div>';
+    html += '<div style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;' + (hasPayments ? 'background:#d1e7dd;color:#0a3622' : 'background:#fff3cd;color:#664d03') + '">💳 ' + data.paymentCount + ' Payment' + (data.paymentCount !== 1 ? 's' : '') + (hasPayments ? ' ✓' : ' (fallback to total)') + '</div>';
+    html += '</div>';
+
+    // Order Lines table
+    html += '<h4 style="font-size:14px;margin:16px 0 8px">Order Lines (from PosOrderLine endpoint)</h4>';
+    if (data.lines.length > 0) {
+      html += '<div style="max-height:200px;overflow-y:auto"><table style="font-size:12px"><thead><tr><th>#</th><th>Product</th><th>SKU</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th><th>Tax</th></tr></thead><tbody>';
+      data.lines.forEach(function(l, i) {
+        html += '<tr><td>' + (i+1) + '</td><td>' + escHtml(l.product_name || '–') + '</td><td>' + escHtml(l.item_number || '–') + '</td><td style="text-align:right">' + fmtMoney(l.qty_ordered, 0) + '</td><td style="text-align:right">' + fmtMoney(l.price_unit) + '</td><td style="text-align:right;font-weight:600">' + fmtMoney(l.price_subtotal) + '</td><td>' + escHtml(l.tax_name || '–') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    } else {
+      html += '<div style="padding:12px;background:#f8d7da;color:#842029;border-radius:6px;font-size:13px">⚠ No order lines found. The PosOrderLine endpoint may not have returned data for this sale. Oracle push will fail without line items.</div>';
+    }
+
+    // Payments table
+    html += '<h4 style="font-size:14px;margin:16px 0 8px">Payments (from payment_lines endpoint)</h4>';
+    if (data.payments.length > 0) {
+      html += '<div style="max-height:150px;overflow-y:auto"><table style="font-size:12px"><thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Currency</th><th>Date</th></tr></thead><tbody>';
+      data.payments.forEach(function(p, i) {
+        html += '<tr><td>' + (i+1) + '</td><td>' + escHtml(p.payment_type || '–') + '</td><td style="text-align:right;font-weight:600">' + fmtMoney(p.amount) + '</td><td>' + escHtml(p.currency || '–') + '</td><td>' + escHtml(p.payment_date || '–') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    } else {
+      html += '<div style="padding:12px;background:#fff3cd;color:#664d03;border-radius:6px;font-size:13px">ℹ No payment records found. Push will use amount_total (' + fmtMoney(s.amount_total) + ') as a single Cash payment.</div>';
+    }
+
+    // Oracle payload preview
+    if (data.oraclePreview && !data.oraclePreview.error) {
+      html += '<h4 style="font-size:14px;margin:16px 0 8px">Oracle Payload Preview</h4>';
+      html += '<details><summary style="cursor:pointer;font-size:12px;color:var(--primary)">Show computed Oracle payload</summary>';
+      html += '<pre style="background:#0d1117;color:#c9d1d9;padding:12px;border-radius:6px;font-size:11px;max-height:300px;overflow:auto">' + escHtml(JSON.stringify(data.oraclePreview, null, 2)) + '</pre>';
+      html += '</details>';
+    }
+
+    $('detail-body').innerHTML = html;
+  } catch (err) {
+    $('detail-body').innerHTML = '<div style="color:var(--danger);padding:12px">Error loading sale detail: ' + escHtml(err.message) + '</div>';
+  }
+}
+
+function closeSaleDetail() {
+  $('sale-detail-modal').style.display = 'none';
+}
+
+// Close modal on Escape key or background click
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeSaleDetail(); });
+$('sale-detail-modal').addEventListener('click', function(e) { if (e.target === this) closeSaleDetail(); });
+
+// ── Failed Records ────────────────────────────────────────────────────────────
+let currentFailedOffset = 0;
+let retryPollTimer = null;
+
+$('btn-load-failed').addEventListener('click', () => { currentFailedOffset = 0; loadFailedRecords(); });
+$('btn-retry-failed').addEventListener('click', retryAllFailed);
+
+async function loadFailedRecords(offset = 0) {
+  currentFailedOffset = offset;
+  const params = new URLSearchParams({
+    jobId : $('failed-job-id').value  || '',
+    status: $('failed-status').value  || '',
+    limit : PAGE_SIZE,
+    offset,
+  });
+  for (const [k,v] of [...params]) if (!v) params.delete(k);
+  try {
+    const data = await api('/api/odoo/failed-records?' + params);
+    renderFailedTable(data.records || [], data.total || 0, offset);
+  } catch (err) {
+    $('failed-tbody').innerHTML = '<tr><td colspan="8" style="color:var(--danger);padding:16px">Error: ' + escHtml(err.message) + '</td></tr>';
+  }
+}
+
+function renderFailedTable(rows, total, offset) {
+  const tbody = $('failed-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No failed records found.</td></tr>';
+    $('failed-pagination').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(function(r, i) {
+    var statusBadge = r.status === 'RESOLVED' ? 'badge-success' : (r.status === 'SKIPPED' ? 'badge-muted' : 'badge-danger');
+    var errShort = (r.error_message || '').length > 80 ? (r.error_message.substring(0, 80) + '…') : (r.error_message || '–');
+    return '<tr>' +
+      '<td style="color:var(--muted);font-size:12px">' + (offset + i + 1) + '</td>' +
+      '<td><strong>' + escHtml(r.sale_name || '–') + '</strong></td>' +
+      '<td style="font-size:12px">' + (r.odoo_id || '–') + '</td>' +
+      '<td style="font-size:11px;max-width:250px;overflow:hidden;text-overflow:ellipsis" title="' + escHtml(r.error_message || '') + '">' + escHtml(errShort) + '</td>' +
+      '<td style="text-align:center">' + (r.retry_count || 0) + '</td>' +
+      '<td><span class="badge ' + statusBadge + '">' + escHtml(r.status) + '</span></td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + (r.created_at ? r.created_at.replace('T',' ').slice(0,16) : '–') + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + (r.last_attempt_at ? r.last_attempt_at.replace('T',' ').slice(0,16) : '–') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  var from = offset + 1;
+  var to   = Math.min(offset + rows.length, total);
+  var pag  = $('failed-pagination');
+  pag.innerHTML = 'Showing ' + from + '–' + to + ' of ' + total + ' &nbsp;';
+  if (offset > 0) {
+    var prev = document.createElement('button');
+    prev.className = 'btn btn-outline btn-sm';
+    prev.textContent = '← Previous';
+    prev.addEventListener('click', function() { loadFailedRecords(Math.max(0, offset - PAGE_SIZE)); });
+    pag.appendChild(prev);
+  }
+  if (to < total) {
+    var next = document.createElement('button');
+    next.className = 'btn btn-outline btn-sm';
+    next.style.marginLeft = '6px';
+    next.textContent = 'Next →';
+    next.addEventListener('click', function() { loadFailedRecords(offset + PAGE_SIZE); });
+    pag.appendChild(next);
+  }
+}
+
+async function retryAllFailed() {
+  var sourceJobId = $('failed-job-id').value;
+  if (!sourceJobId) {
+    showAlert($('failed-alert'), 'warning', 'Please enter a Job ID to retry its failed records.');
+    return;
+  }
+  hideAlert($('failed-alert'));
+  $('btn-retry-failed').disabled = true;
+
+  try {
+    var res = await api('/api/odoo/retry-failed', 'POST', { sourceJobId: sourceJobId });
+    showAlert($('failed-alert'), 'info', 'Retry job started: ' + escHtml(res.jobId.slice(0,8)) + '…');
+    $('retry-progress').classList.remove('hidden');
+    $('retry-job-id-label').textContent = 'Job: ' + res.jobId.slice(0,8) + '…';
+    $('retry-status-label').textContent = 'QUEUED';
+    $('retry-status-label').style.color = 'var(--muted)';
+    if (retryPollTimer) clearInterval(retryPollTimer);
+    retryPollTimer = setInterval(function() { pollRetryJob(res.jobId); }, 2000);
+  } catch (err) {
+    showAlert($('failed-alert'), 'danger', 'Retry failed: ' + escHtml(err.message));
+    $('btn-retry-failed').disabled = false;
+  }
+}
+
+async function pollRetryJob(jobId) {
+  try {
+    var job = await api('/api/odoo/jobs/' + jobId);
+    var isDone = job.status === 'DONE' || job.status === 'FAILED';
+    $('retry-status-label').textContent = job.status;
+    $('retry-status-label').style.color = statusColour(job.status);
+    var pct = job.total > 0 ? Math.round(((job.processed + job.failed) / job.total) * 100) : (isDone ? 100 : 0);
+    setBar($('retry-fill'), pct, job.status);
+    $('retry-counter').textContent = job.total ? '✓ ' + job.processed + ' resolved, ✗ ' + job.failed + ' still failing' : '';
+    if (isDone) {
+      clearInterval(retryPollTimer);
+      $('btn-retry-failed').disabled = false;
+      loadFailedRecords();
+      loadJobs();
+    }
+  } catch (_) {}
+}
 </script>
 </body>
 </html>
