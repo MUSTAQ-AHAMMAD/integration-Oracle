@@ -266,7 +266,7 @@ router.get('/stores', async (req, res) => {
       ? !!(odoo.url && odoo.apiKey)
       : !!(odoo.url && odoo.username && odoo.password);
     if (configured) {
-      try { stores = await getOdooStores(); } catch (_) { /* fall through */ }
+      try { stores = await getOdooStores(); } catch (e) { logger.debug('Odoo store fetch skipped', { err: e.message }); }
     }
 
     // Merge with stores found in locally-stored sales data so the dropdown is

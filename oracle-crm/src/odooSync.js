@@ -861,7 +861,7 @@ function extractDate(val) {
   const s = String(val);
   // Match YYYY-MM-DD at the start (handles both T-separated and space-separated)
   const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : s.split(' ')[0];
+  return m ? m[1] : '';
 }
 
 function chunkArray(arr, size) {
