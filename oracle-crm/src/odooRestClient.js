@@ -288,6 +288,17 @@ class OdooRestClient {
   }
 
   /**
+   * Return an empty store list for REST clients.
+   * The REST API does not expose stock.warehouse; stores are derived from the
+   * data returned by the Sale_detail endpoint instead.  The frontend store
+   * dropdown is populated from the locally-stored sales data.
+   */
+  async getStores() {
+    logger.debug('REST client: getStores() – not available, returning empty list');
+    return [];
+  }
+
+  /**
    * Fetch payment records from the payment_lines REST endpoint using a
    * date-based domain.  Mirrors the Java middleware's BackupVendhqPayments
    * table which is populated using sale_date / payment_date as the filter key

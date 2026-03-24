@@ -372,8 +372,8 @@ function querySalePayments({ invoiceNumber, dateFrom, dateTo, region, saleId, li
   const params     = {};
 
   if (invoiceNumber) { conditions.push('invoice_number = @invoiceNumber'); params.invoiceNumber = invoiceNumber; }
-  if (dateFrom)      { conditions.push('payment_date >= @dateFrom');        params.dateFrom      = dateFrom; }
-  if (dateTo)        { conditions.push('payment_date <= @dateTo');          params.dateTo        = dateTo;   }
+  if (dateFrom)      { conditions.push('substr(payment_date, 1, 10) >= @dateFrom'); params.dateFrom = dateFrom; }
+  if (dateTo)        { conditions.push('substr(payment_date, 1, 10) <= @dateTo');   params.dateTo   = dateTo;   }
   if (region)        { conditions.push('region = @region');                 params.region        = region;   }
   if (saleId)        { conditions.push('sale_id = @saleId');               params.saleId        = saleId;   }
 
@@ -421,8 +421,8 @@ function querySales({ dateFrom, dateTo, storeId, country, unpushedOnly, limit = 
   const conditions = [];
   const params     = {};
 
-  if (dateFrom) { conditions.push('date_order >= @dateFrom'); params.dateFrom = dateFrom; }
-  if (dateTo)   { conditions.push('date_order <= @dateTo');   params.dateTo   = dateTo;   }
+  if (dateFrom) { conditions.push('substr(date_order, 1, 10) >= @dateFrom'); params.dateFrom = dateFrom; }
+  if (dateTo)   { conditions.push('substr(date_order, 1, 10) <= @dateTo');   params.dateTo   = dateTo;   }
   if (storeId)  { conditions.push('store_id = @storeId');     params.storeId  = storeId;  }
   if (country)  { conditions.push('country = @country');      params.country  = country;  }
   if (unpushedOnly) { conditions.push('oracle_txn_id IS NULL'); }
@@ -440,6 +440,21 @@ function querySales({ dateFrom, dateTo, storeId, country, unpushedOnly, limit = 
   ).get(params).cnt;
 
   return { rows, total };
+}
+
+/**
+ * Return distinct stores (warehouse_id + store_name) from the locally-stored
+ * odoo_sales table.  Used to populate the store dropdown when the Odoo server
+ * doesn't expose a warehouse listing (e.g. REST API mode).
+ */
+function getLocalStores() {
+  const db = getDb();
+  return db.prepare(
+    `SELECT DISTINCT store_id AS id, store_name AS name
+     FROM odoo_sales
+     WHERE store_id IS NOT NULL AND store_name IS NOT NULL
+     ORDER BY store_name`
+  ).all();
 }
 
 /**
@@ -568,7 +583,7 @@ function getJob(jobId) {
 function listJobs(limit = 50) {
   const db = getDb();
   return db.prepare(
-    'SELECT id, job_id, mode, date_from, date_to, store_id, store_name, status, total, processed, failed, started_at, finished_at, created_at FROM push_jobs ORDER BY created_at DESC LIMIT ?'
+    'SELECT id, job_id, job_type, mode, date_from, date_to, store_id, store_name, status, total, processed, failed, started_at, finished_at, created_at FROM push_jobs ORDER BY created_at DESC LIMIT ?'
   ).all(limit);
 }
 
@@ -1034,6 +1049,7 @@ module.exports = {
   upsertSalePayments,
   querySalePayments,
   querySales,
+  getLocalStores,
   getSaleWithLines,
   getSaleInternalId,
   getSaleInternalIdMap,

@@ -257,7 +257,29 @@ router.get('/failed-records', (req, res) => {
 // ── GET /api/odoo/stores ──────────────────────────────────────────────────────
 router.get('/stores', async (req, res) => {
   try {
-    const stores = await getOdooStores();
+    // Try fetching stores from Odoo API first (JSONRPC only; REST returns [])
+    let stores = [];
+    const creds = db.getActiveCredentials();
+    const odoo  = creds && creds.odoo ? creds.odoo : {};
+    const isRest = odoo.authType === 'x-api-key' || odoo.authType === 'bearer';
+    const configured = isRest
+      ? !!(odoo.url && odoo.apiKey)
+      : !!(odoo.url && odoo.username && odoo.password);
+    if (configured) {
+      try { stores = await getOdooStores(); } catch (e) { logger.debug('Odoo store fetch skipped', { err: e.message }); }
+    }
+
+    // Merge with stores found in locally-stored sales data so the dropdown is
+    // useful even when the Odoo API doesn't expose stock.warehouse (REST mode).
+    const localStores = db.getLocalStores();
+    const seen = new Set(stores.map(s => Number(s.id)));
+    for (const ls of localStores) {
+      if (!seen.has(Number(ls.id))) {
+        stores.push(ls);
+        seen.add(Number(ls.id));
+      }
+    }
+
     res.json({ stores });
   } catch (err) {
     logger.error('Failed to fetch Odoo stores', { err: err.message });
@@ -368,7 +390,7 @@ router.get('/config', (req, res) => {
   const isRest = authType === 'x-api-key' || authType === 'bearer';
   const configured = isRest
     ? !!(url && apiKey)
-    : !!(url && odooDb && username && password);
+    : !!(url && username && password);
   res.json({
     configured,
     url     : url      || null,

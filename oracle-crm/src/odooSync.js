@@ -203,7 +203,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         store_id       : Array.isArray(o.warehouse_id) ? o.warehouse_id[0] : (o.warehouse_id || null),
         store_name     : Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : null,
         country        : country || null,
-        date_order     : (o.date_order || '').split(' ')[0],
+        date_order     : extractDate(o.date_order),
         partner_id     : Array.isArray(o.partner_id) ? o.partner_id[0] : null,
         partner_name   : Array.isArray(o.partner_id) ? o.partner_id[1] : null,
         currency       : Array.isArray(o.currency_id) ? o.currency_id[1] : DEFAULT_CURRENCY,
@@ -332,7 +332,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
             payment_type   : journalLabel,
             amount         : Number(p.amount)   || 0,
             currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
-            payment_date   : (p.date || '').split(' ')[0] || null,
+            payment_date   : extractDate(p.date) || null,
             outlet_name    : Array.isArray(p.partner_id) ? p.partner_id[1] : null,
             register_name  : null,
             region         : country || null,
@@ -382,7 +382,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
               payment_type   : Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown'),
               amount         : Number(p.amount)    || 0,
               currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : (meta.currency || DEFAULT_CURRENCY),
-              payment_date   : (p.date || '').split(' ')[0] || null,
+              payment_date   : extractDate(p.date) || null,
               outlet_name    : meta.storeName      || null,
               register_name  : meta.teamName       || null,
               region         : meta.countryCode    || null,
@@ -847,6 +847,22 @@ function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+
+/**
+ * Extract a clean YYYY-MM-DD date from a date/datetime string.
+ * Handles common formats returned by Odoo JSONRPC and REST APIs:
+ *   '2026-03-01 12:30:00'        → '2026-03-01'   (space-separated)
+ *   '2026-03-01T12:30:00Z'       → '2026-03-01'   (ISO format)
+ *   '2026-03-01T12:30:00+04:00'  → '2026-03-01'   (ISO with tz offset)
+ *   '2026-03-01'                 → '2026-03-01'   (date only)
+ */
+function extractDate(val) {
+  if (!val) return '';
+  const s = String(val);
+  // Match YYYY-MM-DD at the start (handles both T-separated and space-separated)
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+}
 
 function chunkArray(arr, size) {
   const chunks = [];
