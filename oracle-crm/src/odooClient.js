@@ -31,6 +31,11 @@ const JSONRPC_PATH        = '/jsonrpc';
 const SESSION_AUTH_PATH   = '/web/session/authenticate';
 const CALL_KW_PATH        = '/web/dataset/call_kw';
 
+// Odoo model methods that always return record arrays.  Some Odoo versions or
+// API proxies wrap these in { results: [...] } or { records: [...] }; the
+// execute() method auto-unwraps them via _ensureArray().
+const ARRAY_RETURNING_METHODS = ['search_read', 'read', 'search'];
+
 /**
  * Convert a low-level HTTP / JSON-parse error into a human-readable message.
  *
@@ -387,7 +392,7 @@ class OdooClient {
     // Unwrap common response envelopes for methods that return record lists.
     // Methods like search_read and read always return arrays; some Odoo
     // versions or API proxies wrap them in { results: [...] } or similar.
-    if (['search_read', 'read', 'search'].includes(method)) {
+    if (ARRAY_RETURNING_METHODS.includes(method)) {
       return this._ensureArray(result);
     }
     return result;
