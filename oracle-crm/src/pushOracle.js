@@ -99,7 +99,10 @@ class OraclePushService {
         try {
           const cust = await this.client.getCustomer(metadata.billToAccount);
           paymentTermsName = (cust && cust.PaymentTerms) || 'Immediate';
-        } catch (_) {
+        } catch (lookupErr) {
+          step('lookupPaymentTerms', 'warn', {
+            message: `Customer lookup failed, defaulting PaymentTermsName to Immediate: ${lookupErr.message}`,
+          });
           paymentTermsName = 'Immediate';
         }
       }
@@ -235,8 +238,8 @@ class OraclePushService {
         p => (p.paymentType || '').toLowerCase() === 'cash rounding'
       );
       for (const p of cashRoundingPayments) {
-        const crMeta = (sale.receiptMethodMeta || {})['cash rounding']
-                    || (sale.receiptMethodMeta || {})['Cash Rounding'] || {};
+        const methodMeta = sale.receiptMethodMeta || {};
+        const crMeta = methodMeta['cash rounding'] || methodMeta['Cash Rounding'] || {};
         const crPayload = stripNulls({
           CurrencyCode              : outlet.currency,
           ReceiptDate               : dateStr,
