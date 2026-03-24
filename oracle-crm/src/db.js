@@ -1042,12 +1042,59 @@ function countAdmins() {
   return getDb().prepare("SELECT COUNT(*) AS cnt FROM users WHERE role = 'admin'").get().cnt;
 }
 
+/**
+ * Query stored sale order lines with optional filters.
+ * @param {object} filters
+ * @param {number}  [filters.saleId]         Internal sale id
+ * @param {string}  [filters.dateFrom]       YYYY-MM-DD (joins odoo_sales to filter by date_order)
+ * @param {string}  [filters.dateTo]         YYYY-MM-DD
+ * @param {number}  [filters.storeId]
+ * @param {string}  [filters.country]
+ * @param {number}  [filters.limit=500]
+ * @param {number}  [filters.offset=0]
+ */
+function querySaleLines({ saleId, dateFrom, dateTo, storeId, country, limit = 500, offset = 0 } = {}) {
+  const db         = getDb();
+  const conditions = [];
+  const params     = {};
+  const needJoin   = dateFrom || dateTo || storeId || country;
+
+  if (saleId)   { conditions.push('l.sale_id = @saleId');   params.saleId = saleId; }
+  if (dateFrom) { conditions.push('substr(s.date_order, 1, 10) >= @dateFrom'); params.dateFrom = dateFrom; }
+  if (dateTo)   { conditions.push('substr(s.date_order, 1, 10) <= @dateTo');   params.dateTo   = dateTo; }
+  if (storeId)  { conditions.push('s.store_id = @storeId'); params.storeId = storeId; }
+  if (country)  { conditions.push('s.country = @country');  params.country = country; }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  params.limit  = limit;
+  params.offset = offset;
+
+  const fromClause = needJoin
+    ? 'odoo_sale_lines l JOIN odoo_sales s ON l.sale_id = s.id'
+    : 'odoo_sale_lines l';
+
+  const selectCols = needJoin
+    ? 'l.*, s.name AS sale_name, s.store_name, s.date_order, s.country AS sale_country'
+    : 'l.*';
+
+  const rows = db.prepare(
+    `SELECT ${selectCols} FROM ${fromClause} ${where} ORDER BY l.sale_id DESC, l.line_number ASC LIMIT @limit OFFSET @offset`
+  ).all(params);
+
+  const total = db.prepare(
+    `SELECT COUNT(*) AS cnt FROM ${fromClause} ${where}`
+  ).get(params).cnt;
+
+  return { rows, total };
+}
+
 module.exports = {
   getDb,
   upsertSales,
   upsertSaleLines,
   upsertSalePayments,
   querySalePayments,
+  querySaleLines,
   querySales,
   getLocalStores,
   getSaleWithLines,

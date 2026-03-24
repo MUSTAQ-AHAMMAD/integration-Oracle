@@ -428,7 +428,33 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         }
       }
 
+      // ── Post-process: link unlinked payments to sales by invoice_number ──
+      // REST payments are fetched by date domain and don't have sale_id set.
+      // Try to match invoice_number to sale.name so getSaleWithLines() can
+      // retrieve them during the push phase.
       if (paymentRows.length > 0) {
+        let linked = 0;
+        const unlinked = paymentRows.filter(p => p.sale_id === null && p.invoice_number);
+        if (unlinked.length > 0) {
+          // Build a map of sale name → internal DB id from the orders we just fetched
+          const nameMap = new Map();
+          const internalIdMap = db.getSaleInternalIdMap(allOrderIds);
+          for (const [odooId, internalId] of internalIdMap) {
+            const sale = db.getSaleWithLines(internalId);
+            if (sale) nameMap.set(sale.name, internalId);
+          }
+          for (const p of unlinked) {
+            const internalId = nameMap.get(p.invoice_number);
+            if (internalId != null) {
+              p.sale_id = internalId;
+              linked++;
+            }
+          }
+          if (linked > 0) {
+            jobLog(jobId, 'info', `Linked ${linked}/${unlinked.length} REST payments to sales by invoice_number`);
+          }
+        }
+
         db.upsertSalePayments(paymentRows);
         jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);
       } else {
@@ -931,4 +957,5 @@ module.exports = {
   startPushJob,
   startRetryJob,
   getOdooStores,
+  buildOracleSalePayload,
 };
