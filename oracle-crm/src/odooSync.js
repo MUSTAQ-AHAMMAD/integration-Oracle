@@ -768,14 +768,14 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
  */
 function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
   const lines = (sale.lines || []).map((l, idx) => ({
-    lineNumber  : idx + 1,
-    itemNumber  : String(l.product_id || `PROD-${l.odoo_line_id}`),
+    lineNumber  : l.line_number || (idx + 1),
+    itemNumber  : l.item_number || String(l.product_id || `PROD-${l.odoo_line_id}`),
     itemName    : l.product_name || 'Odoo Product',
     // computeSalePreview (calculations.js) reads `quantity`, not `originalQty`.
     // qty_ordered is the confirmed ordered quantity on the Odoo sale.order line.
     quantity    : l.qty_ordered,
     totalPrice  : l.price_subtotal,
-    taxName     : (jobMeta && jobMeta.taxName) || null,
+    taxName     : l.tax_name || (jobMeta && jobMeta.taxName) || null,
   }));
 
   // ── Payments ───────────────────────────────────────────────────────────────
