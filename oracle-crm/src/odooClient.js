@@ -345,6 +345,26 @@ class OdooClient {
   }
 
   /**
+   * Unwrap common response envelopes that some Odoo versions or custom API
+   * layers place around array results (e.g. `{ results: [...] }`,
+   * `{ records: [...] }`, `{ data: [...] }`).  Returns the value unchanged
+   * when it is already an array or a non-wrapped type.
+   *
+   * @param {*} val  Raw return value from `_call()` / `_callV17()`.
+   * @returns {*}
+   */
+  _ensureArray(val) {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') {
+      if (Array.isArray(val.result))   return val.result;
+      if (Array.isArray(val.results))  return val.results;
+      if (Array.isArray(val.records))  return val.records;
+      if (Array.isArray(val.data))     return val.data;
+    }
+    return val;           // non-array result (uid, boolean, etc.) – pass through
+  }
+
+  /**
    * Execute a model method via JSONRPC.
    * Routes to the correct endpoint based on the configured Odoo version:
    *   version >= 17 → POST /web/dataset/call_kw (session-cookie auth)
@@ -356,12 +376,21 @@ class OdooClient {
    */
   async execute(model, method, args = [], kwargs = {}) {
     const uid = await this.ensureAuth();
+    let result;
     if (this._isV17Plus()) {
-      return this._callV17(model, method, args, kwargs);
+      result = await this._callV17(model, method, args, kwargs);
+    } else {
+      result = await this._call('object', 'execute_kw', [
+        this.db, uid, this.password, model, method, args, kwargs,
+      ]);
     }
-    return this._call('object', 'execute_kw', [
-      this.db, uid, this.password, model, method, args, kwargs,
-    ]);
+    // Unwrap common response envelopes for methods that return record lists.
+    // Methods like search_read and read always return arrays; some Odoo
+    // versions or API proxies wrap them in { results: [...] } or similar.
+    if (['search_read', 'read', 'search'].includes(method)) {
+      return this._ensureArray(result);
+    }
+    return result;
   }
 
   /**
