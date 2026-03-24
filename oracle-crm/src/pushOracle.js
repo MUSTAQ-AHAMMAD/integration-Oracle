@@ -12,7 +12,7 @@
  *   2. POST /receivablesInvoices
  *   3. POST /receivablesReceipts (standard, per payment method)
  *   4. POST applyReceiptOnAccount  (with retry logic – up to 50 retries)
- *   5. POST /receivablesReceipts (miscellaneous / bank charges)
+ *   5. POST /receivablesMiscellaneousReceipts (bank charges / cash rounding)
  *   6. POST /inventoryTransactions
  *   7. POST /journals  (non-NORMAL customers only)
  */
@@ -92,6 +92,18 @@ class OraclePushService {
           return line;
         });
 
+      // Resolve PaymentTermsName: metadata override → Oracle customer lookup → default.
+      // Java: FusionCustomerProfileClient.getPaymentTerms(billToAccountNumber)
+      let paymentTermsName = metadata.paymentTermsName || null;
+      if (!paymentTermsName) {
+        try {
+          const cust = await this.client.getCustomer(metadata.billToAccount);
+          paymentTermsName = (cust && cust.PaymentTerms) || 'Immediate';
+        } catch (_) {
+          paymentTermsName = 'Immediate';
+        }
+      }
+
       const invoicePayload = stripNulls({
         BillToCustomerName  : metadata.billToName,
         BillToLocation      : metadata.siteNumber,
@@ -103,6 +115,7 @@ class OraclePushService {
         GlDate              : dateStr,
         InvoiceCurrencyCode : outlet.currency,
         ConversionRateType  : preview.conversionRateType,
+        PaymentTermsName    : paymentTermsName,
         invoiceLine         : invoiceLines,
       });
 
@@ -147,6 +160,7 @@ class OraclePushService {
           ReceiptNumber          : `${paymentType}-${transactionNumber}`,
           RemittanceBankAccountId: meta.bankAccountId,
           CustomerId             : customerId,
+          OrgId                  : meta.orgId || metadata.orgId,
           Amount: { CurrencyCode: outlet.currency, Value: netAmount },
         });
 
@@ -195,36 +209,47 @@ class OraclePushService {
 
         // Step 5: Miscellaneous receipt for bank charges (skip if zero)
         // Java: miscReceiptRequest.setReceiptAmount(miscReceiptRequest.getReceiptAmount().subtract(miscCharges))
+        // REST endpoint: POST /receivablesMiscellaneousReceipts (not /receivablesReceipts)
         if (miscCharge > 0) {
           const miscPayload = stripNulls({
-            CurrencyCode    : outlet.currency,
-            ReceiptDate     : dateStr,
-            GlDate          : dateStr,
-            DepositDate     : dateStr,
-            ReceiptMethodId : meta.receiptMethodId,
-            ReceiptNumber   : `${paymentType}-${transactionNumber}-MISC`,
-            Amount          : { CurrencyCode: outlet.currency, Value: miscCharge },
+            CurrencyCode              : outlet.currency,
+            ReceiptDate               : dateStr,
+            GlDate                    : dateStr,
+            ReceiptMethodId           : meta.receiptMethodId,
+            ReceiptMethodName         : meta.receiptMethodName || paymentType,
+            ReceiptNumber             : `${paymentType}-${transactionNumber}-MISC`,
+            RemittanceBankAccountName : meta.bankAccountName,
+            ReceivableActivityName    : meta.receivableActivityName,
+            OrgId                     : meta.orgId || metadata.orgId,
+            Amount                    : { CurrencyCode: outlet.currency, Value: miscCharge },
           });
-          const miscResult = await this.client.createReceipt(miscPayload);
-          step(`createMiscReceipt:${paymentType}`, 'ok', { receiptId: miscResult.ReceiptId });
+          const miscResult = await this.client.createMiscReceipt(miscPayload);
+          step(`createMiscReceipt:${paymentType}`, 'ok', { receiptId: miscResult.MiscReceiptId });
         }
       }
 
-      // Cash rounding receipts
+      // Cash rounding receipts – these are miscellaneous receipts
       // Java: if (payment.getPaymentType().toLowerCase().equals("cash rounding")) miscCharges = payment.getAmount()
+      // REST endpoint: POST /receivablesMiscellaneousReceipts (not /receivablesReceipts)
       const cashRoundingPayments = (sale.payments || []).filter(
         p => (p.paymentType || '').toLowerCase() === 'cash rounding'
       );
       for (const p of cashRoundingPayments) {
+        const crMeta = (sale.receiptMethodMeta || {})['cash rounding']
+                    || (sale.receiptMethodMeta || {})['Cash Rounding'] || {};
         const crPayload = stripNulls({
-          CurrencyCode : outlet.currency,
-          ReceiptDate  : dateStr,
-          GlDate       : dateStr,
-          DepositDate  : dateStr,
-          ReceiptNumber: `CashRounding-${transactionNumber}`,
-          Amount       : { CurrencyCode: outlet.currency, Value: Number(p.amount) },
+          CurrencyCode              : outlet.currency,
+          ReceiptDate               : dateStr,
+          GlDate                    : dateStr,
+          ReceiptMethodId           : crMeta.receiptMethodId,
+          ReceiptMethodName         : crMeta.receiptMethodName || 'Cash Rounding',
+          ReceiptNumber             : `CashRounding-${transactionNumber}`,
+          RemittanceBankAccountName : crMeta.bankAccountName,
+          ReceivableActivityName    : crMeta.receivableActivityName || 'Cash Rounding',
+          OrgId                     : crMeta.orgId || metadata.orgId,
+          Amount                    : { CurrencyCode: outlet.currency, Value: Number(p.amount) },
         });
-        await this.client.createReceipt(crPayload);
+        await this.client.createMiscReceipt(crPayload);
         step('createCashRoundingReceipt', 'ok', {});
       }
 
@@ -338,9 +363,11 @@ class OraclePushService {
       };
 
     } catch (err) {
+      const lastOkStep = log.filter(s => s.status === 'ok').pop();
+      const failedAfter = lastOkStep ? lastOkStep.step : '(before first API call)';
       const msg = err.response
-        ? `Oracle API error ${err.response.status}: ${JSON.stringify(err.response.data)}`
-        : err.message;
+        ? `Oracle API error ${err.response.status} (after ${failedAfter}): ${JSON.stringify(err.response.data)}`
+        : `${err.message} (after ${failedAfter})`;
       errors.push(msg);
       step('ERROR', 'failed', { message: msg });
 
