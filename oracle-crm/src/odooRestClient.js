@@ -178,6 +178,11 @@ class OdooRestClient {
    *   - Odoo 17 JSONRPC + nested records     { result: { records: [ ... ] } }
    *   - Odoo 17 JSONRPC + nested results     { result: { results: [ ... ] } }
    *   - Odoo 17 JSONRPC + nested data        { result: { data: [ ... ] } }
+   *
+   * If none of the well-known keys match, the method scans the top-level (and
+   * one level of nesting) for the first array value it can find.  This covers
+   * custom Odoo REST modules that use non-standard envelope keys such as
+   * "items", "rows", "Sale_detail", etc.
    */
   _extractRows(body) {
     if (Array.isArray(body))                                        return body;
@@ -189,6 +194,32 @@ class OdooRestClient {
     if (body && body.result && Array.isArray(body.result.records))  return body.result.records;
     if (body && body.result && Array.isArray(body.result.results))  return body.result.results;
     if (body && body.result && Array.isArray(body.result.data))     return body.result.data;
+
+    // ── Generic fallback: scan top-level keys for the first array value ──
+    if (body && typeof body === 'object') {
+      for (const key of Object.keys(body)) {
+        const val = body[key];
+        if (Array.isArray(val)) {
+          logger.debug('_extractRows: using fallback key', { key, count: val.length });
+          return val;
+        }
+      }
+      // One level deeper – e.g. { result: { items: [...] } }
+      for (const outerKey of Object.keys(body)) {
+        const nested = body[outerKey];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          for (const innerKey of Object.keys(nested)) {
+            if (Array.isArray(nested[innerKey])) {
+              logger.debug('_extractRows: using nested fallback key', {
+                path: `${outerKey}.${innerKey}`, count: nested[innerKey].length,
+              });
+              return nested[innerKey];
+            }
+          }
+        }
+      }
+    }
+
     return [];
   }
 
@@ -509,6 +540,13 @@ class OdooRestClient {
       );
     }
     const rows = this._extractRows(rawBody);
+    if (rows.length === 0 && rawBody) {
+      const bodyType = Array.isArray(rawBody) ? 'array' : typeof rawBody;
+      const topKeys  = (bodyType === 'object') ? Object.keys(rawBody) : [];
+      logger.warn('testPath: extracted 0 rows from non-empty response', {
+        path, bodyType, topKeys,
+      });
+    }
     return { rows, rawBody };
   }
 }
