@@ -101,7 +101,8 @@ class OdooRestClient {
 
     this.http = axios.create({
       baseURL    : this.url,
-      timeout    : 60_000,
+      // Java middleware uses 300 s read timeout for large result sets; match that.
+      timeout    : 300_000,
       headers    : {
         'Content-Type': 'application/json',
         'Accept'      : 'application/json',
@@ -231,6 +232,15 @@ class OdooRestClient {
   }
 
   async _get(path, params = {}) {
+    // Log the full request URL + domain for debugging (so the user can verify
+    // the date filter is being sent exactly as expected).
+    logger.debug('REST _get request', {
+      url: `${this.url}${path}`,
+      domain: params.domain || '(none)',
+      limit: params.limit,
+      offset: params.offset,
+    });
+
     let res;
     try {
       res = await this.http.get(path, { params });
@@ -251,7 +261,9 @@ class OdooRestClient {
       );
     }
 
-    return this._extractRows(body);
+    const rows = this._extractRows(body);
+    logger.debug('REST _get response', { url: `${this.url}${path}`, rowCount: rows.length });
+    return rows;
   }
 
   // ── Public interface (mirrors OdooClient) ─────────────────────────────────

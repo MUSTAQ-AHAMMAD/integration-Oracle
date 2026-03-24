@@ -156,7 +156,8 @@ class OdooClient {
 
     this.http = axios.create({
       baseURL    : this.apiUrl,
-      timeout    : 60_000,
+      // Java middleware uses 300 s read timeout for large result sets; match that.
+      timeout    : 300_000,
       headers    : {
         'Content-Type': 'application/json',
         'Accept'      : 'application/json',
