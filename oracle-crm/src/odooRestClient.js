@@ -197,27 +197,34 @@ class OdooRestClient {
 
     // ── Generic fallback: scan top-level keys for the first array value ──
     if (body && typeof body === 'object') {
+      let firstEmpty = null;
       for (const key of Object.keys(body)) {
         const val = body[key];
         if (Array.isArray(val)) {
-          logger.debug('_extractRows: using fallback key', { key, count: val.length });
-          return val;
+          if (val.length > 0) {
+            logger.debug('_extractRows: using fallback key', { key, count: val.length });
+            return val;
+          }
+          if (!firstEmpty) firstEmpty = val;
         }
-      }
-      // One level deeper – e.g. { result: { items: [...] } }
-      for (const outerKey of Object.keys(body)) {
-        const nested = body[outerKey];
-        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
-          for (const innerKey of Object.keys(nested)) {
-            if (Array.isArray(nested[innerKey])) {
-              logger.debug('_extractRows: using nested fallback key', {
-                path: `${outerKey}.${innerKey}`, count: nested[innerKey].length,
-              });
-              return nested[innerKey];
+        // One level deeper – e.g. { response: { items: [...] } }
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          for (const innerKey of Object.keys(val)) {
+            if (Array.isArray(val[innerKey])) {
+              if (val[innerKey].length > 0) {
+                logger.debug('_extractRows: using nested fallback key', {
+                  path: `${key}.${innerKey}`, count: val[innerKey].length,
+                });
+                return val[innerKey];
+              }
+              if (!firstEmpty) firstEmpty = val[innerKey];
             }
           }
         }
       }
+      // All discovered arrays were empty – return the first one (preserves
+      // the previous behaviour of returning [] when no records exist).
+      if (firstEmpty) return firstEmpty;
     }
 
     return [];
