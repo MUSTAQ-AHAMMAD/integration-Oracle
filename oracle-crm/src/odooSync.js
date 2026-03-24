@@ -181,7 +181,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     // everything into memory and to ensure no records are missed.
     let offset       = 0;
     let totalFetched = 0;
-    let allOrderIds  = [];
+    const allOrderIdSet = new Set();      // deduplicate IDs across pages
 
     jobLog(jobId, 'info', 'Fetching sales orders from Odoo (paginated)…', {
       pageSize: FETCH_PAGE_SIZE, domain,
@@ -194,6 +194,19 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       });
 
       if (page.length === 0) break;
+
+      // ── Safeguard: detect when the API ignores limit/offset ─────────────
+      // If a single page returns > 10× the requested page size, the endpoint is
+      // likely returning ALL records regardless of limit/offset.  Store the page,
+      // log a warning, and stop paginating to avoid infinite loops.
+      const isOversizedPage = page.length > FETCH_PAGE_SIZE * 10;
+      if (isOversizedPage) {
+        jobLog(jobId, 'warn',
+          `Oversized page detected: received ${page.length} records when limit=${FETCH_PAGE_SIZE}. ` +
+          `The REST API may not support limit/offset pagination. Stopping pagination after this page.`,
+          { pageLength: page.length, limit: FETCH_PAGE_SIZE }
+        );
+      }
 
       // ── Persist headers for this page ───────────────────────────────────
       const now  = new Date().toISOString();
@@ -218,23 +231,26 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       }));
       db.upsertSales(rows);
 
-      const pageOrderIds = page.map(o => o.id);
-      allOrderIds = allOrderIds.concat(pageOrderIds);
+      for (const o of page) allOrderIdSet.add(o.id);
       totalFetched += page.length;
       offset       += page.length;
 
       jobLog(jobId, 'info', `Fetched & stored page of ${page.length} orders`, {
         totalFetchedSoFar: totalFetched,
+        uniqueOrderIds   : allOrderIdSet.size,
       });
       db.updateJob(jobId, { total: totalFetched });
 
       // Yield to the event loop between pages to keep the server responsive
       await new Promise(resolve => setImmediate(resolve));
 
+      // Stop paginating if we received an oversized page (API ignores limit)
+      if (isOversizedPage) break;
       if (page.length < FETCH_PAGE_SIZE) break; // last page
     }
 
-    jobLog(jobId, 'info', `All ${totalFetched} sale headers stored in local DB`);
+    const allOrderIds = [...allOrderIdSet];
+    jobLog(jobId, 'info', `All ${totalFetched} sale headers stored in local DB (${allOrderIds.length} unique IDs)`);
 
     if (totalFetched === 0) {
       db.updateJob(jobId, { status: 'DONE', finished_at: new Date().toISOString() });
@@ -254,14 +270,28 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
     // Fetch lines for all chunks with bounded concurrency, then do a single
     // bulk internal-ID map lookup per chunk (no N+1 queries).
-    let totalLines = 0;
+    let totalLines     = 0;
+    let lineChunksDone = 0;
+    let lineChunkErrs  = 0;
     const fetchBatches = chunkArray(idChunks, LINE_FETCH_CONCURRENCY);
     for (const group of fetchBatches) {
-      const chunkResults = await Promise.all(group.map(idChunk => odoo.getSaleOrderLines(idChunk)));
+      // Wrap each chunk in a try/catch so one failure doesn't abort the entire
+      // line-fetch phase.  Failed chunks are logged and counted.
+      const chunkResults = await Promise.all(
+        group.map(idChunk =>
+          odoo.getSaleOrderLines(idChunk).catch(err => {
+            lineChunkErrs++;
+            jobLog(jobId, 'warn', `Line fetch chunk failed (${idChunk.length} orders): ${err.message}`);
+            return [];   // return empty so remaining chunks still process
+          })
+        )
+      );
 
       for (let g = 0; g < group.length; g++) {
         const idChunk  = group[g];
         const rawLines = chunkResults[g];
+
+        if (rawLines.length === 0) { lineChunksDone++; continue; }
 
         // One bulk query instead of one SELECT per line
         const internalIdMap = db.getSaleInternalIdMap(idChunk);
@@ -290,12 +320,16 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
         db.upsertSaleLines(lineRows);
         totalLines += lineRows.length;
+        lineChunksDone++;
       }
 
+      // Update progress so the UI shows incremental line-fetch progress
+      jobLog(jobId, 'debug', `Line fetch progress: ${lineChunksDone}/${idChunks.length} chunks, ${totalLines} lines stored`);
       await new Promise(resolve => setImmediate(resolve));
     }
 
-    jobLog(jobId, 'info', `Stored ${totalLines} sale lines in local DB`);
+    jobLog(jobId, 'info', `Stored ${totalLines} sale lines in local DB` +
+      (lineChunkErrs > 0 ? ` (${lineChunkErrs} chunks failed – partial data)` : ''));
 
     // ── Fetch + persist payments (3rd endpoint: account.payment / payment_lines) ─
     // Mirrors middleware BackupVendhqPayments table populated from the same fetch.
@@ -410,7 +444,11 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       processed   : totalFetched,
       finished_at : new Date().toISOString(),
     });
-    jobLog(jobId, 'info', 'Fetch job completed successfully');
+    jobLog(jobId, 'info', 'Fetch job completed successfully', {
+      totalOrders : totalFetched,
+      totalLines,
+      lineErrors  : lineChunkErrs,
+    });
 
   } catch (err) {
     logger.error('Fetch job failed', { jobId, err: err.message, stack: err.stack });
@@ -768,14 +806,14 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
  */
 function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
   const lines = (sale.lines || []).map((l, idx) => ({
-    lineNumber  : idx + 1,
-    itemNumber  : String(l.product_id || `PROD-${l.odoo_line_id}`),
+    lineNumber  : l.line_number || (idx + 1),
+    itemNumber  : l.item_number || String(l.product_id || `PROD-${l.odoo_line_id}`),
     itemName    : l.product_name || 'Odoo Product',
     // computeSalePreview (calculations.js) reads `quantity`, not `originalQty`.
     // qty_ordered is the confirmed ordered quantity on the Odoo sale.order line.
     quantity    : l.qty_ordered,
     totalPrice  : l.price_subtotal,
-    taxName     : (jobMeta && jobMeta.taxName) || null,
+    taxName     : l.tax_name || (jobMeta && jobMeta.taxName) || null,
   }));
 
   // ── Payments ───────────────────────────────────────────────────────────────

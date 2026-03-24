@@ -33,7 +33,7 @@ class OracleClient {
       baseURL: `${baseUrl}/fscmRestApi/resources/11.13.18.05`,
       auth: { username, password },
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
         'Accept': 'application/json',
       },
       timeout: 60000,

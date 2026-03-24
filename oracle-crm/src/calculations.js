@@ -282,15 +282,18 @@ function computeSalePreview(sale) {
   const lines = (sale.lineItems || [])
     .filter(l => Number(l.quantity) !== 0)
     .map((l, idx) => {
-      const qty  = effectiveQuantity(l.itemName, Number(l.totalPrice), Number(l.quantity));
-      const usp  = unitSellingPrice(Number(l.totalPrice), qty);
-      const invQty = inventoryTransactionQty(Number(l.quantity));
-      const txnType = inventoryTransactionType(Number(l.totalPrice), Number(l.quantity));
+      const origQty = Number(l.quantity);
+      const qty  = effectiveQuantity(l.itemName, Number(l.totalPrice), origQty);
+      // Java: sellingPrice = totalPrice.divide(lineItem.getQuantity()).abs()
+      // Always use original quantity for USP, matching Java middleware exactly.
+      const usp  = unitSellingPrice(Number(l.totalPrice), origQty);
+      const invQty = inventoryTransactionQty(origQty);
+      const txnType = inventoryTransactionType(Number(l.totalPrice), origQty);
       return {
-        lineNumber      : idx + 1,
+        lineNumber      : l.lineNumber || (idx + 1),
         itemName        : l.itemName,
         itemNumber      : l.itemNumber,
-        originalQty     : Number(l.quantity),
+        originalQty     : origQty,
         effectiveQty    : qty,
         totalPrice      : Number(l.totalPrice),
         unitSellingPrice: usp,
