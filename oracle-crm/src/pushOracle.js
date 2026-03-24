@@ -162,7 +162,7 @@ class OraclePushService {
             const applyPayload = stripNulls({
               TransactionNumber  : transactionNumber,
               ReceiptNumber      : receiptResult.ReceiptNumber,
-              AmountApplied      : applyAmount,
+              AmountApplied      : Math.round(applyAmount * 100) / 100,
               ReceiptCurrencyCode: outlet.currency,
               TransactionSource  : metadata.txnSource,
               ApplicationDate    : dateStr,
@@ -184,6 +184,12 @@ class OraclePushService {
               errors.push(applyMsg);
             }
           }
+        }
+
+        if (!applySuccess) {
+          step(`applyReceipt:${paymentType}`, 'warn', {
+            message: 'Apply receipt was not successful; proceeding with remaining steps',
+          });
         }
 
         // Step 5: Miscellaneous receipt for bank charges (skip if zero)
