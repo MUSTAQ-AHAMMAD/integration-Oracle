@@ -336,32 +336,42 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     //
     // Two strategies depending on client type:
     //   JSONRPC (OdooClient):    re-read sale.order.invoice_ids → fetch account.payment
-    //   REST  (OdooRestClient):  query payment_lines directly with the same date domain
-    //                            (Java middleware approach: filter by date, not invoice IDs)
+    //   REST  (OdooRestClient):  query payment_lines by order IDs so each payment
+    //                            is directly tied to its parent sale order
     jobLog(jobId, 'info', 'Fetching sale payments from Odoo (account.payment)…');
     try {
       let paymentRows = [];
       const now = new Date().toISOString();
 
+      // Build the odooId → internalId mapping once; reused for both direct
+      // linking (REST path) and the post-process fallback.
+      const internalIdMap = db.getSaleInternalIdMap(allOrderIds);
+
       if (odoo instanceof OdooRestClient) {
-        // ── REST path: date-domain query on payment_lines ─────────────────────
-        // The REST payment_lines endpoint is filtered by payment date, matching
-        // the Java middleware's BackupVendhqPayments fetch strategy.
-        // Use the same UTC-converted date boundaries as the sale-header domain.
-        const startUtc = domain[0][2]; // ['date_order', '>=', startUtc]
-        const endUtc   = domain[1][2]; // ['date_order', '<=', endUtc]
-        const paymentDomain = [
-          ['date', '>=', startUtc],
-          ['date', '<=', endUtc],
-        ];
-        jobLog(jobId, 'info', 'REST: querying payment_lines by date domain', { paymentDomain });
-        const rawPayments = await odoo.getPaymentsByDateDomain(paymentDomain);
+        // ── REST path: fetch payments by order IDs ────────────────────────
+        // Query payment_lines filtered by pos_order_id so payments are
+        // directly linked to the fetched orders (not a date range which may
+        // include unrelated payments or miss some).
+        jobLog(jobId, 'info', 'REST: querying payment_lines by order IDs', { orderCount: allOrderIds.length });
+
+        // Chunk order IDs to avoid overly-long query strings (same chunk
+        // size used for line fetches).
+        const PAY_CHUNK = 200;
+        const rawPayments = [];
+        for (let i = 0; i < allOrderIds.length; i += PAY_CHUNK) {
+          const chunk = allOrderIds.slice(i, i + PAY_CHUNK);
+          const chunkPayments = await odoo.getPaymentsByOrderIds(chunk);
+          rawPayments.push(...chunkPayments);
+        }
+
         paymentRows = rawPayments.map(p => {
           const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
-          const moveId       = Array.isArray(p.move_id)    ? p.move_id[0]    : p.move_id;
+          const posOrderId   = p.pos_order_id || null;
+          // Directly link to the sale via the pos_order_id → internal ID map
+          const saleId       = posOrderId != null ? (internalIdMap.get(posOrderId) ?? null) : null;
           return {
-            sale_id        : null,               // linked in post-process step below
-            invoice_number : p.name || (moveId ? String(moveId) : ''),
+            sale_id        : saleId,
+            invoice_number : p.name || '',
             odoo_payment_id: p.id,
             payment_type   : journalLabel,
             amount         : Number(p.amount)   || 0,
@@ -371,9 +381,6 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
             register_name  : null,
             region         : country || null,
             fetched_at     : now,
-            // Temporary field: POS order ID for direct sale-to-payment linking.
-            // Removed before DB upsert.
-            _pos_order_id  : p.pos_order_id || null,
           };
         });
       } else {
@@ -431,21 +438,20 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         }
       }
 
-      // ── Post-process: link unlinked payments to sales ───────────────────
-      // REST payments are fetched by date domain and don't have sale_id set.
-      // Try to match by:
-      //   1. invoice_number → sale.name  (works for account.payment records)
-      //   2. _pos_order_id  → odoo_id    (works for pos.payment records)
-      // so that getSaleWithLines() can retrieve them during the push phase.
+      // ── Post-process: link any remaining unlinked payments to sales ────
+      // JSONRPC payments are already linked via invoiceToSaleMap above.
+      // REST payments are now linked directly via pos_order_id → internal ID
+      // mapping.  This fallback catches any stragglers from either path by
+      // matching invoice_number → sale.name.
       if (paymentRows.length > 0) {
         let linked = 0;
         const unlinked = paymentRows.filter(p => p.sale_id === null);
         if (unlinked.length > 0) {
-          // Build maps for both linking strategies
-          const nameMap       = new Map();  // sale.name   → internalId
-          const idToNameMap   = new Map();  // internalId  → sale.name
-          const internalIdMap = db.getSaleInternalIdMap(allOrderIds); // odooId → internalId
-          for (const [odooId, internalId] of internalIdMap) {
+          // Build name → internalId map for fallback linking using the
+          // already-populated internalIdMap (avoids redundant DB queries).
+          const nameMap     = new Map();  // sale.name   → internalId
+          const idToNameMap = new Map();  // internalId  → sale.name
+          for (const [, internalId] of internalIdMap) {
             const sale = db.getSaleWithLines(internalId);
             if (sale) {
               nameMap.set(sale.name, internalId);
@@ -455,34 +461,25 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
           for (const p of unlinked) {
             let internalId = null;
 
-            // Strategy 1: match invoice_number to sale.name
+            // Fallback: match invoice_number to sale.name
             if (p.invoice_number) {
               internalId = nameMap.get(p.invoice_number) ?? null;
             }
 
-            // Strategy 2: match _pos_order_id (POS order Odoo ID) via internalIdMap
-            if (internalId == null && p._pos_order_id) {
-              internalId = internalIdMap.get(p._pos_order_id) ?? null;
-            }
-
             if (internalId != null) {
               p.sale_id = internalId;
-              // Update invoice_number to the sale's actual name for consistency
               const saleName = idToNameMap.get(internalId);
               if (saleName) p.invoice_number = saleName;
               linked++;
             }
           }
           if (linked > 0) {
-            jobLog(jobId, 'info', `Linked ${linked}/${unlinked.length} REST payments to sales by invoice_number / pos_order_id`);
+            jobLog(jobId, 'info', `Linked ${linked}/${unlinked.length} payments to sales by invoice_number`);
           }
           if (unlinked.length - linked > 0) {
             jobLog(jobId, 'debug', `${unlinked.length - linked} payments could not be linked to any fetched sale`);
           }
         }
-
-        // Remove temporary linking fields before DB upsert
-        for (const p of paymentRows) delete p._pos_order_id;
 
         db.upsertSalePayments(paymentRows);
         jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);

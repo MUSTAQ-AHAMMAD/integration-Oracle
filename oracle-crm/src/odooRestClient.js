@@ -371,6 +371,26 @@ class OdooRestClient {
   }
 
   /**
+   * Fetch payment records from the payment_lines REST endpoint filtered by
+   * POS order IDs.  This directly ties payments to the orders they belong to,
+   * ensuring no payments are missed and no unrelated payments are included.
+   *
+   * This mirrors how getSaleOrderLines() fetches lines by order_id and is the
+   * preferred strategy over date-domain filtering.
+   *
+   * @param {number[]} orderIds  POS order IDs (Odoo IDs from the fetched sales)
+   * @returns {object[]} normalised payment rows
+   */
+  async getPaymentsByOrderIds(orderIds) {
+    if (!orderIds || orderIds.length === 0) return [];
+    logger.debug('REST: fetching payments by order IDs', { orderCount: orderIds.length });
+    const domain = [['pos_order_id', 'in', orderIds]];
+    const rows = await this._get(this.paths.paymentLines, { domain: domainToString(domain) });
+    logger.info('REST: fetched payments by order IDs', { count: rows.length });
+    return rows.map(r => this._normalisePayment(r));
+  }
+
+  /**
    * Generic model-method execution.
    * Only a small set of operations used by odooSync.js are mapped to REST paths.
    * Everything else returns an empty array so the sync job can continue safely.
