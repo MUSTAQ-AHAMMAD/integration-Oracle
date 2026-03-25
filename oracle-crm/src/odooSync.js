@@ -339,6 +339,8 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     //   REST  (OdooRestClient):  query payment_lines by order IDs so each payment
     //                            is directly tied to its parent sale order
     jobLog(jobId, 'info', 'Fetching sale payments from Odoo (account.payment)…');
+    let totalPayments = 0;
+    let totalPaymentsLinked = 0;
     try {
       let paymentRows = [];
       const now = new Date().toISOString();
@@ -355,13 +357,24 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         jobLog(jobId, 'info', 'REST: querying payment_lines by order IDs', { orderCount: allOrderIds.length });
 
         // Chunk order IDs to avoid overly-long query strings (same chunk
-        // size used for line fetches).
+        // size used for line fetches).  Wrap each chunk in try/catch so one
+        // failure doesn't abort the entire payment fetch (matches line-fetch
+        // error handling pattern).
         const PAY_CHUNK = 200;
         const rawPayments = [];
+        let payChunkErrs = 0;
         for (let i = 0; i < allOrderIds.length; i += PAY_CHUNK) {
           const chunk = allOrderIds.slice(i, i + PAY_CHUNK);
-          const chunkPayments = await odoo.getPaymentsByOrderIds(chunk);
-          rawPayments.push(...chunkPayments);
+          try {
+            const chunkPayments = await odoo.getPaymentsByOrderIds(chunk);
+            rawPayments.push(...chunkPayments);
+          } catch (chunkErr) {
+            payChunkErrs++;
+            jobLog(jobId, 'warn', `Payment fetch chunk failed (${chunk.length} orders): ${chunkErr.message}`);
+          }
+        }
+        if (payChunkErrs > 0) {
+          jobLog(jobId, 'warn', `${payChunkErrs} payment chunk(s) failed – partial payment data`);
         }
 
         paymentRows = rawPayments.map(p => {
@@ -434,7 +447,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
             };
           });
         } else {
-          jobLog(jobId, 'info', 'No invoices linked to fetched orders – skipping payment fetch');
+          jobLog(jobId, 'warn', 'No invoices linked to fetched orders – payment fetch skipped. Payments will fall back to amount_total during push.');
         }
       }
 
@@ -477,18 +490,20 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
             jobLog(jobId, 'info', `Linked ${linked}/${unlinked.length} payments to sales by invoice_number`);
           }
           if (unlinked.length - linked > 0) {
-            jobLog(jobId, 'debug', `${unlinked.length - linked} payments could not be linked to any fetched sale`);
+            jobLog(jobId, 'warn', `${unlinked.length - linked} payments could not be linked to any fetched sale (stored with sale_id=null)`);
           }
         }
 
         db.upsertSalePayments(paymentRows);
-        jobLog(jobId, 'info', `Stored ${paymentRows.length} payment records in local DB`);
+        totalPayments = paymentRows.length;
+        totalPaymentsLinked = paymentRows.filter(p => p.sale_id !== null).length;
+        jobLog(jobId, 'info', `Stored ${totalPayments} payment records in local DB (${totalPaymentsLinked} linked to sales)`);
       } else {
-        jobLog(jobId, 'info', 'No payments found for fetched sale orders');
+        jobLog(jobId, 'warn', 'No payments found for fetched sale orders – receipts will fall back to amount_total during push');
       }
     } catch (payErr) {
-      // Payment fetch failure is non-fatal – log and continue
-      jobLog(jobId, 'warn', `Payment fetch skipped: ${payErr.message}`);
+      // Payment fetch failure is non-fatal – log and continue, but make it visible
+      jobLog(jobId, 'warn', `Payment fetch failed: ${payErr.message}. Orders will push without payment breakdown (amount_total fallback).`);
     }
 
     db.updateJob(jobId, {
@@ -497,9 +512,11 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       finished_at : new Date().toISOString(),
     });
     jobLog(jobId, 'info', 'Fetch job completed successfully', {
-      totalOrders : totalFetched,
+      totalOrders  : totalFetched,
       totalLines,
-      lineErrors  : lineChunkErrs,
+      lineErrors   : lineChunkErrs,
+      totalPayments,
+      paymentsLinked: totalPaymentsLinked,
     });
 
   } catch (err) {
@@ -609,6 +626,9 @@ async function _runPushJob(jobId, options) {
 
             jobLog(jobId, 'debug', `Pushing sale ${sale.name} (odoo_id=${sale.odoo_id})`, {
               storeId: sale.store_id, storeName: sale.store_name,
+              lineCount: salePayload.sale.lineItems.length,
+              paymentCount: salePayload.sale.payments.length,
+              paymentTypes: salePayload.sale.payments.map(p => p.paymentType).join(', '),
             });
 
             const result = await oracle.pushSale(
@@ -889,6 +909,11 @@ function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
     paymentType : (jobMeta && jobMeta.defaultPaymentType) || 'Cash',
     amount      : sale.amount_total || 0,
   }];
+
+  // Warn when falling back to amount_total instead of real payment records
+  if (!explicitPayments && !storedPayments) {
+    logger.warn('No stored payments for sale %s – using amount_total (%s) as fallback payment', sale.name, sale.amount_total);
+  }
 
   const saleObj = {
     invoiceNumber    : sale.name,

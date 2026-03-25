@@ -275,6 +275,12 @@ class OraclePushService {
       }
 
       // ── Step 6: Inventory Transactions ────────────────────────────────
+      // Java middleware: FusionInvTxnMapping.mapToInvTransactionModel
+      // Java serialises TransactionDate as full ISO-8601 datetime with offset
+      // (Gson: "yyyy-MM-dd'T'HH:mm:ssXXX").  adjustedDate is already
+      // timezone-shifted via applyTimezoneOffset, so the UTC values encode
+      // the local wall-clock time – matching the Java middleware behaviour.
+      const invDateStr = adjustedDate.toISOString().replace(/\.\d{3}Z$/, '+00:00');
       const txnLines = preview.lines
         .filter(l => l.originalQty !== 0)
         .map(l => ({
@@ -283,7 +289,7 @@ class OraclePushService {
           TransactionSourceName   : sale.invoiceNumber,
           Subinventory            : outlet.outletName,
           TransactionUnitOfMeasure: sale.uomCodeMap ? (sale.uomCodeMap[l.itemNumber] || 'Ea') : 'Ea',
-          TransactionDate         : dateStr,
+          TransactionDate         : invDateStr,
           TransactionQuantity     : l.inventoryQty,
           TransactionType         : l.transactionType,
         }));
@@ -300,6 +306,8 @@ class OraclePushService {
         const jLines  = [];
 
         // CREDIT line (Java: generateJournalLine("CREDIT", ...))
+        // Java sets both JeSourceName and UserJeSourceName to the same value
+        // (FusionJournalEntryMapping lines 331-333); Oracle requires both.
         jLines.push({
           JeLineNum              : 1,
           PeriodName             : jp.periodName,
@@ -311,6 +319,8 @@ class OraclePushService {
           ChartOfAccountsId      : jm.chartOfAccountsId,
           JeSourceName           : jm.jeSource,
           JeCategoryName         : jm.jeCategory,
+          UserJeSourceName       : jm.jeSource,
+          UserJeCategoryName     : jm.jeCategory,
           Segment1               : jm.company,
           Segment2               : jm.account,
           Segment3               : jm.department,
@@ -326,6 +336,7 @@ class OraclePushService {
           CurrencyConversionRate : 1,
           CurrencyConversionDate : dateStr,
           TaxCode                : 'N',
+          TransactionDate        : dateStr,
           AverageJournalFlag     : false,
         });
 
@@ -341,6 +352,8 @@ class OraclePushService {
           ChartOfAccountsId      : jm.chartOfAccountsId,
           JeSourceName           : jm.jeSource,
           JeCategoryName         : jm.jeCategory,
+          UserJeSourceName       : jm.jeSource,
+          UserJeCategoryName     : jm.jeCategory,
           Segment1               : jm.company,
           Segment2               : jm.debitAccount || jm.account,
           Segment3               : jm.department,
@@ -356,6 +369,7 @@ class OraclePushService {
           CurrencyConversionRate : 1,
           CurrencyConversionDate : dateStr,
           TaxCode                : 'N',
+          TransactionDate        : dateStr,
           AverageJournalFlag     : false,
         });
 
@@ -363,12 +377,13 @@ class OraclePushService {
           BatchName            : jp.batchName,
           BatchDescription     : `Journal Import: ${transactionNumber}`,
           AccountingPeriodName : jp.periodName,
+          AccountingDate       : dateStr,
           LedgerId             : jm.ledgerId,
           UserSourceName       : jm.jeSource,
           UserCategoryName     : jm.jeCategory,
           ErrorToSuspenseFlag  : false,
           SummaryFlag          : false,
-          JournalLines         : jLines,
+          JournalLine          : jLines,
         });
 
         await this.client.createJournal(journalPayload);
