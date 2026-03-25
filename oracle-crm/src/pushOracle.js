@@ -277,7 +277,9 @@ class OraclePushService {
       // ── Step 6: Inventory Transactions ────────────────────────────────
       // Java middleware: FusionInvTxnMapping.mapToInvTransactionModel
       // Java serialises TransactionDate as full ISO-8601 datetime with offset
-      // (Gson: "yyyy-MM-dd'T'HH:mm:ssXXX")
+      // (Gson: "yyyy-MM-dd'T'HH:mm:ssXXX").  adjustedDate is already
+      // timezone-shifted via applyTimezoneOffset, so the UTC values encode
+      // the local wall-clock time – matching the Java middleware behaviour.
       const invDateStr = adjustedDate.toISOString().replace(/\.\d{3}Z$/, '+00:00');
       const txnLines = preview.lines
         .filter(l => l.originalQty !== 0)
@@ -304,6 +306,8 @@ class OraclePushService {
         const jLines  = [];
 
         // CREDIT line (Java: generateJournalLine("CREDIT", ...))
+        // Java sets both JeSourceName and UserJeSourceName to the same value
+        // (FusionJournalEntryMapping lines 331-333); Oracle requires both.
         jLines.push({
           JeLineNum              : 1,
           PeriodName             : jp.periodName,
