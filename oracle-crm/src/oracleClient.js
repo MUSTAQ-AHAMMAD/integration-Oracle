@@ -30,13 +30,13 @@ const _httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64 });
 class OracleClient {
   constructor(baseUrl, username, password) {
     this.http = axios.create({
-      baseURL: `${baseUrl}/fscmRestApi/resources/11.13.18.05`,
+      baseURL: `${baseUrl}/fscmRestApi/resources/11.13.17.11`,
       auth: { username, password },
       headers: {
         'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
         'Accept': 'application/json',
       },
-      timeout: 60000,
+      timeout: 300000,
       httpAgent : _httpAgent,
       httpsAgent: _httpsAgent,
     });
