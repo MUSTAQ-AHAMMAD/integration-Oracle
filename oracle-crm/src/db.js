@@ -372,8 +372,8 @@ function querySalePayments({ invoiceNumber, dateFrom, dateTo, region, saleId, li
   const params     = {};
 
   if (invoiceNumber) { conditions.push('invoice_number = @invoiceNumber'); params.invoiceNumber = invoiceNumber; }
-  if (dateFrom)      { conditions.push('substr(payment_date, 1, 10) >= @dateFrom'); params.dateFrom = dateFrom; }
-  if (dateTo)        { conditions.push('substr(payment_date, 1, 10) <= @dateTo');   params.dateTo   = dateTo;   }
+  if (dateFrom)      { conditions.push('(payment_date IS NULL OR substr(payment_date, 1, 10) >= @dateFrom)'); params.dateFrom = dateFrom; }
+  if (dateTo)        { conditions.push('(payment_date IS NULL OR substr(payment_date, 1, 10) <= @dateTo)');   params.dateTo   = dateTo;   }
   if (region)        { conditions.push('region = @region');                 params.region        = region;   }
   if (saleId)        { conditions.push('sale_id = @saleId');               params.saleId        = saleId;   }
 
