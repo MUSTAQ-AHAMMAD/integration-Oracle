@@ -181,7 +181,11 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     // everything into memory and to ensure no records are missed.
     let offset       = 0;
     let totalFetched = 0;
-    const allOrderIdSet = new Set();      // deduplicate IDs across pages
+    const allOrderIdSet   = new Set();      // deduplicate IDs across pages
+    const allLineIdSet    = new Set();      // line IDs from sale headers (REST `lines` field)
+    const allPaymentIdSet = new Set();      // payment IDs from sale headers (REST `payment_ids` field)
+    // Map payment ID → Odoo order ID for direct linking when fetching by payment ID
+    const paymentIdToOrderId = new Map();
 
     jobLog(jobId, 'info', 'Fetching sales orders from Odoo (paginated)…', {
       pageSize: FETCH_PAGE_SIZE, domain,
@@ -231,7 +235,21 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       }));
       db.upsertSales(rows);
 
-      for (const o of page) allOrderIdSet.add(o.id);
+      for (const o of page) {
+        allOrderIdSet.add(o.id);
+        // Collect line IDs and payment IDs provided by Sale_detail response
+        if (Array.isArray(o.order_line)) {
+          for (const lid of o.order_line) { if (typeof lid === 'number') allLineIdSet.add(lid); }
+        }
+        if (Array.isArray(o.payment_ids)) {
+          for (const pid of o.payment_ids) {
+            if (typeof pid === 'number') {
+              allPaymentIdSet.add(pid);
+              paymentIdToOrderId.set(pid, o.id);
+            }
+          }
+        }
+      }
       totalFetched += page.length;
       offset       += page.length;
 
@@ -249,8 +267,13 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       if (page.length < FETCH_PAGE_SIZE) break; // last page
     }
 
-    const allOrderIds = [...allOrderIdSet];
-    jobLog(jobId, 'info', `All ${totalFetched} sale headers stored in local DB (${allOrderIds.length} unique IDs)`);
+    const allOrderIds   = [...allOrderIdSet];
+    const allLineIds    = [...allLineIdSet];
+    const allPaymentIds = [...allPaymentIdSet];
+    jobLog(jobId, 'info', `All ${totalFetched} sale headers stored in local DB (${allOrderIds.length} unique IDs)`, {
+      lineIdsFromHeaders   : allLineIds.length,
+      paymentIdsFromHeaders: allPaymentIds.length,
+    });
 
     if (totalFetched === 0) {
       db.updateJob(jobId, { status: 'DONE', finished_at: new Date().toISOString() });
@@ -259,42 +282,59 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     }
 
     // ── Fetch + persist lines (parallel chunks, bulk ID lookup) ──────────────
+    //
+    // Two strategies depending on client type and available data:
+    //   REST  + line IDs from Sale_detail:  query PosOrderLine by line IDs
+    //   Otherwise (JSONRPC / no IDs):       query by parent order IDs
     jobLog(jobId, 'info', 'Fetching sale order lines…', { orderCount: allOrderIds.length });
 
-    // Split all order IDs into chunks for Odoo calls.
     const LINE_FETCH_CHUNK = 200;
-    const idChunks = [];
-    for (let i = 0; i < allOrderIds.length; i += LINE_FETCH_CHUNK) {
-      idChunks.push(allOrderIds.slice(i, i + LINE_FETCH_CHUNK));
-    }
-
-    // Fetch lines for all chunks with bounded concurrency, then do a single
-    // bulk internal-ID map lookup per chunk (no N+1 queries).
     let totalLines     = 0;
     let lineChunksDone = 0;
     let lineChunkErrs  = 0;
+
+    // When the Sale_detail response provides line IDs directly, use them for
+    // a more reliable fetch.  Build a single internal-ID map for all orders
+    // (not per-chunk) since line-ID chunks don't align to order-ID chunks.
+    const useLineIds = (odoo instanceof OdooRestClient) && allLineIds.length > 0;
+
+    if (useLineIds) {
+      jobLog(jobId, 'info', 'REST: fetching order lines by line IDs from sale headers', { lineIdCount: allLineIds.length });
+    }
+
+    const lineSourceIds = useLineIds ? allLineIds : allOrderIds;
+    const idChunks = [];
+    for (let i = 0; i < lineSourceIds.length; i += LINE_FETCH_CHUNK) {
+      idChunks.push(lineSourceIds.slice(i, i + LINE_FETCH_CHUNK));
+    }
+
+    // Build internal-ID map once for all orders (used by both strategies)
+    const fullInternalIdMap = db.getSaleInternalIdMap(allOrderIds);
+
+    // Fetch lines for all chunks with bounded concurrency, then do a single
+    // bulk internal-ID map lookup per chunk (no N+1 queries).
     const fetchBatches = chunkArray(idChunks, LINE_FETCH_CONCURRENCY);
     for (const group of fetchBatches) {
       // Wrap each chunk in a try/catch so one failure doesn't abort the entire
       // line-fetch phase.  Failed chunks are logged and counted.
       const chunkResults = await Promise.all(
-        group.map(idChunk =>
-          odoo.getSaleOrderLines(idChunk).catch(err => {
+        group.map(idChunk => {
+          const fetchFn = useLineIds
+            ? odoo.getLinesByIds(idChunk)
+            : odoo.getSaleOrderLines(idChunk);
+          return fetchFn.catch(err => {
             lineChunkErrs++;
-            jobLog(jobId, 'warn', `Line fetch chunk failed (${idChunk.length} orders): ${err.message}`);
+            const label = useLineIds ? 'lines' : 'orders';
+            jobLog(jobId, 'warn', `Line fetch chunk failed (${idChunk.length} ${label}): ${err.message}`);
             return [];   // return empty so remaining chunks still process
-          })
-        )
+          });
+        })
       );
 
       for (let g = 0; g < group.length; g++) {
-        const idChunk  = group[g];
         const rawLines = chunkResults[g];
 
         if (rawLines.length === 0) { lineChunksDone++; continue; }
-
-        // One bulk query instead of one SELECT per line
-        const internalIdMap = db.getSaleInternalIdMap(idChunk);
 
         const lineRows = rawLines.map((l, idx) => {
           const orderId = Array.isArray(l.order_id) ? l.order_id[0] : l.order_id;
@@ -302,7 +342,7 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
           const firstTax   = Array.isArray(l.tax_id) && l.tax_id.length > 0 ? l.tax_id[0] : null;
           const taxName    = Array.isArray(firstTax) ? firstTax[1] : null;
           return {
-            sale_id        : internalIdMap.get(orderId) || null,
+            sale_id        : fullInternalIdMap.get(orderId) || null,
             odoo_line_id   : l.id,
             product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
             product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
@@ -334,10 +374,10 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     // ── Fetch + persist payments (3rd endpoint: account.payment / payment_lines) ─
     // Mirrors middleware BackupVendhqPayments table populated from the same fetch.
     //
-    // Two strategies depending on client type:
-    //   JSONRPC (OdooClient):    re-read sale.order.invoice_ids → fetch account.payment
-    //   REST  (OdooRestClient):  query payment_lines by order IDs so each payment
-    //                            is directly tied to its parent sale order
+    // Three strategies depending on client type and available data:
+    //   REST + payment_ids from Sale_detail:  query payment_lines by payment IDs
+    //   REST (fallback):                      query payment_lines by order IDs
+    //   JSONRPC (OdooClient):                 re-read sale.order.invoice_ids → fetch account.payment
     jobLog(jobId, 'info', 'Fetching sale payments from Odoo (account.payment)…');
     let totalPayments = 0;
     let totalPaymentsLinked = 0;
@@ -347,30 +387,42 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
       // Build the odooId → internalId mapping once; reused for both direct
       // linking (REST path) and the post-process fallback.
-      const internalIdMap = db.getSaleInternalIdMap(allOrderIds);
+      // (Re-use fullInternalIdMap if already built for line fetch, else build now)
+      const internalIdMap = fullInternalIdMap || db.getSaleInternalIdMap(allOrderIds);
 
       if (odoo instanceof OdooRestClient) {
-        // ── REST path: fetch payments by order IDs ────────────────────────
-        // Query payment_lines filtered by pos_order_id so payments are
-        // directly linked to the fetched orders (not a date range which may
-        // include unrelated payments or miss some).
-        jobLog(jobId, 'info', 'REST: querying payment_lines by order IDs', { orderCount: allOrderIds.length });
-
-        // Chunk order IDs to avoid overly-long query strings (same chunk
-        // size used for line fetches).  Wrap each chunk in try/catch so one
-        // failure doesn't abort the entire payment fetch (matches line-fetch
-        // error handling pattern).
+        // ── REST path: prefer payment IDs from Sale_detail headers ─────────
+        // The Sale_detail response includes payment_ids: [id1, id2, …] for
+        // each order.  Fetch by these IDs directly for accurate results.
+        // Falls back to pos_order_id filtering if no payment IDs are available.
+        const usePaymentIds = allPaymentIds.length > 0;
         const PAY_CHUNK = 200;
         const rawPayments = [];
         let payChunkErrs = 0;
-        for (let i = 0; i < allOrderIds.length; i += PAY_CHUNK) {
-          const chunk = allOrderIds.slice(i, i + PAY_CHUNK);
-          try {
-            const chunkPayments = await odoo.getPaymentsByOrderIds(chunk);
-            rawPayments.push(...chunkPayments);
-          } catch (chunkErr) {
-            payChunkErrs++;
-            jobLog(jobId, 'warn', `Payment fetch chunk failed (${chunk.length} orders): ${chunkErr.message}`);
+
+        if (usePaymentIds) {
+          jobLog(jobId, 'info', 'REST: querying payment_lines by payment IDs from sale headers', { paymentIdCount: allPaymentIds.length });
+          for (let i = 0; i < allPaymentIds.length; i += PAY_CHUNK) {
+            const chunk = allPaymentIds.slice(i, i + PAY_CHUNK);
+            try {
+              const chunkPayments = await odoo.getPaymentsByPaymentIds(chunk);
+              rawPayments.push(...chunkPayments);
+            } catch (chunkErr) {
+              payChunkErrs++;
+              jobLog(jobId, 'warn', `Payment fetch chunk failed (${chunk.length} payment IDs): ${chunkErr.message}`);
+            }
+          }
+        } else {
+          jobLog(jobId, 'info', 'REST: querying payment_lines by order IDs (no payment_ids in headers)', { orderCount: allOrderIds.length });
+          for (let i = 0; i < allOrderIds.length; i += PAY_CHUNK) {
+            const chunk = allOrderIds.slice(i, i + PAY_CHUNK);
+            try {
+              const chunkPayments = await odoo.getPaymentsByOrderIds(chunk);
+              rawPayments.push(...chunkPayments);
+            } catch (chunkErr) {
+              payChunkErrs++;
+              jobLog(jobId, 'warn', `Payment fetch chunk failed (${chunk.length} orders): ${chunkErr.message}`);
+            }
           }
         }
         if (payChunkErrs > 0) {
@@ -379,9 +431,11 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
         paymentRows = rawPayments.map(p => {
           const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
-          const posOrderId   = p.pos_order_id || null;
-          // Directly link to the sale via the pos_order_id → internal ID map
-          const saleId       = posOrderId != null ? (internalIdMap.get(posOrderId) ?? null) : null;
+          // Link payment to sale: prefer the paymentId→orderId map (built from
+          // sale headers), then fall back to pos_order_id from the payment row.
+          const orderIdFromHeader = paymentIdToOrderId.get(p.id) || null;
+          const posOrderId = orderIdFromHeader || p.pos_order_id || null;
+          const saleId     = posOrderId != null ? (internalIdMap.get(posOrderId) ?? null) : null;
           return {
             sale_id        : saleId,
             invoice_number : p.name || '',
@@ -1029,8 +1083,24 @@ async function fetchPaymentsForSale(sale) {
   let paymentRows = [];
 
   if (odoo instanceof OdooRestClient) {
-    // REST path: query payment_lines by the POS order ID
-    const rawPayments = await odoo.getPaymentsByOrderIds([sale.odoo_id]);
+    // REST path: prefer payment_ids from the stored sale header.
+    // The Sale_detail response includes payment_ids: [id1, id2, …] which
+    // directly identify the payment records.  Fall back to pos_order_id
+    // filtering if no payment IDs are available (e.g. older fetched data).
+    let paymentIds = [];
+    try {
+      const raw = sale.raw_json ? JSON.parse(sale.raw_json) : {};
+      paymentIds = Array.isArray(raw.payment_ids) ? raw.payment_ids : [];
+      // Backward compatibility: check _raw for older normalised data
+      if (paymentIds.length === 0 && raw._raw && Array.isArray(raw._raw.payment_ids)) {
+        paymentIds = raw._raw.payment_ids;
+      }
+    } catch (_) { /* ignore JSON parse errors */ }
+
+    const rawPayments = paymentIds.length > 0
+      ? await odoo.getPaymentsByPaymentIds(paymentIds)
+      : await odoo.getPaymentsByOrderIds([sale.odoo_id]);
+
     paymentRows = rawPayments.map(p => {
       const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
       return {

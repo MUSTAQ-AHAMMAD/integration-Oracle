@@ -391,6 +391,43 @@ class OdooRestClient {
   }
 
   /**
+   * Fetch payment records by their own IDs (from Sale_detail `payment_ids`).
+   *
+   * The Sale_detail response includes `payment_ids: [id1, id2, …]` for each
+   * order.  Using these IDs directly is more reliable than filtering by
+   * pos_order_id, which the payment_lines endpoint may not always support.
+   *
+   * @param {number[]} paymentIds  Payment record IDs
+   * @returns {object[]} normalised payment rows
+   */
+  async getPaymentsByPaymentIds(paymentIds) {
+    if (!paymentIds || paymentIds.length === 0) return [];
+    logger.debug('REST: fetching payments by payment IDs', { count: paymentIds.length });
+    const domain = [['id', 'in', paymentIds]];
+    const rows = await this._get(this.paths.paymentLines, { domain: domainToString(domain) });
+    logger.info('REST: fetched payments by payment IDs', { count: rows.length });
+    return rows.map(r => this._normalisePayment(r));
+  }
+
+  /**
+   * Fetch order lines by their own IDs (from Sale_detail `lines` / `order_line`).
+   *
+   * The Sale_detail response includes `lines: [id1, id2, …]` for each order.
+   * Using these IDs directly is more reliable than filtering by order_id.
+   *
+   * @param {number[]} lineIds  POS order line IDs
+   * @returns {object[]} normalised order-line rows
+   */
+  async getLinesByIds(lineIds) {
+    if (!lineIds || lineIds.length === 0) return [];
+    logger.debug('REST: fetching order lines by line IDs', { count: lineIds.length });
+    const domain = [['id', 'in', lineIds]];
+    const rows = await this._get(this.paths.posOrderLine, { domain: domainToString(domain) });
+    logger.info('REST: fetched order lines by line IDs', { count: rows.length });
+    return rows.map(r => this._normaliseOrderLine(r));
+  }
+
+  /**
    * Generic model-method execution.
    * Only a small set of operations used by odooSync.js are mapped to REST paths.
    * Everything else returns an empty array so the sync job can continue safely.
@@ -486,8 +523,11 @@ class OdooRestClient {
       team_id     : teamId,
       partner_id  : partnerId,
       currency_id : currencyId,
-      // Payments / invoice_ids are handled by the REST payment endpoint
+      // invoice_ids is a JSONRPC concept; kept empty for REST parity.
       invoice_ids : [],
+      // payment_ids from Sale_detail response – used to fetch payment details
+      // by their IDs from the payment_lines endpoint.
+      payment_ids : Array.isArray(r.payment_ids) ? r.payment_ids : [],
       order_line  : r.order_line ?? r.lines ?? [],
       _raw        : r,
     };
