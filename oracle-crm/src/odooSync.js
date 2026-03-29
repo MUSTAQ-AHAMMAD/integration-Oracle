@@ -663,6 +663,16 @@ async function _runPushJob(jobId, options) {
       return;
     }
 
+    // ── Pre-load store Oracle metadata for auto-mapping ─────────────────────
+    // Cache keyed by store_id so we don't re-read the DB on every sale.
+    const _storeMetaCache = {};
+    function resolveStoreMetadata(saleStoreId) {
+      if (_storeMetaCache[saleStoreId] !== undefined) return _storeMetaCache[saleStoreId];
+      const row = saleStoreId ? db.getStoreOracleMetadata(saleStoreId) : null;
+      _storeMetaCache[saleStoreId] = row || null;
+      return _storeMetaCache[saleStoreId];
+    }
+
     const oracle    = buildOracleService(country);
     let processed   = 0;
     let failed      = 0;
@@ -691,7 +701,16 @@ async function _runPushJob(jobId, options) {
           if (authFailed) return;   // another sale in the chunk already detected auth failure
           try {
             const saleWithLines = db.getSaleWithLines(sale.id);
-            const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
+
+            // ── Auto-resolve per-store Oracle metadata ────────────────────────
+            // If the caller provided explicit metadata from the UI, use it.
+            // Otherwise, look up the stored per-store configuration (mirrors
+            // Java's FusionSalesMetadata query by subInventory/store).
+            const storeMeta  = resolveStoreMetadata(sale.store_id);
+            const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata);
+            const effectiveOutlet = mergeStoreOutlet(storeMeta, outlet);
+
+            const salePayload   = buildOracleSalePayload(saleWithLines, effectiveMeta, effectiveOutlet);
 
             jobLog(jobId, 'debug', `Pushing sale ${sale.name} (odoo_id=${sale.odoo_id})`, {
               storeId: sale.store_id, storeName: sale.store_name,
@@ -843,6 +862,15 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
       return;
     }
 
+    // ── Pre-load store Oracle metadata cache (same as _runPushJob) ─────────
+    const _storeMetaCache = {};
+    function resolveStoreMetadata(saleStoreId) {
+      if (_storeMetaCache[saleStoreId] !== undefined) return _storeMetaCache[saleStoreId];
+      const row = saleStoreId ? db.getStoreOracleMetadata(saleStoreId) : null;
+      _storeMetaCache[saleStoreId] = row || null;
+      return _storeMetaCache[saleStoreId];
+    }
+
     const oracle = buildOracleService();
     let authFailed = false;
 
@@ -872,7 +900,13 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
             }
 
             const saleWithLines = db.getSaleWithLines(internalId);
-            const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
+
+            // ── Auto-resolve per-store metadata (same as _runPushJob) ─────────
+            const storeMeta  = resolveStoreMetadata(saleWithLines.store_id);
+            const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata);
+            const effectiveOutlet = mergeStoreOutlet(storeMeta, outlet);
+
+            const salePayload   = buildOracleSalePayload(saleWithLines, effectiveMeta, effectiveOutlet);
 
             const result = await oracle.pushSale(
               salePayload.sale,
@@ -968,6 +1002,83 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
  *   jobMeta.taxName              {string}  Default TaxClassificationCode for lines
  *   jobMeta.uomCodeMap           {object}  { [itemNumber]: 'Ea' } UOM overrides
  */
+
+/**
+ * Merge stored per-store Oracle metadata (from store_oracle_metadata table) with
+ * optional UI-provided metadata.  UI values take precedence; stored values fill gaps.
+ * This mirrors the Java middleware's FusionSalesMetadata lookup by subInventory/store.
+ *
+ * @param {object|null} storeMeta  – DB row from store_oracle_metadata (may be null)
+ * @param {object|null} uiMeta    – metadata provided by the caller (push form / API body)
+ * @returns {object|null} merged metadata, or null if neither source exists
+ */
+function mergeStoreMetadata(storeMeta, uiMeta) {
+  if (!storeMeta && !uiMeta) return null;
+  if (!storeMeta) return uiMeta;
+
+  // Convert DB column names to the camelCase keys expected by buildOracleSalePayload
+  const fromDb = {
+    billToName       : storeMeta.bill_to_name        || undefined,
+    billToAccount    : storeMeta.bill_to_account      || undefined,
+    siteNumber       : storeMeta.site_number          || undefined,
+    businessUnit     : storeMeta.business_unit        || undefined,
+    txnSource        : storeMeta.txn_source           || undefined,
+    txnType          : storeMeta.txn_type             || undefined,
+    paymentTermsName : storeMeta.payment_terms_name   || undefined,
+    rateIsCorporate  : storeMeta.rate_is_corporate    || undefined,
+    orgId            : storeMeta.org_id               || undefined,
+    costCenterCode   : storeMeta.cost_center_code     || undefined,
+    customerType     : storeMeta.customer_type        || undefined,
+    region           : storeMeta.region               || undefined,
+    tzOffset         : storeMeta.tz_offset != null    ? storeMeta.tz_offset : undefined,
+    defaultPaymentType: storeMeta.default_payment_type || undefined,
+    taxName          : storeMeta.tax_name             || undefined,
+    receiptMethodMeta: storeMeta.receipt_method_meta
+                         ? (typeof storeMeta.receipt_method_meta === 'string'
+                              ? JSON.parse(storeMeta.receipt_method_meta)
+                              : storeMeta.receipt_method_meta)
+                         : undefined,
+    journalMeta      : storeMeta.journal_meta
+                         ? (typeof storeMeta.journal_meta === 'string'
+                              ? JSON.parse(storeMeta.journal_meta)
+                              : storeMeta.journal_meta)
+                         : undefined,
+    uomCodeMap       : storeMeta.uom_code_map
+                         ? (typeof storeMeta.uom_code_map === 'string'
+                              ? JSON.parse(storeMeta.uom_code_map)
+                              : storeMeta.uom_code_map)
+                         : undefined,
+  };
+
+  // Remove undefined keys so they don't overwrite UI values
+  Object.keys(fromDb).forEach(k => { if (fromDb[k] === undefined) delete fromDb[k]; });
+
+  if (!uiMeta) return fromDb;
+
+  // UI-provided values win; DB-stored values fill the gaps
+  return { ...fromDb, ...uiMeta };
+}
+
+/**
+ * Merge stored per-store outlet config with optional UI-provided outlet.
+ * @param {object|null} storeMeta – DB row from store_oracle_metadata
+ * @param {object|null} uiOutlet  – outlet provided by the caller
+ * @returns {object|undefined}
+ */
+function mergeStoreOutlet(storeMeta, uiOutlet) {
+  if (!storeMeta && !uiOutlet) return undefined;
+  if (!storeMeta) return uiOutlet;
+
+  const fromDb = {};
+  if (storeMeta.currency)          fromDb.currency         = storeMeta.currency;
+  if (storeMeta.outlet_name)       fromDb.outletName       = storeMeta.outlet_name;
+  if (storeMeta.organization_name) fromDb.organizationName = storeMeta.organization_name;
+
+  if (!uiOutlet) return Object.keys(fromDb).length ? fromDb : undefined;
+
+  return { ...fromDb, ...uiOutlet };
+}
+
 function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
   const lines = (sale.lines || []).map((l, idx) => ({
     lineNumber  : l.line_number || (idx + 1),

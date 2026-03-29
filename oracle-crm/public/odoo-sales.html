@@ -515,6 +515,179 @@
       </div>
     </div>
 
+    <!-- ── Store Oracle Configuration ──────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Store Oracle Metadata
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">Auto-map Odoo stores → Oracle Fusion fields (like Java FusionSalesMetadata)</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Configure Oracle invoice fields per store so they are <strong>automatically applied</strong> when pushing.
+          No manual entry needed in the push form if store metadata is configured here.
+        </p>
+
+        <div id="alert-store-meta" class="alert hidden" style="margin-bottom:12px"></div>
+
+        <div class="two-col">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Select Store</label>
+              <select id="sm-store" class="form-control form-select">
+                <option value="">— Choose a store —</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <button class="btn btn-sm" id="sm-load-btn" style="white-space:nowrap">Load Config</button>
+            <button class="btn btn-sm btn-danger" id="sm-delete-btn" style="white-space:nowrap" disabled>Delete</button>
+          </div>
+        </div>
+
+        <details id="sm-fields" style="margin-top:10px">
+          <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--primary);padding:6px 0;user-select:none">
+            📝 Store Metadata Fields
+          </summary>
+          <div class="two-col" style="margin-top:14px">
+            <div>
+              <div class="form-group">
+                <label class="form-label">Bill-To Customer Name</label>
+                <input type="text" id="sm-bill-to-name" class="form-control" placeholder="e.g. Tamer Group">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bill-To Account Number</label>
+                <input type="text" id="sm-bill-to-account" class="form-control" placeholder="e.g. ACC-001">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Site Number</label>
+                <input type="text" id="sm-site-number" class="form-control" placeholder="e.g. SITE-001">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Business Unit</label>
+                <input type="text" id="sm-business-unit" class="form-control" placeholder="e.g. AE Business Unit">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Transaction Source</label>
+                <input type="text" id="sm-txn-source" class="form-control" value="ODOO_SALES" placeholder="ODOO_SALES">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Transaction Type</label>
+                <input type="text" id="sm-txn-type" class="form-control" value="Invoice" placeholder="Invoice">
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label class="form-label">Payment Terms Name</label>
+                <input type="text" id="sm-payment-terms" class="form-control" placeholder="e.g. Immediate">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Org ID</label>
+                <input type="number" id="sm-org-id" class="form-control" placeholder="e.g. 300000001001000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cost Center Code</label>
+                <input type="text" id="sm-cost-center" class="form-control" placeholder="e.g. CC-001">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Customer Type</label>
+                <select id="sm-customer-type" class="form-control form-select">
+                  <option value="NORMAL">NORMAL</option>
+                  <option value="HUNGERSTATION">HUNGERSTATION</option>
+                  <option value="CAREEM">CAREEM</option>
+                  <option value="TALABAT">TALABAT</option>
+                  <option value="JAHEZ">JAHEZ</option>
+                  <option value="NOON">NOON</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Region</label>
+                <select id="sm-region" class="form-control form-select">
+                  <option value="AE">AE – UAE</option>
+                  <option value="KW">KW – Kuwait</option>
+                  <option value="OM">OM – Oman</option>
+                  <option value="SA">SA – Saudi Arabia</option>
+                  <option value="BH">BH – Bahrain</option>
+                  <option value="QA">QA – Qatar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Timezone Offset</label>
+                <input type="number" id="sm-tz-offset" class="form-control" value="4" step="0.5" min="-12" max="14">
+              </div>
+            </div>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+          <div class="two-col">
+            <div>
+              <div class="form-group">
+                <label class="form-label">Currency</label>
+                <select id="sm-currency" class="form-control form-select">
+                  <option value="">Auto (from Odoo order)</option>
+                  <option value="AED">AED</option>
+                  <option value="KWD">KWD</option>
+                  <option value="OMR">OMR</option>
+                  <option value="SAR">SAR</option>
+                  <option value="BHD">BHD</option>
+                  <option value="QAR">QAR</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Outlet / Subinventory Name</label>
+                <input type="text" id="sm-outlet-name" class="form-control" placeholder="e.g. Dubai Mall">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Organization Name</label>
+                <input type="text" id="sm-org-name" class="form-control" placeholder="e.g. AE Inventory Org">
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label class="form-label">Default Payment Type</label>
+                <input type="text" id="sm-payment-type" class="form-control" value="Cash" placeholder="Cash">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tax Classification Code</label>
+                <input type="text" id="sm-tax-name" class="form-control" placeholder="e.g. STANDARD">
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="sm-rate-corporate">
+                  <span>Corporate Conversion Rate</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:10px">
+            <button class="btn" id="sm-save-btn">💾 Save Store Config</button>
+          </div>
+        </details>
+
+        <!-- Configured stores table -->
+        <div style="margin-top:18px">
+          <h3 style="font-size:14px;font-weight:700;margin-bottom:8px">Configured Stores</h3>
+          <div style="max-height:260px;overflow-y:auto">
+            <table class="data-table" id="sm-table">
+              <thead>
+                <tr>
+                  <th>Store ID</th>
+                  <th>Store Name</th>
+                  <th>Bill-To Name</th>
+                  <th>Business Unit</th>
+                  <th>Region</th>
+                  <th>Currency</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody id="sm-table-body">
+                <tr><td colspan="7" style="color:var(--muted);text-align:center">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Step 2: Push to Oracle ──────────────────────────────────────── -->
     <div class="card">
       <div class="card-header">
@@ -1488,6 +1661,162 @@ function renderLinesTable(rows, total, offset) {
   }
 }
 
+// ── Store Oracle Metadata Configuration ───────────────────────────────────────
+
+let storeMetaList = [];
+
+async function loadStoreMetaTable() {
+  try {
+    storeMetaList = await api('/api/odoo/store-metadata');
+    const tbody = $('sm-table-body');
+    if (!storeMetaList.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center">No store configurations yet. Select a store above and save.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = storeMetaList.map(r =>
+      '<tr style="cursor:pointer" data-store-id="' + r.store_id + '">' +
+      '<td>' + escHtml(String(r.store_id)) + '</td>' +
+      '<td>' + escHtml(r.store_name || '–') + '</td>' +
+      '<td>' + escHtml(r.bill_to_name || '–') + '</td>' +
+      '<td>' + escHtml(r.business_unit || '–') + '</td>' +
+      '<td>' + escHtml(r.region || '–') + '</td>' +
+      '<td>' + escHtml(r.currency || 'Auto') + '</td>' +
+      '<td style="font-size:12px">' + escHtml((r.updated_at || '').replace('T',' ').slice(0,16)) + '</td>' +
+      '</tr>'
+    ).join('');
+    // Click row to load that store config
+    tbody.querySelectorAll('tr').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const sid = tr.dataset.storeId;
+        $('sm-store').value = sid;
+        loadStoreMetaFields(sid);
+      });
+    });
+  } catch(e) {
+    $('sm-table-body').innerHTML = '<tr><td colspan="7" style="color:var(--danger)">' + escHtml(e.message) + '</td></tr>';
+  }
+}
+
+function populateStoreMetaDropdown() {
+  const sel = $('sm-store');
+  const current = sel.value;
+  // Keep the default option
+  sel.innerHTML = '<option value="">— Choose a store —</option>';
+  storeList.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name + ' (' + s.id + ')';
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+}
+
+async function loadStoreMetaFields(storeId) {
+  if (!storeId) return;
+  try {
+    const r = await api('/api/odoo/store-metadata/' + storeId);
+    $('sm-bill-to-name').value    = r.bill_to_name || '';
+    $('sm-bill-to-account').value = r.bill_to_account || '';
+    $('sm-site-number').value     = r.site_number || '';
+    $('sm-business-unit').value   = r.business_unit || '';
+    $('sm-txn-source').value      = r.txn_source || 'ODOO_SALES';
+    $('sm-txn-type').value        = r.txn_type || 'Invoice';
+    $('sm-payment-terms').value   = r.payment_terms_name || '';
+    $('sm-org-id').value          = r.org_id || '';
+    $('sm-cost-center').value     = r.cost_center_code || '';
+    $('sm-customer-type').value   = r.customer_type || 'NORMAL';
+    $('sm-region').value          = r.region || 'AE';
+    $('sm-tz-offset').value       = r.tz_offset != null ? r.tz_offset : 4;
+    $('sm-currency').value        = r.currency || '';
+    $('sm-outlet-name').value     = r.outlet_name || '';
+    $('sm-org-name').value        = r.organization_name || '';
+    $('sm-payment-type').value    = r.default_payment_type || 'Cash';
+    $('sm-tax-name').value        = r.tax_name || '';
+    $('sm-rate-corporate').checked= r.rate_is_corporate === '1';
+    $('sm-delete-btn').disabled   = false;
+    $('sm-fields').open           = true;
+    showAlert($('alert-store-meta'), 'info', 'Loaded config for store ' + storeId);
+  } catch(e) {
+    // Not found – clear fields for new entry
+    clearStoreMetaFields();
+    $('sm-delete-btn').disabled = true;
+    $('sm-fields').open = true;
+  }
+}
+
+function clearStoreMetaFields() {
+  ['sm-bill-to-name','sm-bill-to-account','sm-site-number','sm-business-unit',
+   'sm-payment-terms','sm-org-id','sm-cost-center','sm-outlet-name','sm-org-name',
+   'sm-tax-name'].forEach(id => { $(id).value = ''; });
+  $('sm-txn-source').value = 'ODOO_SALES';
+  $('sm-txn-type').value   = 'Invoice';
+  $('sm-customer-type').value = 'NORMAL';
+  $('sm-region').value     = 'AE';
+  $('sm-tz-offset').value  = 4;
+  $('sm-currency').value   = '';
+  $('sm-payment-type').value = 'Cash';
+  $('sm-rate-corporate').checked = false;
+}
+
+$('sm-load-btn').addEventListener('click', () => {
+  const sid = $('sm-store').value;
+  if (!sid) { showAlert($('alert-store-meta'),'warning','Select a store first'); return; }
+  loadStoreMetaFields(sid);
+});
+
+$('sm-delete-btn').addEventListener('click', async () => {
+  const sid = $('sm-store').value;
+  if (!sid) return;
+  if (!confirm('Delete Oracle metadata config for store ' + sid + '?')) return;
+  try {
+    await api('/api/odoo/store-metadata/' + sid, 'DELETE');
+    showAlert($('alert-store-meta'), 'success', 'Deleted config for store ' + sid);
+    clearStoreMetaFields();
+    $('sm-delete-btn').disabled = true;
+    loadStoreMetaTable();
+  } catch(e) { showAlert($('alert-store-meta'),'danger',escHtml(e.message)); }
+});
+
+$('sm-save-btn').addEventListener('click', async () => {
+  const sid = $('sm-store').value;
+  if (!sid) { showAlert($('alert-store-meta'),'warning','Select a store first'); return; }
+  const storeName = (storeList.find(s => String(s.id) === String(sid)) || {}).name || '';
+
+  const body = {
+    storeName,
+    billToName      : ($('sm-bill-to-name').value    || '').trim() || null,
+    billToAccount   : ($('sm-bill-to-account').value || '').trim() || null,
+    siteNumber      : ($('sm-site-number').value     || '').trim() || null,
+    businessUnit    : ($('sm-business-unit').value   || '').trim() || null,
+    txnSource       : ($('sm-txn-source').value      || 'ODOO_SALES').trim(),
+    txnType         : ($('sm-txn-type').value        || 'Invoice').trim(),
+    paymentTermsName: ($('sm-payment-terms').value   || '').trim() || null,
+    rateIsCorporate : $('sm-rate-corporate').checked ? '1' : '0',
+    orgId           : parseInt($('sm-org-id').value) || null,
+    costCenterCode  : ($('sm-cost-center').value     || '').trim() || null,
+    customerType    : $('sm-customer-type').value || 'NORMAL',
+    region          : $('sm-region').value || 'AE',
+    tzOffset        : parseFloat($('sm-tz-offset').value) || 0,
+    currency        : ($('sm-currency').value        || '').trim() || null,
+    outletName      : ($('sm-outlet-name').value     || '').trim() || null,
+    organizationName: ($('sm-org-name').value        || '').trim() || null,
+    defaultPaymentType: ($('sm-payment-type').value  || 'Cash').trim(),
+    taxName         : ($('sm-tax-name').value        || '').trim() || null,
+  };
+
+  try {
+    await api('/api/odoo/store-metadata/' + sid, 'PUT', body);
+    showAlert($('alert-store-meta'), 'success', 'Saved Oracle metadata for store ' + escHtml(storeName || sid));
+    $('sm-delete-btn').disabled = false;
+    loadStoreMetaTable();
+  } catch(e) {
+    showAlert($('alert-store-meta'),'danger',escHtml(e.message));
+  }
+});
+
+// Initialise store metadata on page load (after stores are loaded)
+setTimeout(() => { populateStoreMetaDropdown(); loadStoreMetaTable(); }, 500);
+
 // ── Push section ─────────────────────────────────────────────────────
 document.querySelectorAll('.mode-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -1498,6 +1827,35 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
     // Show/hide store selector
     $('push-store-group').classList.toggle('hidden', mode !== 'BY_STORE_DATE');
   });
+});
+
+// ── Auto-populate push form from stored per-store Oracle metadata ─────
+$('push-store').addEventListener('change', async () => {
+  const sid = $('push-store').value;
+  if (!sid) return;
+  try {
+    const r = await api('/api/odoo/store-metadata/' + sid);
+    // Fill Oracle Invoice & Outlet fields from stored config
+    if (r.bill_to_name)       $('push-bill-to-name').value    = r.bill_to_name;
+    if (r.bill_to_account)    $('push-bill-to-account').value = r.bill_to_account;
+    if (r.site_number)        $('push-site-number').value     = r.site_number;
+    if (r.business_unit)      $('push-business-unit').value   = r.business_unit;
+    if (r.txn_source)         $('push-txn-source').value      = r.txn_source;
+    if (r.txn_type)           $('push-txn-type').value        = r.txn_type;
+    if (r.payment_terms_name) $('push-payment-terms').value   = r.payment_terms_name;
+    if (r.rate_is_corporate)  $('push-rate-corporate').checked= r.rate_is_corporate === '1';
+    if (r.org_id)             $('push-org-id').value          = r.org_id;
+    if (r.cost_center_code)   $('push-cost-center').value     = r.cost_center_code;
+    if (r.customer_type)      $('push-customer-type').value   = r.customer_type;
+    if (r.region)             $('push-region').value          = r.region;
+    if (r.tz_offset != null)  $('push-tz-offset').value       = r.tz_offset;
+    if (r.currency)           $('push-currency').value        = r.currency;
+    if (r.outlet_name)        $('push-outlet-name').value     = r.outlet_name;
+    if (r.organization_name)  $('push-org-name').value        = r.organization_name;
+    if (r.default_payment_type) $('push-payment-type').value  = r.default_payment_type;
+    if (r.tax_name)           $('push-tax-name').value        = r.tax_name;
+    showAlert($('alert-area'), 'info', '✓ Auto-filled push form from stored config for store ' + escHtml(r.store_name || sid));
+  } catch(_) { /* no stored config – user enters manually or auto-resolved at push time */ }
 });
 
 $('btn-push').addEventListener('click', async () => {

@@ -250,6 +250,41 @@ function applyMigrations(db) {
       last_login   TEXT
     )
   `).run();
+
+  // ── Per-store Oracle Fusion metadata ────────────────────────────────────
+  // Mirrors Java's FusionSalesMetadata table so that Oracle invoice fields
+  // (BillToCustomerName, BusinessUnit, TransactionSource, etc.) are resolved
+  // automatically per store instead of requiring manual UI entry on each push.
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS store_oracle_metadata (
+      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id            INTEGER NOT NULL UNIQUE,
+      store_name          TEXT,
+      bill_to_name        TEXT,
+      bill_to_account     TEXT,
+      site_number         TEXT,
+      business_unit       TEXT,
+      txn_source          TEXT    DEFAULT 'ODOO_SALES',
+      txn_type            TEXT    DEFAULT 'Invoice',
+      payment_terms_name  TEXT,
+      rate_is_corporate   TEXT    DEFAULT '0',
+      org_id              INTEGER,
+      cost_center_code    TEXT,
+      customer_type       TEXT    DEFAULT 'NORMAL',
+      region              TEXT    DEFAULT 'AE',
+      tz_offset           REAL    DEFAULT 0,
+      currency            TEXT,
+      outlet_name         TEXT,
+      organization_name   TEXT,
+      default_payment_type TEXT   DEFAULT 'Cash',
+      tax_name            TEXT,
+      receipt_method_meta TEXT,
+      journal_meta        TEXT,
+      uom_code_map        TEXT,
+      created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at          TEXT    NOT NULL DEFAULT (datetime('now'))
+    )
+  `).run();
 }
 
 // ── Odoo Sales helpers ────────────────────────────────────────────────────────
@@ -1046,6 +1081,90 @@ function countAdmins() {
   return getDb().prepare("SELECT COUNT(*) AS cnt FROM users WHERE role = 'admin'").get().cnt;
 }
 
+// ── Store Oracle Metadata CRUD ────────────────────────────────────────────────
+
+function listStoreOracleMetadata() {
+  return getDb().prepare('SELECT * FROM store_oracle_metadata ORDER BY store_name, store_id').all();
+}
+
+function getStoreOracleMetadata(storeId) {
+  return getDb().prepare('SELECT * FROM store_oracle_metadata WHERE store_id = ?').get(Number(storeId)) || null;
+}
+
+function upsertStoreOracleMetadata(cfg) {
+  getDb().prepare(`
+    INSERT INTO store_oracle_metadata
+      (store_id, store_name, bill_to_name, bill_to_account, site_number,
+       business_unit, txn_source, txn_type, payment_terms_name,
+       rate_is_corporate, org_id, cost_center_code,
+       customer_type, region, tz_offset,
+       currency, outlet_name, organization_name,
+       default_payment_type, tax_name,
+       receipt_method_meta, journal_meta, uom_code_map,
+       updated_at)
+    VALUES (?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            datetime('now'))
+    ON CONFLICT(store_id) DO UPDATE SET
+      store_name          = excluded.store_name,
+      bill_to_name        = excluded.bill_to_name,
+      bill_to_account     = excluded.bill_to_account,
+      site_number         = excluded.site_number,
+      business_unit       = excluded.business_unit,
+      txn_source          = excluded.txn_source,
+      txn_type            = excluded.txn_type,
+      payment_terms_name  = excluded.payment_terms_name,
+      rate_is_corporate   = excluded.rate_is_corporate,
+      org_id              = excluded.org_id,
+      cost_center_code    = excluded.cost_center_code,
+      customer_type       = excluded.customer_type,
+      region              = excluded.region,
+      tz_offset           = excluded.tz_offset,
+      currency            = excluded.currency,
+      outlet_name         = excluded.outlet_name,
+      organization_name   = excluded.organization_name,
+      default_payment_type= excluded.default_payment_type,
+      tax_name            = excluded.tax_name,
+      receipt_method_meta = excluded.receipt_method_meta,
+      journal_meta        = excluded.journal_meta,
+      uom_code_map        = excluded.uom_code_map,
+      updated_at          = datetime('now')
+  `).run(
+    Number(cfg.storeId),
+    cfg.storeName       || null,
+    cfg.billToName      || null,
+    cfg.billToAccount   || null,
+    cfg.siteNumber      || null,
+    cfg.businessUnit    || null,
+    cfg.txnSource       || 'ODOO_SALES',
+    cfg.txnType         || 'Invoice',
+    cfg.paymentTermsName|| null,
+    cfg.rateIsCorporate || '0',
+    cfg.orgId != null   ? Number(cfg.orgId) : null,
+    cfg.costCenterCode  || null,
+    cfg.customerType    || 'NORMAL',
+    cfg.region          || 'AE',
+    cfg.tzOffset != null ? Number(cfg.tzOffset) : 0,
+    cfg.currency        || null,
+    cfg.outletName      || null,
+    cfg.organizationName|| null,
+    cfg.defaultPaymentType || 'Cash',
+    cfg.taxName         || null,
+    cfg.receiptMethodMeta ? (typeof cfg.receiptMethodMeta === 'string' ? cfg.receiptMethodMeta : JSON.stringify(cfg.receiptMethodMeta)) : null,
+    cfg.journalMeta     ? (typeof cfg.journalMeta === 'string' ? cfg.journalMeta : JSON.stringify(cfg.journalMeta)) : null,
+    cfg.uomCodeMap      ? (typeof cfg.uomCodeMap === 'string' ? cfg.uomCodeMap : JSON.stringify(cfg.uomCodeMap)) : null
+  );
+}
+
+function deleteStoreOracleMetadata(storeId) {
+  getDb().prepare('DELETE FROM store_oracle_metadata WHERE store_id = ?').run(Number(storeId));
+}
+
 /**
  * Query stored sale order lines with optional filters.
  * @param {object} filters
@@ -1135,4 +1254,8 @@ module.exports = {
   updateUserLastLogin,
   deleteUser,
   countAdmins,
+  listStoreOracleMetadata,
+  getStoreOracleMetadata,
+  upsertStoreOracleMetadata,
+  deleteStoreOracleMetadata,
 };
