@@ -658,6 +658,144 @@
               </div>
             </div>
           </div>
+
+          <!-- ── Receipt Method & Bank Account IDs ──────────────────────── -->
+          <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+          <details style="margin-top:4px">
+            <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);padding:4px 0;user-select:none">
+              🏦 Receipt Method &amp; Bank Account IDs
+              <span style="font-weight:400;color:var(--muted);font-size:11px;margin-left:6px">
+                (FusionReceiptMethod / VendhqRegisters — for the Default Payment Type above)
+              </span>
+            </summary>
+            <div class="two-col" style="margin-top:10px">
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Receipt Method ID</label>
+                  <input type="number" id="sm-receipt-method-id" class="form-control" placeholder="e.g. 10001">
+                  <small class="text-muted">FusionReceiptMethod.getReceiptMethodId()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Receipt Method Name</label>
+                  <input type="text" id="sm-receipt-method-name" class="form-control" placeholder="e.g. Cash">
+                  <small class="text-muted">FusionMiscReceiptMapping: ReceiptMethodName</small>
+                </div>
+                <div class="form-group">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                    <input type="checkbox" id="sm-receipt-is-cash">
+                    <span>Is Cash Payment</span>
+                  </label>
+                  <small class="text-muted">When checked, uses Cash Account ID for RemittanceBankAccountId</small>
+                </div>
+              </div>
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Bank Account ID (non-cash)</label>
+                  <input type="number" id="sm-bank-account-id" class="form-control" placeholder="e.g. 20001">
+                  <small class="text-muted">VendhqRegisters.getBankAccountId()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Cash Account ID</label>
+                  <input type="number" id="sm-cash-account-id" class="form-control" placeholder="e.g. 20002">
+                  <small class="text-muted">VendhqRegisters.getCashAccountId()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bank Account Name</label>
+                  <input type="text" id="sm-bank-account-name" class="form-control" placeholder="e.g. Main Cash Account">
+                  <small class="text-muted">VendhqRegisters.getBankAccount()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Receivable Activity Name</label>
+                  <input type="text" id="sm-receivable-activity" class="form-control" placeholder="e.g. Bank Charges">
+                  <small class="text-muted">FusionSalesMetadata.getRecActivityNameBank()</small>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- ── Journal Entry Configuration ────────────────────────────── -->
+          <details style="margin-top:4px">
+            <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);padding:4px 0;user-select:none">
+              📒 Journal Entry Configuration
+              <span style="font-weight:400;color:var(--muted);font-size:11px;margin-left:6px">
+                (required for non-NORMAL customers — FusionJournalEntryMapping)
+              </span>
+            </summary>
+            <div class="two-col" style="margin-top:10px">
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Ledger ID</label>
+                  <input type="number" id="sm-journal-ledger-id" class="form-control" placeholder="e.g. 300000002564040">
+                  <small class="text-muted">ServiceProviderJournalMapping.getLedgerId()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Chart of Accounts ID</label>
+                  <input type="number" id="sm-journal-coa-id" class="form-control" placeholder="e.g. 300000001984026">
+                  <small class="text-muted">ServiceProviderJournalMapping.getChartOfAccountsId()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">JE Source Name</label>
+                  <input type="text" id="sm-journal-source" class="form-control" placeholder="e.g. Receivables">
+                  <small class="text-muted">ServiceProviderJournalMapping.getJeSource()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">JE Category Name</label>
+                  <input type="text" id="sm-journal-category" class="form-control" placeholder="e.g. Sales">
+                  <small class="text-muted">ServiceProviderJournalMapping.getJeCategory()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bank Charge Rate for Journal (%)</label>
+                  <input type="number" id="sm-journal-bank-rate" class="form-control" value="0" min="0" max="100" step="0.01">
+                  <small class="text-muted">calculateJournalCharge: saleTotal × (rate/100)</small>
+                </div>
+                <div class="form-group">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                    <input type="checkbox" id="sm-journal-fixed">
+                    <span>Fixed Freight Charge</span>
+                  </label>
+                  <small class="text-muted">When checked, fixedFreightCharge is used instead of bank-charge %</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Fixed Freight Charge Amount</label>
+                  <input type="number" id="sm-journal-fixed-amount" class="form-control" value="0" min="0" step="0.01">
+                  <small class="text-muted">debitJournalMapping.getFixedFreightCharge()</small>
+                </div>
+              </div>
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Company (Segment 1)</label>
+                  <input type="text" id="sm-journal-company" class="form-control" placeholder="e.g. 1000">
+                  <small class="text-muted">ServiceProviderJournalMapping.getCompany()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Credit Account (Segment 2)</label>
+                  <input type="text" id="sm-journal-account" class="form-control" placeholder="e.g. 40001">
+                  <small class="text-muted">ServiceProviderJournalMapping (CREDIT).getAccount()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Debit Account (Segment 2 – Debit)</label>
+                  <input type="text" id="sm-journal-debit-account" class="form-control" placeholder="e.g. 10001">
+                  <small class="text-muted">ServiceProviderJournalMapping (DEBIT).getAccount()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Department (Segment 3)</label>
+                  <input type="text" id="sm-journal-department" class="form-control" placeholder="e.g. 0000">
+                  <small class="text-muted">ServiceProviderJournalMapping.getDepartment()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Inter-Company (Segment 6)</label>
+                  <input type="text" id="sm-journal-inter-company" class="form-control" placeholder="e.g. 000">
+                  <small class="text-muted">ServiceProviderJournalMapping.getInterCompany()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Future Use (Segment 7)</label>
+                  <input type="text" id="sm-journal-fut-used" class="form-control" placeholder="e.g. 0000">
+                  <small class="text-muted">ServiceProviderJournalMapping.getFutUsed()</small>
+                </div>
+              </div>
+            </div>
+          </details>
+
           <div style="margin-top:14px;display:flex;gap:10px">
             <button class="btn" id="sm-save-btn">💾 Save Store Config</button>
           </div>
@@ -1735,6 +1873,34 @@ async function loadStoreMetaFields(storeId) {
     $('sm-payment-type').value    = r.default_payment_type || 'Cash';
     $('sm-tax-name').value        = r.tax_name || '';
     $('sm-rate-corporate').checked= r.rate_is_corporate === '1';
+
+    // ── Receipt Method fields (stored as receipt_method_meta JSON keyed by payment type) ──
+    const rmPt = r.default_payment_type || 'Cash';
+    const rm = (r.receipt_method_meta && r.receipt_method_meta[rmPt]) || {};
+    $('sm-receipt-method-id').value   = rm.receiptMethodId || '';
+    $('sm-receipt-method-name').value = rm.receiptMethodName || '';
+    $('sm-receipt-is-cash').checked   = !!rm.receiptIsCash;
+    $('sm-bank-account-id').value     = rm.bankAccountId || '';
+    $('sm-cash-account-id').value     = rm.cashAccountId || '';
+    $('sm-bank-account-name').value   = rm.bankAccountName || '';
+    $('sm-receivable-activity').value = rm.receivableActivityName || '';
+
+    // ── Journal Entry fields (stored as journal_meta JSON) ──
+    const jm = r.journal_meta || {};
+    $('sm-journal-ledger-id').value    = jm.ledgerId || '';
+    $('sm-journal-coa-id').value       = jm.chartOfAccountsId || '';
+    $('sm-journal-source').value       = jm.jeSource || '';
+    $('sm-journal-category').value     = jm.jeCategory || '';
+    $('sm-journal-bank-rate').value    = jm.bankChargeRate || 0;
+    $('sm-journal-fixed').checked      = !!jm.isFixed;
+    $('sm-journal-fixed-amount').value = jm.fixedFreightCharge || 0;
+    $('sm-journal-company').value      = jm.company || '';
+    $('sm-journal-account').value      = jm.account || '';
+    $('sm-journal-debit-account').value= jm.debitAccount || '';
+    $('sm-journal-department').value   = jm.department || '';
+    $('sm-journal-inter-company').value= jm.interCompany || '';
+    $('sm-journal-fut-used').value     = jm.futUsed || '';
+
     $('sm-delete-btn').disabled   = false;
     $('sm-fields').open           = true;
     showAlert($('alert-store-meta'), 'info', 'Loaded config for store ' + storeId);
@@ -1749,7 +1915,13 @@ async function loadStoreMetaFields(storeId) {
 function clearStoreMetaFields() {
   ['sm-bill-to-name','sm-bill-to-account','sm-site-number','sm-business-unit',
    'sm-payment-terms','sm-org-id','sm-cost-center','sm-outlet-name','sm-org-name',
-   'sm-tax-name'].forEach(id => { $(id).value = ''; });
+   'sm-tax-name',
+   'sm-receipt-method-id','sm-receipt-method-name','sm-bank-account-id',
+   'sm-cash-account-id','sm-bank-account-name','sm-receivable-activity',
+   'sm-journal-ledger-id','sm-journal-coa-id','sm-journal-source','sm-journal-category',
+   'sm-journal-company','sm-journal-account','sm-journal-debit-account',
+   'sm-journal-department','sm-journal-inter-company','sm-journal-fut-used'
+  ].forEach(id => { $(id).value = ''; });
   $('sm-txn-source').value = 'ODOO_SALES';
   $('sm-txn-type').value   = 'Invoice';
   $('sm-customer-type').value = 'NORMAL';
@@ -1758,6 +1930,10 @@ function clearStoreMetaFields() {
   $('sm-currency').value   = '';
   $('sm-payment-type').value = 'Cash';
   $('sm-rate-corporate').checked = false;
+  $('sm-receipt-is-cash').checked = false;
+  $('sm-journal-fixed').checked   = false;
+  $('sm-journal-bank-rate').value = 0;
+  $('sm-journal-fixed-amount').value = 0;
 }
 
 $('sm-load-btn').addEventListener('click', () => {
@@ -1806,6 +1982,60 @@ $('sm-save-btn').addEventListener('click', async () => {
     taxName         : ($('sm-tax-name').value        || '').trim() || null,
   };
 
+  // ── Build receiptMethodMeta (keyed by default payment type) ──
+  const smPaymentType = body.defaultPaymentType || 'Cash';
+  const smReceiptMethodId   = parseInt($('sm-receipt-method-id').value)  || undefined;
+  const smReceiptMethodName = ($('sm-receipt-method-name').value || '').trim() || undefined;
+  const smReceiptIsCash     = $('sm-receipt-is-cash').checked;
+  const smBankAccountId     = parseInt($('sm-bank-account-id').value)   || undefined;
+  const smCashAccountId     = parseInt($('sm-cash-account-id').value)   || undefined;
+  const smBankAccountName   = ($('sm-bank-account-name').value  || '').trim() || undefined;
+  const smReceivableActivity= ($('sm-receivable-activity').value || '').trim() || undefined;
+  if (smReceiptMethodId || smReceiptMethodName || smBankAccountId || smCashAccountId || smBankAccountName || smReceivableActivity) {
+    body.receiptMethodMeta = {};
+    body.receiptMethodMeta[smPaymentType] = {
+      receiptMethodId: smReceiptMethodId,
+      receiptMethodName: smReceiptMethodName,
+      receiptIsCash: smReceiptIsCash,
+      bankAccountId: smBankAccountId,
+      cashAccountId: smCashAccountId,
+      bankAccountName: smBankAccountName,
+      receivableActivityName: smReceivableActivity,
+    };
+  }
+
+  // ── Build journalMeta ──
+  const smLedgerId   = parseInt($('sm-journal-ledger-id').value)    || undefined;
+  const smCoaId      = parseInt($('sm-journal-coa-id').value)       || undefined;
+  const smJeSource   = ($('sm-journal-source').value   || '').trim() || undefined;
+  const smJeCategory = ($('sm-journal-category').value || '').trim() || undefined;
+  const smJBankRate  = parseFloat($('sm-journal-bank-rate').value)  || 0;
+  const smJIsFixed   = $('sm-journal-fixed').checked;
+  const smJFixedAmt  = parseFloat($('sm-journal-fixed-amount').value) || null;
+  const smJCompany   = ($('sm-journal-company').value       || '').trim() || undefined;
+  const smJAccount   = ($('sm-journal-account').value       || '').trim() || undefined;
+  const smJDebitAcct = ($('sm-journal-debit-account').value || '').trim() || undefined;
+  const smJDept      = ($('sm-journal-department').value    || '').trim() || undefined;
+  const smJInterCo   = ($('sm-journal-inter-company').value || '').trim() || undefined;
+  const smJFutUsed   = ($('sm-journal-fut-used').value      || '').trim() || undefined;
+  if (smLedgerId || smCoaId || smJeSource || smJeCategory || smJCompany || smJAccount) {
+    body.journalMeta = {
+      ledgerId: smLedgerId,
+      chartOfAccountsId: smCoaId,
+      jeSource: smJeSource,
+      jeCategory: smJeCategory,
+      bankChargeRate: smJBankRate,
+      isFixed: smJIsFixed,
+      fixedFreightCharge: smJFixedAmt,
+      company: smJCompany,
+      account: smJAccount,
+      debitAccount: smJDebitAcct,
+      department: smJDept,
+      interCompany: smJInterCo,
+      futUsed: smJFutUsed,
+    };
+  }
+
   try {
     await api('/api/odoo/store-metadata/' + sid, 'PUT', body);
     showAlert($('alert-store-meta'), 'success', 'Saved Oracle metadata for store ' + escHtml(storeName || sid));
@@ -1853,6 +2083,34 @@ $('push-store').addEventListener('change', async () => {
     if (r.organization_name)  $('push-org-name').value        = r.organization_name;
     if (r.default_payment_type) $('push-payment-type').value  = r.default_payment_type;
     if (r.tax_name)           $('push-tax-name').value        = r.tax_name;
+
+    // ── Fill Receipt Method fields from stored receipt_method_meta ──
+    const pushPt = r.default_payment_type || 'Cash';
+    const pushRm = (r.receipt_method_meta && r.receipt_method_meta[pushPt]) || {};
+    if (pushRm.receiptMethodId)   $('push-receipt-method-id').value   = pushRm.receiptMethodId;
+    if (pushRm.receiptMethodName) $('push-receipt-method-name').value = pushRm.receiptMethodName;
+    if (pushRm.receiptIsCash != null) $('push-receipt-is-cash').checked = !!pushRm.receiptIsCash;
+    if (pushRm.bankAccountId)     $('push-bank-account-id').value     = pushRm.bankAccountId;
+    if (pushRm.cashAccountId)     $('push-cash-account-id').value     = pushRm.cashAccountId;
+    if (pushRm.bankAccountName)   $('push-bank-account-name').value   = pushRm.bankAccountName;
+    if (pushRm.receivableActivityName) $('push-receivable-activity').value = pushRm.receivableActivityName;
+
+    // ── Fill Journal Entry fields from stored journal_meta ──
+    const pushJm = r.journal_meta || {};
+    if (pushJm.ledgerId)          $('push-journal-ledger-id').value    = pushJm.ledgerId;
+    if (pushJm.chartOfAccountsId) $('push-journal-coa-id').value       = pushJm.chartOfAccountsId;
+    if (pushJm.jeSource)          $('push-journal-source').value       = pushJm.jeSource;
+    if (pushJm.jeCategory)        $('push-journal-category').value     = pushJm.jeCategory;
+    if (pushJm.bankChargeRate != null) $('push-journal-bank-rate').value = pushJm.bankChargeRate;
+    if (pushJm.isFixed != null)   $('push-journal-fixed').checked      = !!pushJm.isFixed;
+    if (pushJm.fixedFreightCharge != null) $('push-journal-fixed-amount').value = pushJm.fixedFreightCharge;
+    if (pushJm.company)           $('push-journal-company').value      = pushJm.company;
+    if (pushJm.account)           $('push-journal-account').value      = pushJm.account;
+    if (pushJm.debitAccount)      $('push-journal-debit-account').value= pushJm.debitAccount;
+    if (pushJm.department)        $('push-journal-department').value   = pushJm.department;
+    if (pushJm.interCompany)      $('push-journal-inter-company').value= pushJm.interCompany;
+    if (pushJm.futUsed)           $('push-journal-fut-used').value     = pushJm.futUsed;
+
     showAlert($('alert-area'), 'info', '✓ Auto-filled push form from stored config for store ' + escHtml(r.store_name || sid));
   } catch(e) {
     // 404 = no stored config for this store (expected) – silently ignore.
