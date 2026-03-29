@@ -375,6 +375,137 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     jobLog(jobId, 'info', `Stored ${totalLines} sale lines in local DB` +
       (lineChunkErrs > 0 ? ` (${lineChunkErrs} chunks failed – partial data)` : ''));
 
+    // ── Enrich line items with product reference data (REST only) ──────────
+    // Java middleware: VendhqItemMeta provides SKU (default_code) and UOM for
+    // each product.  The PosOrderLine endpoint typically returns product_id as
+    // [id, name] but may not include default_code.  Fetch the product catalogue
+    // from /api/vItems/Productlist and use it to fill in missing item_number
+    // (SKU) and build a product-to-UOM mapping for the uomCodeMap.
+    //
+    // Also fetches UOM data from /api/vuom_id/UOM/ to resolve UOM names to the
+    // short UOM codes that Oracle Fusion expects.
+    if (odoo instanceof OdooRestClient && totalLines > 0) {
+      try {
+        jobLog(jobId, 'info', 'Fetching product catalogue and UOM data for line enrichment…');
+
+        // Fetch product list and UOM list in parallel
+        const [products, uomList] = await Promise.all([
+          odoo.getProducts().catch(err => {
+            jobLog(jobId, 'warn', `Product catalogue fetch failed: ${err.message}`);
+            return [];
+          }),
+          odoo.getUomList().catch(err => {
+            jobLog(jobId, 'warn', `UOM list fetch failed: ${err.message}`);
+            return [];
+          }),
+        ]);
+
+        if (products.length > 0 || uomList.length > 0) {
+          // Build product ID → {default_code, uom_id, uom_name} lookup map
+          // Products may have: id, default_code (SKU), name, uom_id (as [id, name] or plain ID)
+          const productMap = new Map();
+          for (const p of products) {
+            const pid = p.id ?? p.product_id;
+            if (pid == null) continue;
+            const uomId   = Array.isArray(p.uom_id)   ? p.uom_id[0] : (p.uom_id ?? null);
+            const uomName = Array.isArray(p.uom_id)   ? p.uom_id[1] : (p.uom_name ?? p.uom ?? null);
+            productMap.set(Number(pid), {
+              default_code: p.default_code ?? p.barcode ?? p.sku ?? null,
+              uom_id      : uomId,
+              uom_name    : uomName,
+            });
+          }
+
+          // Build UOM ID → code and UOM name → code lookup maps
+          // UOM records may have: id, name, uom_type, category_id
+          const uomIdToCode   = new Map();
+          const uomNameToCode = new Map();
+          for (const u of uomList) {
+            const uid  = u.id ?? u.uom_id;
+            const code = u.name ?? u.uom_code ?? u.code ?? null;
+            if (uid != null && code) uomIdToCode.set(Number(uid), code);
+            if (code) uomNameToCode.set(code, code);        // name IS the code for Odoo UOMs
+            if (u.uom_code && u.name) uomNameToCode.set(u.name, u.uom_code);
+          }
+
+          jobLog(jobId, 'info', 'Reference data loaded', {
+            products: productMap.size,
+            uomMappings: uomIdToCode.size,
+          });
+
+          // Enrich stored line items that have missing item_number
+          // and build per-store UOM code maps
+          const storeUomMaps   = new Map(); // store_id → { itemNumber: uomCode }
+          const storeIdsToSave = new Set();
+          let enriched = 0;
+
+          // Retrieve all stored lines for the fetched sales and check for missing item_number
+          for (const odooId of allOrderIds) {
+            const internalId = fullInternalIdMap.get(odooId);
+            if (!internalId) continue;
+
+            const saleWithLines = db.getSaleWithLines(internalId);
+            if (!saleWithLines || !saleWithLines.lines) continue;
+
+            const storeId = saleWithLines.store_id;
+
+            for (const line of saleWithLines.lines) {
+              const prodId = line.product_id;
+              const prodInfo = prodId != null ? productMap.get(Number(prodId)) : null;
+
+              // Enrich item_number from product catalogue if missing
+              if (!line.item_number && prodInfo && prodInfo.default_code) {
+                db.updateSaleLineItemNumber(line.odoo_line_id, prodInfo.default_code);
+                enriched++;
+              }
+
+              // Build UOM code map for the store
+              const itemNum = line.item_number || (prodInfo && prodInfo.default_code) || null;
+              if (itemNum && prodInfo) {
+                let uomCode = null;
+                // Try UOM ID lookup first, then name lookup
+                if (prodInfo.uom_id != null) {
+                  uomCode = uomIdToCode.get(Number(prodInfo.uom_id));
+                }
+                if (!uomCode && prodInfo.uom_name) {
+                  uomCode = uomNameToCode.get(prodInfo.uom_name) || prodInfo.uom_name;
+                }
+                if (uomCode && storeId) {
+                  if (!storeUomMaps.has(storeId)) storeUomMaps.set(storeId, {});
+                  storeUomMaps.get(storeId)[itemNum] = uomCode;
+                  storeIdsToSave.add(storeId);
+                }
+              }
+            }
+          }
+
+          if (enriched > 0) {
+            jobLog(jobId, 'info', `Enriched ${enriched} line items with item_number from product catalogue`);
+          }
+
+          // Auto-save UOM code maps to store_oracle_metadata
+          for (const sid of storeIdsToSave) {
+            const existing = db.getStoreOracleMetadata(sid);
+            const existingUom = existing && existing.uom_code_map
+              ? (typeof existing.uom_code_map === 'string' ? JSON.parse(existing.uom_code_map) : existing.uom_code_map)
+              : {};
+            // Merge: existing manual entries take precedence over auto-detected
+            const merged = { ...storeUomMaps.get(sid), ...existingUom };
+            db.upsertStoreOracleMetadata({
+              storeId  : sid,
+              uomCodeMap: merged,
+            });
+          }
+          if (storeIdsToSave.size > 0) {
+            jobLog(jobId, 'info', `Auto-saved UOM code maps for ${storeIdsToSave.size} store(s)`);
+          }
+        }
+      } catch (enrichErr) {
+        // Product enrichment is non-fatal – log and continue
+        jobLog(jobId, 'warn', `Product/UOM enrichment failed: ${enrichErr.message}. Line items will use existing item_number values.`);
+      }
+    }
+
     // ── Fetch + persist payments (3rd endpoint: account.payment / payment_lines) ─
     // Mirrors middleware BackupVendhqPayments table populated from the same fetch.
     //
@@ -1147,6 +1278,17 @@ function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
     orgId           : (jobMeta && jobMeta.orgId) || null,
   };
 
+  // Warn when using fallback defaults – these are almost certainly wrong for
+  // a real Oracle Fusion instance and will cause 400 errors.
+  if (!jobMeta || !jobMeta.billToName) {
+    logger.warn(
+      'Sale %s (store_id=%s): No Oracle metadata configured – using defaults. ' +
+      'Configure store metadata via PUT /api/odoo/store-metadata/:storeId or the UI. ' +
+      'Defaults: billToName=%s, businessUnit=%s, billToAccount=%s',
+      sale.name, sale.store_id, metaObj.billToName, metaObj.businessUnit, metaObj.billToAccount
+    );
+  }
+
   const outletObj = jobOutlet || {
     currency        : sale.currency       || DEFAULT_CURRENCY,
     outletName      : sale.store_name     || 'Odoo Store',
@@ -1313,4 +1455,5 @@ module.exports = {
   getOdooStores,
   buildOracleSalePayload,
   fetchPaymentsForSale,
+  buildOdooClient,
 };

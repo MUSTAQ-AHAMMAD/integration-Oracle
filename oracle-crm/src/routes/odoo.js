@@ -57,7 +57,8 @@
 
 const express       = require('express');
 const router        = express.Router();
-const { startFetchJob, startPushJob, startRetryJob, getOdooStores, buildOracleSalePayload, fetchPaymentsForSale } = require('../odooSync');
+const { startFetchJob, startPushJob, startRetryJob, getOdooStores, buildOracleSalePayload, fetchPaymentsForSale, buildOdooClient } = require('../odooSync');
+const OdooRestClient = require('../odooRestClient');
 const { computeSalePreview } = require('../calculations');
 const db            = require('../db');
 const logger        = require('../logger').child('OdooRoutes');
@@ -503,6 +504,93 @@ router.get('/config', (req, res) => {
     db      : odooDb   || null,
     username: username || null,
   });
+});
+
+// ── Reference Data endpoints (diagnostics & auto-population) ──────────────────
+//
+// These endpoints expose the Odoo reference data used by the Java middleware
+// (VendhqItemMeta, VendhqOutletsDB, FusionUomService) for diagnostics and
+// to allow auto-population of store Oracle metadata.
+
+/** GET /api/odoo/ref/products – fetch the product catalogue from Odoo */
+router.get('/ref/products', async (req, res) => {
+  try {
+    const odoo = buildOdooClient(req.query.country || null);
+    if (!(odoo instanceof OdooRestClient)) {
+      return res.status(400).json({ error: 'Product catalogue is only available for REST-based Odoo connections' });
+    }
+    await odoo.authenticate();
+    const rows = await odoo.getProducts();
+    res.json({ count: rows.length, products: rows });
+  } catch (err) {
+    logger.error('Failed to fetch products', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /api/odoo/ref/uom – fetch the UOM list from Odoo */
+router.get('/ref/uom', async (req, res) => {
+  try {
+    const odoo = buildOdooClient(req.query.country || null);
+    if (!(odoo instanceof OdooRestClient)) {
+      return res.status(400).json({ error: 'UOM list is only available for REST-based Odoo connections' });
+    }
+    await odoo.authenticate();
+    const rows = await odoo.getUomList();
+    res.json({ count: rows.length, uomList: rows });
+  } catch (err) {
+    logger.error('Failed to fetch UOM list', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /api/odoo/ref/branches – fetch branches / outlets from Odoo */
+router.get('/ref/branches', async (req, res) => {
+  try {
+    const odoo = buildOdooClient(req.query.country || null);
+    if (!(odoo instanceof OdooRestClient)) {
+      return res.status(400).json({ error: 'Branch list is only available for REST-based Odoo connections' });
+    }
+    await odoo.authenticate();
+    const rows = await odoo.getBranches();
+    res.json({ count: rows.length, branches: rows });
+  } catch (err) {
+    logger.error('Failed to fetch branches', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /api/odoo/ref/companies – fetch companies from Odoo */
+router.get('/ref/companies', async (req, res) => {
+  try {
+    const odoo = buildOdooClient(req.query.country || null);
+    if (!(odoo instanceof OdooRestClient)) {
+      return res.status(400).json({ error: 'Company list is only available for REST-based Odoo connections' });
+    }
+    await odoo.authenticate();
+    const rows = await odoo.getCompanies();
+    res.json({ count: rows.length, companies: rows });
+  } catch (err) {
+    logger.error('Failed to fetch companies', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /api/odoo/ref/poslist – fetch POS configuration list from Odoo */
+router.get('/ref/poslist', async (req, res) => {
+  try {
+    const odoo = buildOdooClient(req.query.country || null);
+    if (!(odoo instanceof OdooRestClient)) {
+      return res.status(400).json({ error: 'POS list is only available for REST-based Odoo connections' });
+    }
+    await odoo.authenticate();
+    const domain = req.query.domain ? JSON.parse(req.query.domain) : undefined;
+    const rows = await odoo.getPosList(domain);
+    res.json({ count: rows.length, posList: rows });
+  } catch (err) {
+    logger.error('Failed to fetch POS list', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Store Oracle Metadata endpoints ───────────────────────────────────────────

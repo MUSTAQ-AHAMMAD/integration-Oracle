@@ -38,6 +38,11 @@ const PATHS = {
   saleDetail   : '/api/vSales/Sale_detail',
   posOrderLine : '/api/vSales/PosOrderLine',
   paymentLines : '/api/vSales/payment_lines',
+  products     : '/api/vItems/Productlist',
+  uom          : '/api/vuom_id/UOM/',
+  branches     : '/api/vOutlets/Bracnhes',
+  companies    : '/api/vOutlets/Companies',
+  posList      : '/api/vOutlets/poslist',
 };
 
 /**
@@ -79,7 +84,7 @@ class OdooRestClient {
    * @param {string} authType  'x-api-key' | 'bearer'
    * @param {string} apiKey    The API key / bearer token value
    * @param {object} [paths]   Optional custom endpoint paths to override defaults.
-   *                           { saleDetail, posOrderLine, paymentLines }
+   *                           { saleDetail, posOrderLine, paymentLines, products, uom, branches, companies, posList }
    *                           e.g. { saleDetail: '/api/custom/Sales', posOrderLine: '/api/custom/Lines' }
    */
   constructor(url, authType, apiKey, paths) {
@@ -93,6 +98,11 @@ class OdooRestClient {
       saleDetail  : (paths && paths.saleDetail)   || PATHS.saleDetail,
       posOrderLine: (paths && paths.posOrderLine)  || PATHS.posOrderLine,
       paymentLines: (paths && paths.paymentLines)  || PATHS.paymentLines,
+      products    : (paths && paths.products)      || PATHS.products,
+      uom         : (paths && paths.uom)           || PATHS.uom,
+      branches    : (paths && paths.branches)      || PATHS.branches,
+      companies   : (paths && paths.companies)     || PATHS.companies,
+      posList     : (paths && paths.posList)       || PATHS.posList,
     };
 
     const authHeader = this.authType === 'bearer'
@@ -425,6 +435,91 @@ class OdooRestClient {
     const rows = await this._get(this.paths.posOrderLine, { domain: domainToString(domain) });
     logger.info('REST: fetched order lines by line IDs', { count: rows.length });
     return rows.map(r => this._normaliseOrderLine(r));
+  }
+
+  // ── Reference data endpoints (mirrors Java VendhqItemMeta / VendhqOutletsDB) ─
+
+  /**
+   * Fetch the product catalogue from Odoo.
+   * Java middleware: VendhqItemMeta table – provides SKU (default_code), UOM name,
+   * description for each product.  Used to populate ItemNumber and UomCode fields
+   * in Oracle invoice lines and inventory transactions.
+   *
+   * Endpoint: /api/vItems/Productlist
+   *
+   * @param {Array} [domain]  Optional domain filter
+   * @returns {object[]} raw product rows
+   */
+  async getProducts(domain) {
+    logger.debug('REST: fetching product catalogue');
+    const params = domain ? { domain: domainToString(domain) } : {};
+    const rows = await this._get(this.paths.products, params);
+    logger.info('REST: fetched products', { count: rows.length });
+    return rows;
+  }
+
+  /**
+   * Fetch the UOM (Unit of Measure) list from Odoo.
+   * Java middleware: FusionUomService.getUomCode(uomName) – maps UOM names to
+   * the UOM codes that Oracle Fusion expects in InvoiceLine.UomCode and
+   * TransactionLine.TransactionUnitOfMeasure.
+   *
+   * Endpoint: /api/vuom_id/UOM/
+   *
+   * @returns {object[]} raw UOM rows
+   */
+  async getUomList() {
+    logger.debug('REST: fetching UOM list');
+    const rows = await this._get(this.paths.uom, {});
+    logger.info('REST: fetched UOM records', { count: rows.length });
+    return rows;
+  }
+
+  /**
+   * Fetch outlet / branch data from Odoo.
+   * Java middleware: VendhqOutletsDB table – provides outletName, currency, region.
+   *
+   * Endpoint: /api/vOutlets/Bracnhes
+   *
+   * @returns {object[]} raw branch rows
+   */
+  async getBranches() {
+    logger.debug('REST: fetching branches');
+    const rows = await this._get(this.paths.branches, {});
+    logger.info('REST: fetched branches', { count: rows.length });
+    return rows;
+  }
+
+  /**
+   * Fetch company data from Odoo.
+   * Java middleware: used for business unit / organisation mapping.
+   *
+   * Endpoint: /api/vOutlets/Companies
+   *
+   * @returns {object[]} raw company rows
+   */
+  async getCompanies() {
+    logger.debug('REST: fetching companies');
+    const rows = await this._get(this.paths.companies, {});
+    logger.info('REST: fetched companies', { count: rows.length });
+    return rows;
+  }
+
+  /**
+   * Fetch POS configuration list from Odoo.
+   * Provides POS session / terminal details for store metadata auto-population.
+   *
+   * Endpoint: /api/vOutlets/poslist
+   *
+   * @param {Array} [domain]  Optional domain filter, e.g. [['id','=',3571]]
+   * @returns {object[]} raw POS config rows
+   */
+  async getPosList(domain) {
+    logger.debug('REST: fetching POS list');
+    const params = domain ? { domain: domainToString(domain) } : {};
+    const rows = await this._get(this.paths.posList, params);
+    logger.info('REST: fetched POS configs', { count: rows.length });
+    return rows;
   }
 
   /**

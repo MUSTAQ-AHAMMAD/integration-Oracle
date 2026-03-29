@@ -359,6 +359,18 @@ function upsertSaleLines(lines) {
 }
 
 /**
+ * Update item_number for a single sale line by its Odoo line ID.
+ * Used during product catalogue enrichment to fill in missing SKU/default_code.
+ * @param {number} odooLineId
+ * @param {string} itemNumber
+ */
+function updateSaleLineItemNumber(odooLineId, itemNumber) {
+  getDb().prepare(
+    'UPDATE odoo_sale_lines SET item_number = ? WHERE odoo_line_id = ? AND (item_number IS NULL OR item_number = "")'
+  ).run(itemNumber, odooLineId);
+}
+
+/**
  * Upsert a batch of sale payment records.
  * Mirrors middleware BackupVendhqPayments.
  * @param {object[]} payments
@@ -1215,6 +1227,7 @@ module.exports = {
   getDb,
   upsertSales,
   upsertSaleLines,
+  updateSaleLineItemNumber,
   upsertSalePayments,
   querySalePayments,
   querySaleLines,
