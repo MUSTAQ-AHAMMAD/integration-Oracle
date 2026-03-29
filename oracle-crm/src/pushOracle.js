@@ -208,6 +208,11 @@ class OraclePushService {
             applySuccess = true;
             break;
           } catch (applyErr) {
+            // Auth failures are not transient – stop retrying immediately
+            const applyStatus = applyErr.response ? applyErr.response.status : null;
+            if (applyStatus === 401 || applyStatus === 403) {
+              throw applyErr;   // bubble up to the outer catch for proper auth-failed handling
+            }
             if (attempt < APPLY_RECEIPT_MAX_RETRIES) {
               // Round after decrement to avoid floating-point drift over 50 iterations
               applyAmount = Math.round((applyAmount - APPLY_RECEIPT_DECREMENT) * 100) / 100;
@@ -402,23 +407,35 @@ class OraclePushService {
       const lastOkStep = log.filter(s => s.status === 'ok').pop();
       const failedAfter = lastOkStep ? lastOkStep.step : '(before first API call)';
 
-      // Build a detailed message including request details when Oracle returns
-      // an empty body (common with 400 errors for missing/invalid fields).
       let msg;
+      let authFailed = false;
       if (err.response) {
+        const status   = err.response.status;
         const respBody = err.response.data;
-        const bodyStr = respBody && typeof respBody === 'object'
+        const bodyStr  = respBody && typeof respBody === 'object'
           ? JSON.stringify(respBody)
           : JSON.stringify(respBody);
         const reqUrl   = err.config ? err.config.url : 'unknown';
         const reqData  = err.config && err.config.data
           ? (typeof err.config.data === 'string' ? err.config.data.substring(0, 500) : JSON.stringify(err.config.data).substring(0, 500))
           : '';
-        const emptyHint = (!respBody || respBody === '')
-          ? '. Empty response body typically means a required field is missing or has an invalid value. Check BillToCustomerName, BillToAccountNumber, BusinessUnit, TransactionSource, TransactionType, PaymentTermsName, InvoiceCurrencyCode, and invoice line items.'
-          : '';
-        msg = `Oracle API error ${err.response.status} (after ${failedAfter}): ${bodyStr}${emptyHint}`;
-        step('ERROR', 'failed', { message: msg, requestUrl: reqUrl, requestPayload: reqData });
+
+        // 401/403 → authentication / authorisation failure – provide a clear,
+        // actionable hint instead of the generic "check fields" message.
+        if (status === 401 || status === 403) {
+          authFailed = true;
+          msg = `Oracle API authentication failed (HTTP ${status}, after ${failedAfter}). `
+            + 'Verify that the Oracle Fusion username and password configured on the '
+            + 'Configuration page are correct and that the account is not locked or expired.';
+        } else {
+          // Build a detailed message including request details when Oracle returns
+          // an empty body (common with 400 errors for missing/invalid fields).
+          const emptyHint = (!respBody || respBody === '')
+            ? '. Empty response body typically means a required field is missing or has an invalid value. Check BillToCustomerName, BillToAccountNumber, BusinessUnit, TransactionSource, TransactionType, PaymentTermsName, InvoiceCurrencyCode, and invoice line items.'
+            : '';
+          msg = `Oracle API error ${status} (after ${failedAfter}): ${bodyStr}${emptyHint}`;
+        }
+        step('ERROR', 'failed', { message: msg, requestUrl: reqUrl, requestPayload: reqData, httpStatus: status });
       } else {
         msg = `${err.message} (after ${failedAfter})`;
         step('ERROR', 'failed', { message: msg });
@@ -430,6 +447,7 @@ class OraclePushService {
         steps   : log,
         errors,
         preview : null,
+        authFailed,
       };
     }
   }
