@@ -569,11 +569,19 @@ class OdooRestClient {
     const currencyId = r.currency_id ?? false;
     // Capture the POS order ID separately for direct sale-to-payment linking.
     // pos.payment records use pos_order_id to reference the parent POS order.
-    const posOrderId = r.pos_order_id ?? r.order_id ?? null;
+    // The REST API may return pos_order_id as [id, name] tuple – extract the numeric ID.
+    const rawPosOrder = r.pos_order_id ?? r.order_id ?? null;
+    const posOrderId  = Array.isArray(rawPosOrder) ? rawPosOrder[0] : rawPosOrder;
+    // Extract the POS order name (e.g. "CCNTRBHR/81534") for invoice_number fallback
+    const posOrderName = Array.isArray(rawPosOrder) ? rawPosOrder[1] : null;
+    // Extract session name (register label) from session_id [id, name] tuple
+    const sessionName  = Array.isArray(r.session_id) ? r.session_id[1] : (r.session_id || null);
+    // Extract company name from company_id [id, name] tuple
+    const companyName  = Array.isArray(r.company_id) ? r.company_id[1] : (r.company_id || null);
 
     return {
       id,
-      name        : r.name         ?? r.payment_ref ?? `PMT-${id}`,
+      name        : r.name         ?? r.payment_ref ?? posOrderName ?? `PMT-${id}`,
       payment_type: r.payment_type ?? 'inbound',
       amount      : Number(r.amount ?? 0),
       date        : r.date         ?? r.payment_date ?? r.create_date ?? '',
@@ -583,6 +591,8 @@ class OdooRestClient {
       state       : r.state ?? 'posted',
       move_id     : Array.isArray(moveId) ? moveId : [moveId, ''],
       pos_order_id: posOrderId,
+      session_name: sessionName,
+      company_name: companyName,
       _raw        : r,
     };
   }

@@ -186,6 +186,8 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     const allPaymentIdSet = new Set();      // payment IDs from sale headers (REST `payment_ids` field)
     // Map payment ID → Odoo order ID for direct linking when fetching by payment ID
     const paymentIdToOrderId = new Map();
+    // Map Odoo order ID → date_order for payment_date fallback (REST payment_lines may lack date)
+    const orderDateMap = new Map();
 
     jobLog(jobId, 'info', 'Fetching sales orders from Odoo (paginated)…', {
       pageSize: FETCH_PAGE_SIZE, domain,
@@ -237,6 +239,8 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
 
       for (const o of page) {
         allOrderIdSet.add(o.id);
+        // Track order date for payment_date fallback (REST payment_lines may lack date)
+        orderDateMap.set(o.id, extractDate(o.date_order));
         // Collect line IDs and payment IDs provided by Sale_detail response
         if (Array.isArray(o.order_line)) {
           for (const lid of o.order_line) { if (typeof lid === 'number') allLineIdSet.add(lid); }
@@ -436,6 +440,14 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
           const orderIdFromHeader = paymentIdToOrderId.get(p.id) || null;
           const posOrderId = orderIdFromHeader || p.pos_order_id || null;
           const saleId     = posOrderId != null ? (internalIdMap.get(posOrderId) ?? null) : null;
+          // payment_date: prefer the payment's own date; fall back to the linked
+          // sale's date_order (REST payment_lines may not include a date field).
+          const paymentDate = extractDate(p.date)
+            || (posOrderId != null ? orderDateMap.get(posOrderId) : null)
+            || null;
+          // outlet_name: prefer partner_id name, then company_name from normalisation
+          const outletName = (Array.isArray(p.partner_id) ? p.partner_id[1] : null)
+            || p.company_name || null;
           return {
             sale_id        : saleId,
             invoice_number : p.name || '',
@@ -443,9 +455,9 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
             payment_type   : journalLabel,
             amount         : Number(p.amount)   || 0,
             currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
-            payment_date   : extractDate(p.date) || null,
-            outlet_name    : Array.isArray(p.partner_id) ? p.partner_id[1] : null,
-            register_name  : null,
+            payment_date   : paymentDate,
+            outlet_name    : outletName,
+            register_name  : p.session_name || null,
             region         : country || null,
             fetched_at     : now,
           };
@@ -1129,6 +1141,9 @@ async function fetchPaymentsForSale(sale) {
 
     paymentRows = rawPayments.map(p => {
       const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
+      // outlet_name: prefer partner_id name, then company_name from normalisation, then sale store
+      const outletName = (Array.isArray(p.partner_id) ? p.partner_id[1] : null)
+        || p.company_name || sale.store_name || null;
       return {
         sale_id        : sale.id,
         invoice_number : p.name || sale.name || '',
@@ -1136,9 +1151,9 @@ async function fetchPaymentsForSale(sale) {
         payment_type   : journalLabel,
         amount         : Number(p.amount) || 0,
         currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
-        payment_date   : extractDate(p.date) || null,
-        outlet_name    : sale.store_name || null,
-        register_name  : sale.register_name || null,
+        payment_date   : extractDate(p.date) || sale.date_order || null,
+        outlet_name    : outletName,
+        register_name  : p.session_name || sale.register_name || null,
         region         : sale.country || null,
         fetched_at     : now,
       };

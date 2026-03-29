@@ -371,22 +371,26 @@ function querySalePayments({ invoiceNumber, dateFrom, dateTo, region, saleId, li
   const conditions = [];
   const params     = {};
 
-  if (invoiceNumber) { conditions.push('invoice_number = @invoiceNumber'); params.invoiceNumber = invoiceNumber; }
-  if (dateFrom)      { conditions.push('substr(payment_date, 1, 10) >= @dateFrom'); params.dateFrom = dateFrom; }
-  if (dateTo)        { conditions.push('substr(payment_date, 1, 10) <= @dateTo');   params.dateTo   = dateTo;   }
-  if (region)        { conditions.push('region = @region');                 params.region        = region;   }
-  if (saleId)        { conditions.push('sale_id = @saleId');               params.saleId        = saleId;   }
+  // Use COALESCE to fall back to the linked sale's date_order when payment_date
+  // is NULL (e.g. REST payment_lines API responses that lack a date field).
+  const dateExpr = "COALESCE(substr(p.payment_date, 1, 10), s.date_order)";
+
+  if (invoiceNumber) { conditions.push('p.invoice_number = @invoiceNumber'); params.invoiceNumber = invoiceNumber; }
+  if (dateFrom)      { conditions.push(`${dateExpr} >= @dateFrom`); params.dateFrom = dateFrom; }
+  if (dateTo)        { conditions.push(`${dateExpr} <= @dateTo`);   params.dateTo   = dateTo;   }
+  if (region)        { conditions.push('p.region = @region');                 params.region        = region;   }
+  if (saleId)        { conditions.push('p.sale_id = @saleId');               params.saleId        = saleId;   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   params.limit  = limit;
   params.offset = offset;
 
   const rows = db.prepare(
-    `SELECT * FROM odoo_sale_payments ${where} ORDER BY payment_date DESC, id DESC LIMIT @limit OFFSET @offset`
+    `SELECT p.* FROM odoo_sale_payments p LEFT JOIN odoo_sales s ON p.sale_id = s.id ${where} ORDER BY p.payment_date DESC, p.id DESC LIMIT @limit OFFSET @offset`
   ).all(params);
 
   const total = db.prepare(
-    `SELECT COUNT(*) AS cnt FROM odoo_sale_payments ${where}`
+    `SELECT COUNT(*) AS cnt FROM odoo_sale_payments p LEFT JOIN odoo_sales s ON p.sale_id = s.id ${where}`
   ).get(params).cnt;
 
   return { rows, total };
