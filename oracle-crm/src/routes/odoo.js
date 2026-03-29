@@ -505,4 +505,68 @@ router.get('/config', (req, res) => {
   });
 });
 
+// ── Store Oracle Metadata endpoints ───────────────────────────────────────────
+
+/** GET /api/odoo/store-metadata – list all store Oracle metadata configs */
+router.get('/store-metadata', (req, res) => {
+  try {
+    const rows = db.listStoreOracleMetadata();
+    // Parse JSON fields for the API consumer
+    const parsed = rows.map(r => ({
+      ...r,
+      receipt_method_meta: r.receipt_method_meta ? JSON.parse(r.receipt_method_meta) : null,
+      journal_meta       : r.journal_meta        ? JSON.parse(r.journal_meta)        : null,
+      uom_code_map       : r.uom_code_map        ? JSON.parse(r.uom_code_map)        : null,
+    }));
+    res.json(parsed);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /api/odoo/store-metadata/:storeId – get metadata for one store */
+router.get('/store-metadata/:storeId', (req, res) => {
+  try {
+    const row = db.getStoreOracleMetadata(req.params.storeId);
+    if (!row) return res.status(404).json({ error: 'No metadata configured for this store' });
+    res.json({
+      ...row,
+      receipt_method_meta: row.receipt_method_meta ? JSON.parse(row.receipt_method_meta) : null,
+      journal_meta       : row.journal_meta        ? JSON.parse(row.journal_meta)        : null,
+      uom_code_map       : row.uom_code_map        ? JSON.parse(row.uom_code_map)        : null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** PUT /api/odoo/store-metadata/:storeId – create or update store metadata */
+router.put('/store-metadata/:storeId', (req, res) => {
+  const storeId = Number(req.params.storeId);
+  if (!storeId || isNaN(storeId)) return badRequest(res, 'storeId must be a valid number');
+
+  try {
+    db.upsertStoreOracleMetadata({ storeId, ...req.body });
+    const saved = db.getStoreOracleMetadata(storeId);
+    res.json({
+      ...saved,
+      receipt_method_meta: saved.receipt_method_meta ? JSON.parse(saved.receipt_method_meta) : null,
+      journal_meta       : saved.journal_meta        ? JSON.parse(saved.journal_meta)        : null,
+      uom_code_map       : saved.uom_code_map        ? JSON.parse(saved.uom_code_map)        : null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** DELETE /api/odoo/store-metadata/:storeId – remove store metadata */
+router.delete('/store-metadata/:storeId', (req, res) => {
+  try {
+    db.deleteStoreOracleMetadata(req.params.storeId);
+    res.json({ deleted: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
