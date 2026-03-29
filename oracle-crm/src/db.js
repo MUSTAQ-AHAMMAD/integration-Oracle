@@ -366,7 +366,7 @@ function upsertSaleLines(lines) {
  */
 function updateSaleLineItemNumber(odooLineId, itemNumber) {
   getDb().prepare(
-    'UPDATE odoo_sale_lines SET item_number = ? WHERE odoo_line_id = ? AND (item_number IS NULL OR item_number = "")'
+    "UPDATE odoo_sale_lines SET item_number = ? WHERE odoo_line_id = ? AND (item_number IS NULL OR item_number = '')"
   ).run(itemNumber, odooLineId);
 }
 
