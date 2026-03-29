@@ -57,7 +57,7 @@
 
 const express       = require('express');
 const router        = express.Router();
-const { startFetchJob, startPushJob, startRetryJob, getOdooStores, buildOracleSalePayload } = require('../odooSync');
+const { startFetchJob, startPushJob, startRetryJob, getOdooStores, buildOracleSalePayload, fetchPaymentsForSale } = require('../odooSync');
 const { computeSalePreview } = require('../calculations');
 const db            = require('../db');
 const logger        = require('../logger').child('OdooRoutes');
@@ -410,13 +410,34 @@ router.get('/sale-lines', (req, res) => {
 // ── GET /api/odoo/sales/:id/preview ───────────────────────────────────────────
 // Return a complete sale detail with lines, payments, and Oracle payload preview.
 // Used by the data verification modal in the UI.
-router.get('/sales/:id/preview', (req, res) => {
+//
+// When the sale has no locally-stored payments, the endpoint automatically calls
+// the Odoo payment API (payment_lines / account.payment) using the sale's order
+// ID to fetch and persist the payment details.  Pass ?fetchPayments=true to force
+// a live refresh even when local payments already exist.
+router.get('/sales/:id/preview', async (req, res) => {
   const id = Number(req.params.id);
   if (!id || isNaN(id)) return badRequest(res, 'Invalid sale id');
 
   try {
     const sale = db.getSaleWithLines(id);
     if (!sale) return res.status(404).json({ error: 'Sale not found' });
+
+    // ── Live-fetch payments from Odoo when local DB has none ────────────────
+    const forceFetch = req.query.fetchPayments === 'true';
+    const hasLocalPayments = Array.isArray(sale.payments) && sale.payments.length > 0;
+
+    if ((forceFetch || !hasLocalPayments) && sale.odoo_id) {
+      try {
+        const fetched = await fetchPaymentsForSale(sale);
+        if (fetched.length > 0) {
+          sale.payments = fetched;
+        }
+      } catch (payErr) {
+        logger.warn('Live payment fetch failed for sale %d: %s', id, payErr.message);
+        // Continue with whatever local payments exist (may be empty)
+      }
+    }
 
     // Build Oracle payload preview using optional metadata from query params
     let oraclePreview = null;

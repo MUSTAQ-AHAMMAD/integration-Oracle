@@ -1003,10 +1003,89 @@ async function getOdooStores() {
   return odoo.getStores();
 }
 
+// ── On-demand payment fetch for a single sale ────────────────────────────────
+
+/**
+ * Fetch payment details from Odoo for a single sale and persist them locally.
+ *
+ * Used by the sale preview endpoint (`GET /api/odoo/sales/:id/preview`) when
+ * no locally-stored payments exist, or when the caller explicitly requests a
+ * live refresh.  The function builds an Odoo client appropriate for the sale's
+ * country, authenticates, fetches payments via the same API endpoints used by
+ * the batch fetch job, and upserts them into `odoo_sale_payments`.
+ *
+ * @param {object} sale  Sale record from the local DB – must include at least
+ *                       `id`, `odoo_id`, `name`, and optionally `country`,
+ *                       `store_name`, `register_name`, `raw_json`.
+ * @returns {object[]}   The fetched payment rows (in DB column format).
+ */
+async function fetchPaymentsForSale(sale) {
+  if (!sale || !sale.odoo_id) return [];
+
+  const odoo = buildOdooClient(sale.country || null);
+  await odoo.authenticate();
+
+  const now = new Date().toISOString();
+  let paymentRows = [];
+
+  if (odoo instanceof OdooRestClient) {
+    // REST path: query payment_lines by the POS order ID
+    const rawPayments = await odoo.getPaymentsByOrderIds([sale.odoo_id]);
+    paymentRows = rawPayments.map(p => {
+      const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
+      return {
+        sale_id        : sale.id,
+        invoice_number : p.name || sale.name || '',
+        odoo_payment_id: p.id,
+        payment_type   : journalLabel,
+        amount         : Number(p.amount) || 0,
+        currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
+        payment_date   : extractDate(p.date) || null,
+        outlet_name    : sale.store_name || null,
+        register_name  : sale.register_name || null,
+        region         : sale.country || null,
+        fetched_at     : now,
+      };
+    });
+  } else {
+    // JSONRPC path: extract invoice_ids from the stored raw Odoo response,
+    // then fetch account.payment records linked to those invoices.
+    let invoiceIds = [];
+    try {
+      const raw = sale.raw_json ? JSON.parse(sale.raw_json) : {};
+      invoiceIds = Array.isArray(raw.invoice_ids) ? raw.invoice_ids : [];
+    } catch (_) { /* ignore JSON parse errors */ }
+
+    if (invoiceIds.length > 0) {
+      const rawPayments = await odoo.getOrderPayments(invoiceIds);
+      paymentRows = rawPayments.map(p => ({
+        sale_id        : sale.id,
+        invoice_number : sale.name || '',
+        odoo_payment_id: p.id,
+        payment_type   : Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown'),
+        amount         : Number(p.amount) || 0,
+        currency       : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
+        payment_date   : extractDate(p.date) || null,
+        outlet_name    : sale.store_name || null,
+        register_name  : sale.register_name || null,
+        region         : sale.country || null,
+        fetched_at     : now,
+      }));
+    }
+  }
+
+  if (paymentRows.length > 0) {
+    db.upsertSalePayments(paymentRows);
+  }
+
+  return paymentRows;
+}
+
 module.exports = {
   startFetchJob,
   startPushJob,
   startRetryJob,
   getOdooStores,
   buildOracleSalePayload,
+  fetchPaymentsForSale,
 };
