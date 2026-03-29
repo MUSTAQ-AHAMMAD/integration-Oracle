@@ -134,9 +134,15 @@ class OraclePushService {
       step('invoicePayload', 'debug', {
         lineCount: invoiceLines.length,
         billToName: metadata.billToName,
+        billToAccount: metadata.billToAccount,
+        siteNumber: metadata.siteNumber,
         businessUnit: metadata.businessUnit,
+        txnSource: metadata.txnSource,
+        txnType: metadata.txnType,
         currency: outlet.currency,
+        conversionRateType: invoicePayload.ConversionRateType,
         paymentTermsName,
+        orgId: metadata.orgId,
         date: dateStr,
       });
 
@@ -179,7 +185,10 @@ class OraclePushService {
           DepositDate            : dateStr,
           ReceiptMethodId        : meta.receiptMethodId,
           ReceiptNumber          : `${paymentType}-${transactionNumber}`,
-          RemittanceBankAccountId: meta.bankAccountId,
+          // Java FusionStdReceiptMapping: receiptIsCash ? cashAccountId : bankAccountId
+          RemittanceBankAccountId: meta.receiptIsCash
+            ? (meta.cashAccountId || meta.bankAccountId)
+            : (meta.bankAccountId || meta.cashAccountId),
           CustomerId             : customerId,
           OrgId                  : meta.orgId || metadata.orgId,
           Amount: { CurrencyCode: outlet.currency, Value: netAmount },
@@ -431,7 +440,11 @@ class OraclePushService {
           // Build a detailed message including request details when Oracle returns
           // an empty body (common with 400 errors for missing/invalid fields).
           const emptyHint = (!respBody || respBody === '')
-            ? '. Empty response body typically means a required field is missing or has an invalid value. Check BillToCustomerName, BillToAccountNumber, BusinessUnit, TransactionSource, TransactionType, PaymentTermsName, InvoiceCurrencyCode, and invoice line items.'
+            ? '. Empty response body typically means a required field is missing or has an invalid value.'
+              + ' Verify these required fields match your Oracle Fusion configuration:'
+              + ' BillToCustomerName, BillToAccountNumber, BusinessUnit, TransactionSource,'
+              + ' TransactionType, PaymentTermsName, InvoiceCurrencyCode, ConversionRateType,'
+              + ' and invoice line items (ItemNumber, Quantity, UomCode, UnitSellingPrice).'
             : '';
           msg = `Oracle API error ${status} (after ${failedAfter}): ${bodyStr}${emptyHint}`;
         }

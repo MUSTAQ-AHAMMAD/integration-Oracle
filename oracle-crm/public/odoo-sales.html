@@ -696,6 +696,23 @@
                 <small class="text-muted">FusionSalesMetadata.getTxnType() — TransactionType on invoice header</small>
               </div>
               <div class="form-group">
+                <label class="form-label">Payment Terms Name</label>
+                <input type="text" id="push-payment-terms" class="form-control" placeholder="e.g. Immediate">
+                <small class="text-muted">FusionCustomerProfileClient.getPaymentTerms() — PaymentTermsName on invoice. If empty, auto-looked up from Oracle customer profile.</small>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="push-rate-corporate">
+                  <span>Corporate Conversion Rate</span>
+                </label>
+                <small class="text-muted">FusionSalesMetadata.getRateIsCorporate() — When checked, ConversionRateType = "Corporate"; otherwise "User"</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Org ID (Business Unit ID)</label>
+                <input type="number" id="push-org-id" class="form-control" placeholder="e.g. 300000001001000">
+                <small class="text-muted">session.getFusionBusinessUnitIdMap.findByRegion() — OrgId for receipts. Required for Standard and Miscellaneous receipts.</small>
+              </div>
+              <div class="form-group">
                 <label class="form-label">Cost Center Code</label>
                 <input type="text" id="push-cost-center" class="form-control" placeholder="e.g. CC-001">
                 <small class="text-muted">Segment 4 in journal entry lines (FusionJournalEntryMapping line 100)</small>
@@ -749,12 +766,39 @@
                   <input type="number" id="push-receipt-method-id" class="form-control" placeholder="e.g. 10001">
                   <small class="text-muted">FusionReceiptMethod.getReceiptMethodId() — applies to the default payment type above</small>
                 </div>
+                <div class="form-group">
+                  <label class="form-label">Receipt Method Name</label>
+                  <input type="text" id="push-receipt-method-name" class="form-control" placeholder="e.g. Cash">
+                  <small class="text-muted">FusionMiscReceiptMapping: ReceiptMethodName on miscellaneous receipts</small>
+                </div>
+                <div class="form-group">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                    <input type="checkbox" id="push-receipt-is-cash">
+                    <span>Is Cash Payment</span>
+                  </label>
+                  <small class="text-muted">FusionReceiptMethod.getReceiptIsCash() — When checked, uses Cash Account ID instead of Bank Account ID for RemittanceBankAccountId (FusionStdReceiptMapping)</small>
+                </div>
               </div>
               <div>
                 <div class="form-group">
-                  <label class="form-label">Remittance Bank Account ID</label>
+                  <label class="form-label">Bank Account ID (non-cash)</label>
                   <input type="number" id="push-bank-account-id" class="form-control" placeholder="e.g. 20001">
-                  <small class="text-muted">VendhqRegisters.getBankAccountId() — RemittanceBankAccountId on standard receipt</small>
+                  <small class="text-muted">VendhqRegisters.getBankAccountId() — RemittanceBankAccountId for non-cash payments</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Cash Account ID</label>
+                  <input type="number" id="push-cash-account-id" class="form-control" placeholder="e.g. 20002">
+                  <small class="text-muted">VendhqRegisters.getCashAccountId() — RemittanceBankAccountId for cash payments</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bank Account Name</label>
+                  <input type="text" id="push-bank-account-name" class="form-control" placeholder="e.g. Main Cash Account">
+                  <small class="text-muted">VendhqRegisters.getBankAccount() — RemittanceBankAccountName on miscellaneous receipts</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Receivable Activity Name</label>
+                  <input type="text" id="push-receivable-activity" class="form-control" placeholder="e.g. Bank Charges">
+                  <small class="text-muted">FusionSalesMetadata.getRecActivityNameBank() — ReceivableActivityName on misc receipts</small>
                 </div>
               </div>
             </div>
@@ -1484,15 +1528,27 @@ $('btn-push').addEventListener('click', async () => {
   // receiptMethodMeta maps the payment type to bank charge rates so that
   // calculateMiscCharges() and netReceiptAmount() run with the correct rates
   // (identical to the VendHQ middleware path).
+  // Also carries receipt-method and bank-account fields required by
+  // FusionStdReceiptMapping and FusionMiscReceiptMapping.
   const receiptMethodMeta = {};
   if (paymentType) {
-    const receiptMethodId = parseInt($('push-receipt-method-id').value) || undefined;
-    const bankAccountId   = parseInt($('push-bank-account-id').value)   || undefined;
+    const receiptMethodId   = parseInt($('push-receipt-method-id').value)  || undefined;
+    const receiptMethodName = ($('push-receipt-method-name').value || '').trim() || undefined;
+    const receiptIsCash     = $('push-receipt-is-cash').checked;
+    const bankAccountId     = parseInt($('push-bank-account-id').value)   || undefined;
+    const cashAccountId     = parseInt($('push-cash-account-id').value)   || undefined;
+    const bankAccountName   = ($('push-bank-account-name').value  || '').trim() || undefined;
+    const receivableActivityName = ($('push-receivable-activity').value || '').trim() || undefined;
     receiptMethodMeta[paymentType] = {
       bankChargeRate  : bankChargeRaw / 100,
       methodTax       : methodTaxRaw  / 100,
       receiptMethodId,
+      receiptMethodName,
+      receiptIsCash,
       bankAccountId,
+      cashAccountId,
+      bankAccountName,
+      receivableActivityName,
     };
   }
 
@@ -1503,6 +1559,9 @@ $('btn-push').addEventListener('click', async () => {
   const businessUnit  = ($('push-business-unit').value   || 'DEFAULT_BU').trim();
   const txnSource     = ($('push-txn-source').value      || 'ODOO_SALES').trim();
   const txnType       = ($('push-txn-type').value        || 'Invoice').trim();
+  const paymentTermsName = ($('push-payment-terms').value || '').trim() || null;
+  const rateIsCorporate  = $('push-rate-corporate').checked ? '1' : '0';
+  const orgId         = parseInt($('push-org-id').value)  || null;
   const costCenterCode= ($('push-cost-center').value     || '').trim() || null;
 
   // ── Journal entry configuration (FusionJournalEntryMapping) ──────────
@@ -1555,6 +1614,7 @@ $('btn-push').addEventListener('click', async () => {
     customerType,
     region,
     tzOffset,
+    rateIsCorporate,
     taxName,
     journalMeta,
     // ── Oracle invoice header fields (FusionInvoiceMapping) ───────────────
@@ -1564,7 +1624,9 @@ $('btn-push').addEventListener('click', async () => {
     businessUnit,
     txnSource,
     txnType,
-    ...(costCenterCode && { costCenterCode }),
+    ...(paymentTermsName && { paymentTermsName }),
+    ...(orgId            && { orgId }),
+    ...(costCenterCode   && { costCenterCode }),
   };
 
   hideAlert($('alert-area'));
