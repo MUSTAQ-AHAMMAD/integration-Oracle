@@ -710,7 +710,7 @@
               <div class="form-group">
                 <label class="form-label">Org ID (Business Unit ID)</label>
                 <input type="number" id="push-org-id" class="form-control" placeholder="e.g. 300000001001000">
-                <small class="text-muted">session.getFusionBusinessUnitIdMapfindByRegion() — OrgId for receipts. Required for Standard and Miscellaneous receipts.</small>
+                <small class="text-muted">session.getFusionBusinessUnitIdMap.findByRegion() — OrgId for receipts. Required for Standard and Miscellaneous receipts.</small>
               </div>
               <div class="form-group">
                 <label class="form-label">Cost Center Code</label>
@@ -1545,7 +1545,7 @@ $('btn-push').addEventListener('click', async () => {
       receiptMethodId,
       receiptMethodName,
       receiptIsCash,
-      bankAccountId   : receiptIsCash ? cashAccountId : bankAccountId,
+      bankAccountId,
       cashAccountId,
       bankAccountName,
       receivableActivityName,
