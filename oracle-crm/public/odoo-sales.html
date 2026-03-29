@@ -1194,6 +1194,8 @@ const PAGE_SIZE    = 50;
 (async function init() {
   setDefaultDates();
   await Promise.all([checkOdooConfig(), loadStores(), loadGlobalTzOffset()]);
+  populateStoreMetaDropdown();
+  loadStoreMetaTable();
   loadJobs();
   loadLastPush();
   loadSales();       // auto-load stored sales on page init
@@ -1814,9 +1816,6 @@ $('sm-save-btn').addEventListener('click', async () => {
   }
 });
 
-// Initialise store metadata on page load (after stores are loaded)
-setTimeout(() => { populateStoreMetaDropdown(); loadStoreMetaTable(); }, 500);
-
 // ── Push section ─────────────────────────────────────────────────────
 document.querySelectorAll('.mode-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -1855,7 +1854,13 @@ $('push-store').addEventListener('change', async () => {
     if (r.default_payment_type) $('push-payment-type').value  = r.default_payment_type;
     if (r.tax_name)           $('push-tax-name').value        = r.tax_name;
     showAlert($('alert-area'), 'info', '✓ Auto-filled push form from stored config for store ' + escHtml(r.store_name || sid));
-  } catch(_) { /* no stored config – user enters manually or auto-resolved at push time */ }
+  } catch(e) {
+    // 404 = no stored config for this store (expected) – silently ignore.
+    // Other errors (network, 500) are shown so the user knows something is wrong.
+    if (e.message && !e.message.includes('404') && !e.message.includes('No metadata configured')) {
+      showAlert($('alert-area'), 'warning', 'Could not load store config: ' + escHtml(e.message));
+    }
+  }
 });
 
 $('btn-push').addEventListener('click', async () => {

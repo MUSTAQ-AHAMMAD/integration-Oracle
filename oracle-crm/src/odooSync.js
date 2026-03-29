@@ -665,13 +665,7 @@ async function _runPushJob(jobId, options) {
 
     // ── Pre-load store Oracle metadata for auto-mapping ─────────────────────
     // Cache keyed by store_id so we don't re-read the DB on every sale.
-    const _storeMetaCache = {};
-    function resolveStoreMetadata(saleStoreId) {
-      if (_storeMetaCache[saleStoreId] !== undefined) return _storeMetaCache[saleStoreId];
-      const row = saleStoreId ? db.getStoreOracleMetadata(saleStoreId) : null;
-      _storeMetaCache[saleStoreId] = row || null;
-      return _storeMetaCache[saleStoreId];
-    }
+    const resolveStoreMetadata = createStoreMetaResolver();
 
     const oracle    = buildOracleService(country);
     let processed   = 0;
@@ -863,13 +857,7 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
     }
 
     // ── Pre-load store Oracle metadata cache (same as _runPushJob) ─────────
-    const _storeMetaCache = {};
-    function resolveStoreMetadata(saleStoreId) {
-      if (_storeMetaCache[saleStoreId] !== undefined) return _storeMetaCache[saleStoreId];
-      const row = saleStoreId ? db.getStoreOracleMetadata(saleStoreId) : null;
-      _storeMetaCache[saleStoreId] = row || null;
-      return _storeMetaCache[saleStoreId];
-    }
+    const resolveStoreMetadata = createStoreMetaResolver();
 
     const oracle = buildOracleService();
     let authFailed = false;
@@ -1169,6 +1157,21 @@ function buildOracleSalePayload(sale, jobMeta, jobOutlet) {
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+
+/**
+ * Create a caching store-metadata resolver.
+ * Each call returns a function that looks up store_oracle_metadata by store_id
+ * and caches the result so the DB is hit at most once per store_id per job.
+ */
+function createStoreMetaResolver() {
+  const cache = {};
+  return function resolveStoreMetadata(saleStoreId) {
+    if (cache[saleStoreId] !== undefined) return cache[saleStoreId];
+    const row = saleStoreId ? db.getStoreOracleMetadata(saleStoreId) : null;
+    cache[saleStoreId] = row || null;
+    return cache[saleStoreId];
+  };
+}
 
 /**
  * Extract a clean YYYY-MM-DD date from a date/datetime string.
