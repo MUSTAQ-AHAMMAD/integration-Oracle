@@ -655,10 +655,11 @@ async function _runPushJob(jobId, options) {
     let processed   = 0;
     let failed      = 0;
     let dbOffset    = 0;
+    let authFailed  = false;   // set when Oracle returns 401/403
 
     // ── Paginated push – PUSH_BATCH_SIZE rows at a time ───────────────────────
     // Memory stays flat at O(PUSH_BATCH_SIZE) regardless of total order count.
-    while (dbOffset < total) {
+    while (dbOffset < total && !authFailed) {
       const { rows: batch } = db.querySales({
         ...filters,
         limit  : PUSH_BATCH_SIZE,
@@ -673,7 +674,9 @@ async function _runPushJob(jobId, options) {
       // ── Limited-concurrency fan-out within the batch ──────────────────────
       const chunks = chunkArray(batch, MAX_CONCURRENT);
       for (const chunk of chunks) {
+        if (authFailed) break;
         await Promise.all(chunk.map(async sale => {
+          if (authFailed) return;   // another sale in the chunk already detected auth failure
           try {
             const saleWithLines = db.getSaleWithLines(sale.id);
             const salePayload   = buildOracleSalePayload(saleWithLines, metadata, outlet);
@@ -714,6 +717,14 @@ async function _runPushJob(jobId, options) {
                 errorMessage: errMsg,
                 errorDetail : JSON.stringify(result.errors),
               });
+
+              // If Oracle rejected due to auth, abort remaining sales
+              if (result.authFailed) {
+                authFailed = true;
+                jobLog(jobId, 'error',
+                  'Oracle authentication failed – aborting remaining orders. ' +
+                  'Check credentials on the Configuration page.');
+              }
             }
           } catch (err) {
             failed++;
@@ -741,7 +752,7 @@ async function _runPushJob(jobId, options) {
       await new Promise(resolve => setImmediate(resolve));
     }
 
-    const finalStatus = processed === 0 && failed > 0 ? 'FAILED' : 'DONE';
+    const finalStatus = (processed === 0 && failed > 0) || authFailed ? 'FAILED' : 'DONE';
     db.updateJob(jobId, {
       status      : finalStatus,
       processed,
@@ -749,7 +760,9 @@ async function _runPushJob(jobId, options) {
       finished_at : new Date().toISOString(),
     });
     jobLog(jobId, 'info', `Push job finished – ${processed} pushed, ${failed} failed`);
-    if (failed > 0) {
+    if (authFailed) {
+      jobLog(jobId, 'error', 'Job aborted due to Oracle authentication failure.');
+    } else if (failed > 0) {
       jobLog(jobId, 'warn', `${failed} failed records saved for retry. Use GET /api/odoo/failed-records?jobId=${jobId} to view them.`);
     }
 
@@ -819,9 +832,10 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
     }
 
     const oracle = buildOracleService();
+    let authFailed = false;
 
     // Paginate to avoid loading all failures into memory at once
-    while (true) {
+    while (!authFailed) {
       const { rows: pending } = db.listFailedRecords({
         jobId : sourceJobId,
         status: 'PENDING',
@@ -833,7 +847,9 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
       // Process pending records with the same bounded concurrency as the main push job.
       const chunks = chunkArray(pending, MAX_CONCURRENT);
       for (const chunk of chunks) {
+        if (authFailed) break;
         await Promise.all(chunk.map(async record => {
+          if (authFailed) return;
           try {
             const internalId = db.getSaleInternalId(record.odoo_id);
             if (!internalId) {
@@ -866,6 +882,13 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
               jobLog(jobId, 'warn', `✗ Retry failed for ${record.sale_name}`, {
                 errors: result.errors,
               });
+
+              if (result.authFailed) {
+                authFailed = true;
+                jobLog(jobId, 'error',
+                  'Oracle authentication failed – aborting remaining retries. ' +
+                  'Check credentials on the Configuration page.');
+              }
             }
           } catch (err) {
             db.updateFailedRecord(record.id, 'PENDING');
@@ -882,7 +905,7 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
       await new Promise(resolve => setImmediate(resolve));
     }
 
-    const finalStatus = processed === 0 && failed > 0 ? 'FAILED' : 'DONE';
+    const finalStatus = (processed === 0 && failed > 0) || authFailed ? 'FAILED' : 'DONE';
     db.updateJob(jobId, {
       status      : finalStatus,
       processed,
@@ -890,6 +913,9 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
       finished_at : new Date().toISOString(),
     });
     jobLog(jobId, 'info', `Retry job finished – ${processed} resolved, ${failed} still failing`);
+    if (authFailed) {
+      jobLog(jobId, 'error', 'Retry job aborted due to Oracle authentication failure.');
+    }
 
   } catch (err) {
     logger.error('Retry job failed', { jobId, err: err.message, stack: err.stack });
