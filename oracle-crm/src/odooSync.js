@@ -319,10 +319,10 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       // line-fetch phase.  Failed chunks are logged and counted.
       const chunkResults = await Promise.all(
         group.map(idChunk => {
-          const fetchFn = useLineIds
+          const promise = useLineIds
             ? odoo.getLinesByIds(idChunk)
             : odoo.getSaleOrderLines(idChunk);
-          return fetchFn.catch(err => {
+          return promise.catch(err => {
             lineChunkErrs++;
             const label = useLineIds ? 'lines' : 'orders';
             jobLog(jobId, 'warn', `Line fetch chunk failed (${idChunk.length} ${label}): ${err.message}`);
