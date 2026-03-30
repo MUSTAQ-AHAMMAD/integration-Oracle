@@ -712,12 +712,12 @@
                 <div class="form-group">
                   <label class="form-label">Bank Charge Rate (%)</label>
                   <input type="number" id="sm-bank-charge" class="form-control" value="0" min="0" max="100" step="0.01" placeholder="0">
-                  <small class="text-muted">FusionReceiptMethod.getReceiptBankCharge() — calculateMiscCharges: amount × (rate/100) × (1 + methodTax)</small>
+                  <small class="text-muted">FusionReceiptMethod.getReceiptBankCharge() — stored as decimal (e.g. 5 → 0.05). Formula: amount × rate × (1 + methodTax)</small>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Method Tax Rate (%)</label>
                   <input type="number" id="sm-method-tax" class="form-control" value="0" min="0" max="100" step="0.01" placeholder="0">
-                  <small class="text-muted">FusionReceiptMethod.getReceiptMethodTax() — applied on top of the bank charge (e.g. 5 for 5% VAT on charges)</small>
+                  <small class="text-muted">FusionReceiptMethod.getReceiptMethodTax() — stored as decimal (e.g. 5 → 0.05). Applied on top of bank charge</small>
                 </div>
               </div>
             </div>
@@ -1914,8 +1914,8 @@ async function loadStoreMetaFields(storeId) {
     $('sm-cash-account-id').value     = rm.cashAccountId || '';
     $('sm-bank-account-name').value   = rm.bankAccountName || '';
     $('sm-receivable-activity').value = rm.receivableActivityName || '';
-    $('sm-bank-charge').value         = rm.bankChargeRate != null ? rm.bankChargeRate * 100 : 0;
-    $('sm-method-tax').value          = rm.methodTax != null ? rm.methodTax * 100 : 0;
+    $('sm-bank-charge').value         = rm.bankChargeRate != null ? rm.bankChargeRate * 100 : '';
+    $('sm-method-tax').value          = rm.methodTax != null ? rm.methodTax * 100 : '';
 
     // ── Journal Entry fields (stored as journal_meta JSON) ──
     const jm = r.journal_meta || {};
@@ -1923,7 +1923,7 @@ async function loadStoreMetaFields(storeId) {
     $('sm-journal-coa-id').value       = jm.chartOfAccountsId || '';
     $('sm-journal-source').value       = jm.jeSource || '';
     $('sm-journal-category').value     = jm.jeCategory || '';
-    $('sm-journal-bank-rate').value    = jm.bankChargeRate != null ? jm.bankChargeRate * 100 : 0;
+    $('sm-journal-bank-rate').value    = jm.bankChargeRate != null ? jm.bankChargeRate * 100 : '';
     $('sm-journal-fixed').checked      = !!jm.isFixed;
     $('sm-journal-fixed-amount').value = jm.fixedFreightCharge || 0;
     $('sm-journal-company').value      = jm.company || '';
@@ -2030,7 +2030,7 @@ $('sm-save-btn').addEventListener('click', async () => {
   const smReceivableActivity= ($('sm-receivable-activity').value || '').trim() || undefined;
   const smBankChargeRate    = parseFloat($('sm-bank-charge').value) || 0;
   const smMethodTax         = parseFloat($('sm-method-tax').value)  || 0;
-  if (smReceiptMethodId || smReceiptMethodName || smBankAccountId || smCashAccountId || smBankAccountName || smReceivableActivity || smBankChargeRate || smMethodTax) {
+  if (smReceiptMethodId || smReceiptMethodName || smBankAccountId || smCashAccountId || smBankAccountName || smReceivableActivity) {
     body.receiptMethodMeta = {};
     body.receiptMethodMeta[smPaymentType] = {
       receiptMethodId: smReceiptMethodId,
