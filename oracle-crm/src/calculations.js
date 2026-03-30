@@ -279,6 +279,13 @@ function computeSalePreview(sale) {
   const saleKey = buildSaleKey(localDate, sale.customerType, hasCreditOnCust);
 
   // Invoice lines
+  // Java FusionInvTxnMapping: non-NORMAL customers use costIssue/costRMA from
+  // ServiceProviderJournalMapping instead of hardcoded "Vend Sales Issue"/"Vend RMA".
+  const costIssue = (sale.customerType !== 'NORMAL' && sale.journalMeta)
+    ? sale.journalMeta.costIssue : undefined;
+  const costRMA   = (sale.customerType !== 'NORMAL' && sale.journalMeta)
+    ? sale.journalMeta.costRMA   : undefined;
+
   const lines = (sale.lineItems || [])
     .filter(l => Number(l.quantity) !== 0)
     .map((l, idx) => {
@@ -288,7 +295,7 @@ function computeSalePreview(sale) {
       // Always use original quantity for USP, matching Java middleware exactly.
       const usp  = unitSellingPrice(Number(l.totalPrice), origQty);
       const invQty = inventoryTransactionQty(origQty);
-      const txnType = inventoryTransactionType(Number(l.totalPrice), origQty);
+      const txnType = inventoryTransactionType(Number(l.totalPrice), origQty, costIssue, costRMA);
       return {
         lineNumber      : l.lineNumber || (idx + 1),
         itemName        : l.itemName,

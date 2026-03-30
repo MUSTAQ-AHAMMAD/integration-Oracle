@@ -709,6 +709,16 @@
                   <input type="text" id="sm-receivable-activity" class="form-control" placeholder="e.g. Bank Charges">
                   <small class="text-muted">FusionSalesMetadata.getRecActivityNameBank()</small>
                 </div>
+                <div class="form-group">
+                  <label class="form-label">Bank Charge Rate (%)</label>
+                  <input type="number" id="sm-bank-charge" class="form-control" value="0" min="0" max="100" step="0.01" placeholder="0">
+                  <small class="text-muted">FusionReceiptMethod.getReceiptBankCharge() — calculateMiscCharges: amount × (rate/100) × (1 + methodTax)</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Method Tax Rate (%)</label>
+                  <input type="number" id="sm-method-tax" class="form-control" value="0" min="0" max="100" step="0.01" placeholder="0">
+                  <small class="text-muted">FusionReceiptMethod.getReceiptMethodTax() — applied on top of the bank charge (e.g. 5 for 5% VAT on charges)</small>
+                </div>
               </div>
             </div>
           </details>
@@ -791,6 +801,16 @@
                   <label class="form-label">Future Use (Segment 7)</label>
                   <input type="text" id="sm-journal-fut-used" class="form-control" placeholder="e.g. 0000">
                   <small class="text-muted">ServiceProviderJournalMapping.getFutUsed()</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Cost Issue Txn Type</label>
+                  <input type="text" id="sm-cost-issue" class="form-control" placeholder="e.g. Vend Sales Issue">
+                  <small class="text-muted">ServiceProviderJournalMapping.getCostIssue() — inventory transaction type for sales (non-NORMAL)</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Cost RMA Txn Type</label>
+                  <input type="text" id="sm-cost-rma" class="form-control" placeholder="e.g. Vend RMA">
+                  <small class="text-muted">ServiceProviderJournalMapping.getCostRMA() — inventory transaction type for returns (non-NORMAL)</small>
                 </div>
               </div>
             </div>
@@ -1194,6 +1214,16 @@
                 <label class="form-label">Future Use (Segment 7)</label>
                 <input type="text" id="push-journal-fut-used" class="form-control" placeholder="e.g. 0000">
                 <small class="text-muted">ServiceProviderJournalMapping.getFutUsed()</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cost Issue Txn Type</label>
+                <input type="text" id="push-cost-issue" class="form-control" placeholder="e.g. Vend Sales Issue">
+                <small class="text-muted">ServiceProviderJournalMapping.getCostIssue() — inventory transaction type for sales (non-NORMAL)</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cost RMA Txn Type</label>
+                <input type="text" id="push-cost-rma" class="form-control" placeholder="e.g. Vend RMA">
+                <small class="text-muted">ServiceProviderJournalMapping.getCostRMA() — inventory transaction type for returns (non-NORMAL)</small>
               </div>
             </div>
           </div>
@@ -1884,6 +1914,8 @@ async function loadStoreMetaFields(storeId) {
     $('sm-cash-account-id').value     = rm.cashAccountId || '';
     $('sm-bank-account-name').value   = rm.bankAccountName || '';
     $('sm-receivable-activity').value = rm.receivableActivityName || '';
+    $('sm-bank-charge').value         = rm.bankChargeRate != null ? rm.bankChargeRate * 100 : 0;
+    $('sm-method-tax').value          = rm.methodTax != null ? rm.methodTax * 100 : 0;
 
     // ── Journal Entry fields (stored as journal_meta JSON) ──
     const jm = r.journal_meta || {};
@@ -1891,7 +1923,7 @@ async function loadStoreMetaFields(storeId) {
     $('sm-journal-coa-id').value       = jm.chartOfAccountsId || '';
     $('sm-journal-source').value       = jm.jeSource || '';
     $('sm-journal-category').value     = jm.jeCategory || '';
-    $('sm-journal-bank-rate').value    = jm.bankChargeRate || 0;
+    $('sm-journal-bank-rate').value    = jm.bankChargeRate != null ? jm.bankChargeRate * 100 : 0;
     $('sm-journal-fixed').checked      = !!jm.isFixed;
     $('sm-journal-fixed-amount').value = jm.fixedFreightCharge || 0;
     $('sm-journal-company').value      = jm.company || '';
@@ -1900,6 +1932,8 @@ async function loadStoreMetaFields(storeId) {
     $('sm-journal-department').value   = jm.department || '';
     $('sm-journal-inter-company').value= jm.interCompany || '';
     $('sm-journal-fut-used').value     = jm.futUsed || '';
+    $('sm-cost-issue').value           = jm.costIssue || '';
+    $('sm-cost-rma').value             = jm.costRMA || '';
 
     $('sm-delete-btn').disabled   = false;
     $('sm-fields').open           = true;
@@ -1920,7 +1954,8 @@ function clearStoreMetaFields() {
    'sm-cash-account-id','sm-bank-account-name','sm-receivable-activity',
    'sm-journal-ledger-id','sm-journal-coa-id','sm-journal-source','sm-journal-category',
    'sm-journal-company','sm-journal-account','sm-journal-debit-account',
-   'sm-journal-department','sm-journal-inter-company','sm-journal-fut-used'
+   'sm-journal-department','sm-journal-inter-company','sm-journal-fut-used',
+   'sm-cost-issue','sm-cost-rma'
   ].forEach(id => { $(id).value = ''; });
   $('sm-txn-source').value = 'ODOO_SALES';
   $('sm-txn-type').value   = 'Invoice';
@@ -1934,6 +1969,8 @@ function clearStoreMetaFields() {
   $('sm-journal-fixed').checked   = false;
   $('sm-journal-bank-rate').value = 0;
   $('sm-journal-fixed-amount').value = 0;
+  $('sm-bank-charge').value = 0;
+  $('sm-method-tax').value  = 0;
 }
 
 $('sm-load-btn').addEventListener('click', () => {
@@ -1991,7 +2028,9 @@ $('sm-save-btn').addEventListener('click', async () => {
   const smCashAccountId     = parseInt($('sm-cash-account-id').value)   || undefined;
   const smBankAccountName   = ($('sm-bank-account-name').value  || '').trim() || undefined;
   const smReceivableActivity= ($('sm-receivable-activity').value || '').trim() || undefined;
-  if (smReceiptMethodId || smReceiptMethodName || smBankAccountId || smCashAccountId || smBankAccountName || smReceivableActivity) {
+  const smBankChargeRate    = parseFloat($('sm-bank-charge').value) || 0;
+  const smMethodTax         = parseFloat($('sm-method-tax').value)  || 0;
+  if (smReceiptMethodId || smReceiptMethodName || smBankAccountId || smCashAccountId || smBankAccountName || smReceivableActivity || smBankChargeRate || smMethodTax) {
     body.receiptMethodMeta = {};
     body.receiptMethodMeta[smPaymentType] = {
       receiptMethodId: smReceiptMethodId,
@@ -2001,6 +2040,8 @@ $('sm-save-btn').addEventListener('click', async () => {
       cashAccountId: smCashAccountId,
       bankAccountName: smBankAccountName,
       receivableActivityName: smReceivableActivity,
+      bankChargeRate: smBankChargeRate / 100,
+      methodTax: smMethodTax / 100,
     };
   }
 
@@ -2018,13 +2059,15 @@ $('sm-save-btn').addEventListener('click', async () => {
   const smJDept      = ($('sm-journal-department').value    || '').trim() || undefined;
   const smJInterCo   = ($('sm-journal-inter-company').value || '').trim() || undefined;
   const smJFutUsed   = ($('sm-journal-fut-used').value      || '').trim() || undefined;
+  const smJCostIssue = ($('sm-cost-issue').value            || '').trim() || undefined;
+  const smJCostRMA   = ($('sm-cost-rma').value              || '').trim() || undefined;
   if (smLedgerId || smCoaId || smJeSource || smJeCategory || smJCompany || smJAccount) {
     body.journalMeta = {
       ledgerId: smLedgerId,
       chartOfAccountsId: smCoaId,
       jeSource: smJeSource,
       jeCategory: smJeCategory,
-      bankChargeRate: smJBankRate,
+      bankChargeRate: smJBankRate / 100,
       isFixed: smJIsFixed,
       fixedFreightCharge: smJFixedAmt,
       company: smJCompany,
@@ -2033,6 +2076,8 @@ $('sm-save-btn').addEventListener('click', async () => {
       department: smJDept,
       interCompany: smJInterCo,
       futUsed: smJFutUsed,
+      costIssue: smJCostIssue,
+      costRMA: smJCostRMA,
     };
   }
 
@@ -2094,6 +2139,8 @@ $('push-store').addEventListener('change', async () => {
     if (pushRm.cashAccountId)     $('push-cash-account-id').value     = pushRm.cashAccountId;
     if (pushRm.bankAccountName)   $('push-bank-account-name').value   = pushRm.bankAccountName;
     if (pushRm.receivableActivityName) $('push-receivable-activity').value = pushRm.receivableActivityName;
+    if (pushRm.bankChargeRate != null)  $('push-bank-charge').value        = pushRm.bankChargeRate * 100;
+    if (pushRm.methodTax != null)       $('push-method-tax').value         = pushRm.methodTax * 100;
 
     // ── Fill Journal Entry fields from stored journal_meta ──
     const pushJm = r.journal_meta || {};
@@ -2101,7 +2148,7 @@ $('push-store').addEventListener('change', async () => {
     if (pushJm.chartOfAccountsId) $('push-journal-coa-id').value       = pushJm.chartOfAccountsId;
     if (pushJm.jeSource)          $('push-journal-source').value       = pushJm.jeSource;
     if (pushJm.jeCategory)        $('push-journal-category').value     = pushJm.jeCategory;
-    if (pushJm.bankChargeRate != null) $('push-journal-bank-rate').value = pushJm.bankChargeRate;
+    if (pushJm.bankChargeRate != null) $('push-journal-bank-rate').value = pushJm.bankChargeRate * 100;
     if (pushJm.isFixed != null)   $('push-journal-fixed').checked      = !!pushJm.isFixed;
     if (pushJm.fixedFreightCharge != null) $('push-journal-fixed-amount').value = pushJm.fixedFreightCharge;
     if (pushJm.company)           $('push-journal-company').value      = pushJm.company;
@@ -2110,6 +2157,8 @@ $('push-store').addEventListener('change', async () => {
     if (pushJm.department)        $('push-journal-department').value   = pushJm.department;
     if (pushJm.interCompany)      $('push-journal-inter-company').value= pushJm.interCompany;
     if (pushJm.futUsed)           $('push-journal-fut-used').value     = pushJm.futUsed;
+    if (pushJm.costIssue)         $('push-cost-issue').value           = pushJm.costIssue;
+    if (pushJm.costRMA)           $('push-cost-rma').value             = pushJm.costRMA;
 
     showAlert($('alert-area'), 'info', '✓ Auto-filled push form from stored config for store ' + escHtml(r.store_name || sid));
   } catch(e) {
@@ -2199,6 +2248,8 @@ $('btn-push').addEventListener('click', async () => {
   const journalDept       = ($('push-journal-department').value    || '').trim() || undefined;
   const journalInterCo    = ($('push-journal-inter-company').value || '').trim() || undefined;
   const journalFutUsed    = ($('push-journal-fut-used').value      || '').trim() || undefined;
+  const journalCostIssue  = ($('push-cost-issue').value           || '').trim() || undefined;
+  const journalCostRMA    = ($('push-cost-rma').value             || '').trim() || undefined;
 
   const journalMeta = (customerType !== 'NORMAL') ? {
     ledgerId          : journalLedgerId,
@@ -2214,6 +2265,8 @@ $('btn-push').addEventListener('click', async () => {
     department        : journalDept,
     interCompany      : journalInterCo,
     futUsed           : journalFutUsed,
+    costIssue         : journalCostIssue,
+    costRMA           : journalCostRMA,
     costCenterCode,
   } : undefined;
 
