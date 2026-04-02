@@ -40,6 +40,7 @@ const PATHS = {
   paymentLines : '/api/vSales/payment_lines',
   products     : '/api/vItems/Productlist',
   uom          : '/api/vuom_id/UOM/',
+  taxes        : '/api/taxes',
   branches     : '/api/vOutlets/Bracnhes',
   companies    : '/api/vOutlets/Companies',
   posList      : '/api/vOutlets/poslist',
@@ -89,7 +90,7 @@ class OdooRestClient {
    * @param {string} authType  'x-api-key' | 'bearer'
    * @param {string} apiKey    The API key / bearer token value
    * @param {object} [paths]   Optional custom endpoint paths to override defaults.
-   *                           { saleDetail, posOrderLine, paymentLines, products, uom, branches, companies, posList }
+   *                           { saleDetail, posOrderLine, paymentLines, products, uom, taxes, branches, companies, posList }
    *                           e.g. { saleDetail: '/api/custom/Sales', posOrderLine: '/api/custom/Lines' }
    */
   constructor(url, authType, apiKey, paths) {
@@ -105,6 +106,7 @@ class OdooRestClient {
       paymentLines: (paths && paths.paymentLines)  || PATHS.paymentLines,
       products    : (paths && paths.products)      || PATHS.products,
       uom         : (paths && paths.uom)           || PATHS.uom,
+      taxes       : (paths && paths.taxes)         || PATHS.taxes,
       branches    : (paths && paths.branches)      || PATHS.branches,
       companies   : (paths && paths.companies)     || PATHS.companies,
       posList     : (paths && paths.posList)       || PATHS.posList,
@@ -479,6 +481,23 @@ class OdooRestClient {
     logger.debug('REST: fetching UOM list');
     const rows = await this._get(this.paths.uom, {});
     logger.info('REST: fetched UOM records', { count: rows.length });
+    return rows;
+  }
+
+  /**
+   * Fetch the tax configuration list from Odoo.
+   * Used to map Odoo tax names/rates to Oracle tax codes and rates.
+   *
+   * Endpoint: /api/taxes
+   *
+   * @param {Array} [domain]  Optional domain filter
+   * @returns {object[]} raw tax rows
+   */
+  async getTaxes(domain) {
+    logger.debug('REST: fetching taxes');
+    const params = domain ? { domain: domainToString(domain) } : {};
+    const rows = await this._get(this.paths.taxes, params);
+    logger.info('REST: fetched taxes', { count: rows.length });
     return rows;
   }
 

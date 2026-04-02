@@ -620,6 +620,23 @@ router.get('/ref/poslist', async (req, res) => {
   }
 });
 
+/** GET /api/odoo/ref/taxes – fetch tax configuration from Odoo */
+router.get('/ref/taxes', async (req, res) => {
+  try {
+    const odoo = buildOdooClient(req.query.country || null);
+    if (!(odoo instanceof OdooRestClient)) {
+      return res.status(400).json({ error: 'Tax list is only available for REST-based Odoo connections' });
+    }
+    await odoo.authenticate();
+    const domain = req.query.domain ? JSON.parse(req.query.domain) : undefined;
+    const rows = await odoo.getTaxes(domain);
+    res.json({ count: rows.length, taxes: rows });
+  } catch (err) {
+    logger.error('Failed to fetch taxes', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Store Oracle Metadata endpoints ───────────────────────────────────────────
 
 /** GET /api/odoo/store-metadata – list all store Oracle metadata configs */
