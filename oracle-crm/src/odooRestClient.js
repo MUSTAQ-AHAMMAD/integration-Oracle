@@ -43,6 +43,11 @@ const PATHS = {
   branches     : '/api/vOutlets/Bracnhes',
   companies    : '/api/vOutlets/Companies',
   posList      : '/api/vOutlets/poslist',
+  // Unified POS order endpoint – returns orders with embedded lines + payments.
+  // When this path is configured, _runFetchJob uses a single endpoint with
+  // cursor-based pagination instead of the legacy 3-endpoint approach.
+  // Default is null (not enabled) to preserve backward compatibility.
+  posOrder     : null,
 };
 
 /**
@@ -103,6 +108,8 @@ class OdooRestClient {
       branches    : (paths && paths.branches)      || PATHS.branches,
       companies   : (paths && paths.companies)     || PATHS.companies,
       posList     : (paths && paths.posList)       || PATHS.posList,
+      // posOrder is opt-in: only set when caller explicitly passes it.
+      posOrder    : (paths && paths.posOrder)      || PATHS.posOrder,
     };
 
     const authHeader = this.authType === 'bearer'
@@ -520,6 +527,80 @@ class OdooRestClient {
     const rows = await this._get(this.paths.posList, params);
     logger.info('REST: fetched POS configs', { count: rows.length });
     return rows;
+  }
+
+  /**
+   * Fetch POS orders from the unified /api/pos/order endpoint.
+   *
+   * This endpoint returns each order together with embedded order lines and
+   * payment records in a single response, eliminating the need for separate
+   * calls to Sale_detail / PosOrderLine / payment_lines.
+   *
+   * Pagination uses cursor-based ordering: pass the last fetched order ID as
+   * `afterOrderId` to retrieve the next page (order_id > afterOrderId, ordered
+   * by id ASC).  Omit `afterOrderId` (or pass null) for the first page.
+   *
+   * @param {string}  startDatetime  Start datetime, e.g. '2026-02-01 21:00:00'
+   * @param {string}  endDatetime    End datetime,   e.g. '2026-02-02 20:59:59'
+   * @param {number|null} [afterOrderId]  Cursor: fetch records with id > this value
+   * @returns {Array<{ order: object, lines: object[], payments: object[] }>}
+   */
+  async getPosOrders(startDatetime, endDatetime, afterOrderId = null) {
+    if (!this.paths.posOrder) {
+      throw new Error('POS Order endpoint path is not configured. Set posOrderPath in credentials.');
+    }
+    logger.debug('REST: fetching POS orders (unified endpoint)', {
+      startDatetime, endDatetime, afterOrderId,
+    });
+    const params = {
+      start_date: startDatetime,
+      end_date  : endDatetime,
+      order_by  : 'id ASC',
+    };
+    if (afterOrderId != null) {
+      // Cursor-based pagination: fetch records with id strictly greater than
+      // the last received order id.  The API uses the literal key 'order_id>'
+      // (field name + operator) as the query parameter name.
+      params['order_id>'] = afterOrderId;
+    }
+    const rows = await this._get(this.paths.posOrder, params);
+    logger.info('REST: fetched POS orders (unified)', { count: rows.length });
+    return rows.map(r => this._normalisePosOrderRow(r));
+  }
+
+  /**
+   * Normalise a single row from the unified /api/pos/order response.
+   *
+   * Each row contains the sale-order header plus embedded line items and
+   * payment records.  Lines and payments may be:
+   *   - An array of full objects (preferred – no extra fetches needed)
+   *   - An array of integer IDs  (will be returned as empty; caller must fetch)
+   *
+   * @param {object} r  Raw API row
+   * @returns {{ order: object, lines: object[], payments: object[] }}
+   */
+  _normalisePosOrderRow(r) {
+    const order = this._normaliseSaleOrder(r);
+
+    // Extract embedded order lines – try common field names
+    const rawLines = r.order_line_ids ?? r.order_lines ?? r.lines ?? r.pos_order_line_ids ?? [];
+    const lines = Array.isArray(rawLines)
+      ? rawLines
+          .filter(l => l !== null && typeof l === 'object' && !Array.isArray(l))
+          .map(l => this._normaliseOrderLine(l))
+      : [];
+
+    // Extract embedded payments – try common field names
+    // payment_ids on the header may be an array of full objects OR plain ints.
+    // Only process when the elements are objects (full records).
+    const rawPayments = r.pos_payment_ids ?? r.payments ?? r.payment_lines ?? r.payment_ids ?? [];
+    const payments = Array.isArray(rawPayments)
+      ? rawPayments
+          .filter(p => p !== null && typeof p === 'object' && !Array.isArray(p))
+          .map(p => this._normalisePayment(p))
+      : [];
+
+    return { order, lines, payments };
   }
 
   /**

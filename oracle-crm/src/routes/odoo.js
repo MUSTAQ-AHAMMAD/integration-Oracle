@@ -236,6 +236,33 @@ router.get('/sales', (req, res) => {
   res.json({ sales: rows, total, count: rows.length });
 });
 
+// ── DELETE /api/odoo/sales ────────────────────────────────────────────────────
+// Delete fetched sales data (and cascaded lines + payments).
+// Optional query filters: dateFrom, dateTo, country.
+// Without filters, ALL fetched data is deleted.
+router.delete('/sales', (req, res) => {
+  const { dateFrom, dateTo, country } = req.query;
+
+  if (dateFrom && !validateDate(dateFrom)) return badRequest(res, 'dateFrom must be YYYY-MM-DD');
+  if (dateTo   && !validateDate(dateTo))   return badRequest(res, 'dateTo must be YYYY-MM-DD');
+  if (country  && !VALID_COUNTRIES.includes(country)) {
+    return badRequest(res, `country must be one of: ${VALID_COUNTRIES.join(', ')}`);
+  }
+
+  try {
+    const result = db.clearSalesData({ dateFrom, dateTo, country });
+    logger.info('Fetched sales data cleared via API', { ...result, dateFrom, dateTo, country });
+    res.json({
+      success: true,
+      deleted: result.deleted,
+      message: `Deleted ${result.deleted} sale record(s) and their associated lines and payments.`,
+    });
+  } catch (err) {
+    logger.error('Failed to clear sales data', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/odoo/failed-records ──────────────────────────────────────────────
 router.get('/failed-records', (req, res) => {
   const { jobId, status } = req.query;

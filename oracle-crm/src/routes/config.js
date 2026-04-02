@@ -611,6 +611,7 @@ router.get('/credentials', (req, res) => {
         saleDetailPath: db.getAppSetting(`odoo_${m}_sale_detail_path`) || (m === 'production' ? process.env.ODOO_SALE_DETAIL_PATH || null : null),
         orderLinePath : db.getAppSetting(`odoo_${m}_order_line_path`)  || (m === 'production' ? process.env.ODOO_ORDER_LINE_PATH  || null : null),
         paymentPath   : db.getAppSetting(`odoo_${m}_payment_path`)     || (m === 'production' ? process.env.ODOO_PAYMENT_PATH     || null : null),
+        posOrderPath  : db.getAppSetting(`odoo_${m}_pos_order_path`)   || (m === 'production' ? process.env.ODOO_POS_ORDER_PATH   || null : null),
         tzOffset      : parseTzOffset(db.getAppSetting(`odoo_${m}_tz_offset`) ?? (m === 'production' ? process.env.ODOO_TZ_OFFSET ?? null : null)),
       },
     };
@@ -676,6 +677,7 @@ router.put('/credentials', (req, res) => {
       odoo.saleDetailPath !== undefined ? odoo.saleDetailPath : autoPath);
     persist(`odoo_${mode}_order_line_path`,  odoo.orderLinePath);
     persist(`odoo_${mode}_payment_path`,     odoo.paymentPath);
+    persist(`odoo_${mode}_pos_order_path`,   odoo.posOrderPath);
     if (odoo.tzOffset !== undefined) {
       const tzNum = parseFloat(odoo.tzOffset);
       const tzVal = (odoo.tzOffset !== null && odoo.tzOffset !== '' && !Number.isNaN(tzNum))
@@ -737,7 +739,7 @@ router.put('/country-configs/:code', (req, res) => {
   const {
     country_name, odoo_url, odoo_api_url, odoo_username, odoo_password,
     odoo_auth_type, odoo_api_key, odoo_version,
-    odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path,
+    odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path, odoo_pos_order_path,
     oracle_base_url, oracle_username, oracle_password, enabled,
   } = req.body || {};
 
@@ -782,6 +784,7 @@ router.put('/country-configs/:code', (req, res) => {
     odooSaleDetailPath: odoo_sale_detail_path || null,
     odooOrderLinePath : odoo_order_line_path  || null,
     odooPaymentPath   : odoo_payment_path     || null,
+    odooPosOrderPath  : odoo_pos_order_path   || null,
     oracleBaseUrl     : oracle_base_url       || null,
     oracleUsername    : oracle_username       || null,
     oraclePassword    : resolvePass(oracle_password, 'oracle_password'),

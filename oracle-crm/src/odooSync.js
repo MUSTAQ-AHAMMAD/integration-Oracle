@@ -69,6 +69,7 @@ function buildOdooClient(country) {
     if (creds.odoo.saleDetailPath) customPaths.saleDetail   = creds.odoo.saleDetailPath;
     if (creds.odoo.orderLinePath)  customPaths.posOrderLine = creds.odoo.orderLinePath;
     if (creds.odoo.paymentPath)    customPaths.paymentLines = creds.odoo.paymentPath;
+    if (creds.odoo.posOrderPath)   customPaths.posOrder     = creds.odoo.posOrderPath;
     return new OdooRestClient(url, authType, apiKey, Object.keys(customPaths).length ? customPaths : undefined);
   }
 
@@ -111,6 +112,32 @@ function buildOracleService(country) {
 function jobLog(jobId, level, message, meta = {}) {
   logger[level](message, { jobId, ...meta });
   db.appendJobLog(jobId, { level, message, ...meta });
+}
+
+/**
+ * Convert a local-calendar date range to UTC datetime strings for the
+ * /api/pos/order endpoint (which uses start_date / end_date instead of
+ * an Odoo domain).
+ *
+ * @param {string} dateFrom   YYYY-MM-DD local start date
+ * @param {string} dateTo     YYYY-MM-DD local end date
+ * @param {number} tzOffset   Hours ahead of UTC (e.g. 4 for UAE)
+ * @returns {{ startDatetime: string, endDatetime: string }}
+ *          Datetimes formatted as 'YYYY-MM-DD HH:MM:SS' in UTC
+ */
+function buildUtcDatetimeRange(dateFrom, dateTo, tzOffset) {
+  const pad = n => String(n).padStart(2, '0');
+  const shiftDatetime = (dateStr, hour, minute, second, offsetHours) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const utcMs = Date.UTC(y, m - 1, d, hour - (offsetHours || 0), minute, second);
+    const dt    = new Date(utcMs);
+    return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())} ` +
+           `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())}`;
+  };
+  return {
+    startDatetime: shiftDatetime(dateFrom, 0,  0,  0,  tzOffset),
+    endDatetime  : shiftDatetime(dateTo,   23, 59, 59, tzOffset),
+  };
 }
 
 // ── 1. Fetch & Store ──────────────────────────────────────────────────────────
@@ -176,7 +203,224 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
     jobLog(jobId, 'info', 'Connecting to Odoo…');
     await odoo.authenticate();
 
-    // ── Paginated fetch from Odoo ─────────────────────────────────────────────
+    // ── Unified /api/pos/order endpoint (cursor-based, single-endpoint) ───────
+    // When the REST client is configured with a posOrder path, use the new
+    // unified endpoint which returns orders with embedded lines + payments.
+    // This replaces the legacy 3-endpoint approach (Sale_detail + PosOrderLine
+    // + payment_lines) entirely for this configuration.
+    if (odoo instanceof OdooRestClient && odoo.paths.posOrder) {
+      const { startDatetime, endDatetime } = buildUtcDatetimeRange(dateFrom, dateTo, tzOffset);
+      jobLog(jobId, 'info', 'Using unified POS order endpoint (cursor-based pagination)', {
+        path: odoo.paths.posOrder, startDatetime, endDatetime,
+      });
+
+      let afterOrderId   = null;
+      let totalFetched   = 0;
+      let totalLines     = 0;
+      let totalPayments  = 0;
+      const allOrderIdSet = new Set();
+
+      while (true) {
+        const page = await odoo.getPosOrders(startDatetime, endDatetime, afterOrderId);
+        if (page.length === 0) break;
+
+        const now = new Date().toISOString();
+        const saleRows    = [];
+        const lineRows    = [];
+        const paymentRows = [];
+
+        for (const { order: o, lines, payments } of page) {
+          allOrderIdSet.add(o.id);
+
+          saleRows.push({
+            odoo_id        : o.id,
+            name           : o.name,
+            store_id       : Array.isArray(o.warehouse_id) ? o.warehouse_id[0] : (o.warehouse_id || null),
+            store_name     : Array.isArray(o.warehouse_id) ? o.warehouse_id[1] : null,
+            country        : country || null,
+            date_order     : extractDate(o.date_order),
+            partner_id     : Array.isArray(o.partner_id) ? o.partner_id[0] : null,
+            partner_name   : Array.isArray(o.partner_id) ? o.partner_id[1] : null,
+            currency       : Array.isArray(o.currency_id) ? o.currency_id[1] : DEFAULT_CURRENCY,
+            amount_untaxed : Number(o.amount_untaxed) || 0,
+            amount_tax     : Number(o.amount_tax)     || 0,
+            amount_total   : Number(o.amount_total)   || 0,
+            state          : o.state || '',
+            customer_type  : 'NORMAL',
+            register_name  : Array.isArray(o.team_id) ? o.team_id[1] : null,
+            fetched_at     : now,
+            raw_json       : JSON.stringify(o),
+          });
+        }
+
+        // Persist sale headers first so we can resolve internal IDs for lines+payments
+        db.upsertSales(saleRows);
+        const internalIdMap = db.getSaleInternalIdMap([...allOrderIdSet]);
+
+        for (const { order: o, lines, payments } of page) {
+          const saleId = internalIdMap.get(o.id) ?? null;
+          const orderDate = extractDate(o.date_order);
+
+          for (let idx = 0; idx < lines.length; idx++) {
+            const l = lines[idx];
+            const firstTax = Array.isArray(l.tax_id) && l.tax_id.length > 0 ? l.tax_id[0] : null;
+            lineRows.push({
+              sale_id        : saleId,
+              odoo_line_id   : l.id,
+              product_id     : Array.isArray(l.product_id) ? l.product_id[0] : null,
+              product_name   : Array.isArray(l.product_id) ? l.product_id[1] : (l.name || ''),
+              item_number    : l.default_code || null,
+              tax_name       : Array.isArray(firstTax) ? firstTax[1] : null,
+              line_number    : l.sequence != null ? l.sequence : idx + 1,
+              qty_ordered    : Number(l.product_uom_qty) || 0,
+              qty_delivered  : Number(l.qty_delivered)   || 0,
+              price_unit     : Number(l.price_unit)       || 0,
+              price_subtotal : Number(l.price_subtotal)   || 0,
+              total_discount : Number(l.discount)         || 0,
+              tax_ids        : JSON.stringify(l.tax_id    || []),
+            });
+          }
+
+          for (const p of payments) {
+            const journalLabel = Array.isArray(p.journal_id) ? p.journal_id[1] : (p.journal_id || 'Unknown');
+            const posOrderId   = p.pos_order_id || o.id;
+            const paymentDate  = extractDate(p.date) || orderDate || null;
+            const outletName   = (Array.isArray(p.partner_id) ? p.partner_id[1] : null)
+              || p.company_name || null;
+            paymentRows.push({
+              sale_id         : saleId,
+              invoice_number  : p.name || o.name || '',
+              odoo_payment_id : p.id,
+              payment_type    : journalLabel,
+              amount          : Number(p.amount) || 0,
+              currency        : Array.isArray(p.currency_id) ? p.currency_id[1] : DEFAULT_CURRENCY,
+              payment_date    : paymentDate,
+              outlet_name     : outletName,
+              register_name   : p.session_name || null,
+              region          : country || null,
+              fetched_at      : now,
+            });
+          }
+        }
+
+        if (lineRows.length > 0)    db.upsertSaleLines(lineRows);
+        if (paymentRows.length > 0) db.upsertSalePayments(paymentRows);
+
+        totalFetched  += page.length;
+        totalLines    += lineRows.length;
+        totalPayments += paymentRows.length;
+
+        // Advance cursor: last order id in this page (guard against null order)
+        const lastOrderId = page[page.length - 1]?.order?.id ?? null;
+        if (lastOrderId != null) afterOrderId = lastOrderId;
+
+        jobLog(jobId, 'info', `Fetched & stored page: ${page.length} orders, ${lineRows.length} lines, ${paymentRows.length} payments`, {
+          totalFetchedSoFar: totalFetched, afterOrderId,
+        });
+        db.updateJob(jobId, { total: totalFetched });
+
+        await new Promise(resolve => setImmediate(resolve));
+
+        // Last page if fewer records returned than a full page (no hard page size
+        // for this endpoint, so stop when an empty page was already caught above;
+        // here we only advance the cursor and keep fetching until empty).
+      }
+
+      jobLog(jobId, 'info', `All ${totalFetched} sale headers stored in local DB`, {
+        totalLines, totalPayments,
+      });
+
+      if (totalFetched === 0) {
+        db.updateJob(jobId, { status: 'DONE', finished_at: new Date().toISOString() });
+        jobLog(jobId, 'info', 'No orders found – job complete');
+        return;
+      }
+
+      // ── Product/UOM enrichment (same as 3-endpoint path) ─────────────────
+      const allOrderIds = [...allOrderIdSet];
+      const fullInternalIdMapUnified = db.getSaleInternalIdMap(allOrderIds);
+      if (totalLines > 0) {
+        try {
+          jobLog(jobId, 'info', 'Fetching product catalogue and UOM data for line enrichment…');
+          const [products, uomList] = await Promise.all([
+            odoo.getProducts().catch(err => {
+              jobLog(jobId, 'warn', `Product catalogue fetch failed: ${err.message}`);
+              return [];
+            }),
+            odoo.getUomList().catch(err => {
+              jobLog(jobId, 'warn', `UOM list fetch failed: ${err.message}`);
+              return [];
+            }),
+          ]);
+
+          if (products.length > 0 || uomList.length > 0) {
+            const productMap = new Map();
+            for (const p of products) {
+              const pid = p.id ?? p.product_id;
+              if (pid == null) continue;
+              const uomId   = Array.isArray(p.uom_id) ? p.uom_id[0] : (p.uom_id ?? null);
+              const uomName = Array.isArray(p.uom_id) ? p.uom_id[1] : (p.uom_name ?? p.uom ?? null);
+              productMap.set(Number(pid), { default_code: p.default_code ?? p.barcode ?? p.sku ?? null, uom_id: uomId, uom_name: uomName });
+            }
+            const uomIdToCode   = new Map();
+            const uomNameToCode = new Map();
+            for (const u of uomList) {
+              const uid  = u.id ?? u.uom_id;
+              const code = u.name ?? u.uom_code ?? u.code ?? null;
+              if (uid != null && code) uomIdToCode.set(Number(uid), code);
+              if (code) uomNameToCode.set(code, code);
+              if (u.uom_code && u.name) uomNameToCode.set(u.name, u.uom_code);
+            }
+            let enriched = 0;
+            const storeUomMaps   = new Map();
+            const storeIdsToSave = new Set();
+            for (const odooId of allOrderIds) {
+              const internalId = fullInternalIdMapUnified.get(odooId);
+              if (!internalId) continue;
+              const saleWithLines = db.getSaleWithLines(internalId);
+              if (!saleWithLines || !saleWithLines.lines) continue;
+              const sid = saleWithLines.store_id;
+              for (const line of saleWithLines.lines) {
+                const prodInfo = line.product_id != null ? productMap.get(Number(line.product_id)) : null;
+                if (!line.item_number && prodInfo && prodInfo.default_code) {
+                  db.updateSaleLineItemNumber(line.odoo_line_id, prodInfo.default_code);
+                  enriched++;
+                }
+                const itemNum = line.item_number || (prodInfo && prodInfo.default_code) || null;
+                if (itemNum && prodInfo && sid) {
+                  let uomCode = prodInfo.uom_id != null ? uomIdToCode.get(Number(prodInfo.uom_id)) : null;
+                  if (!uomCode && prodInfo.uom_name) uomCode = uomNameToCode.get(prodInfo.uom_name) || prodInfo.uom_name;
+                  if (uomCode) {
+                    if (!storeUomMaps.has(sid)) storeUomMaps.set(sid, {});
+                    storeUomMaps.get(sid)[itemNum] = uomCode;
+                    storeIdsToSave.add(sid);
+                  }
+                }
+              }
+            }
+            if (enriched > 0) jobLog(jobId, 'info', `Enriched ${enriched} line items with item_number from product catalogue`);
+            for (const sid of storeIdsToSave) {
+              const existing = db.getStoreOracleMetadata(sid);
+              const existingUom = existing && existing.uom_code_map
+                ? (typeof existing.uom_code_map === 'string' ? JSON.parse(existing.uom_code_map) : existing.uom_code_map)
+                : {};
+              db.upsertStoreOracleMetadata({ storeId: sid, uomCodeMap: { ...storeUomMaps.get(sid), ...existingUom } });
+            }
+            if (storeIdsToSave.size > 0) jobLog(jobId, 'info', `Auto-saved UOM code maps for ${storeIdsToSave.size} store(s)`);
+          }
+        } catch (enrichErr) {
+          jobLog(jobId, 'warn', `Product/UOM enrichment failed: ${enrichErr.message}. Line items will use existing item_number values.`);
+        }
+      }
+
+      db.updateJob(jobId, { status: 'DONE', processed: totalFetched, finished_at: new Date().toISOString() });
+      jobLog(jobId, 'info', 'Fetch job completed successfully (unified endpoint)', {
+        totalOrders: totalFetched, totalLines, totalPayments,
+      });
+      return;
+    }
+
+    // ── Paginated fetch from Odoo (3-endpoint legacy approach) ────────────────
     // Odoo may have millions of orders; we page through them to avoid loading
     // everything into memory and to ensure no records are missed.
     let offset       = 0;

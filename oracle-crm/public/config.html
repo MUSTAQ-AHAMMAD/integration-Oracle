@@ -237,6 +237,11 @@
                       <label class="form-label">Payment Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
                       <input class="form-control" id="cred-test-odoo-pay-path" placeholder="/api/vSales/payment_lines">
                     </div>
+                    <div class="form-group">
+                      <label class="form-label">POS Order Path <span style="font-size:11px;color:var(--muted)">(unified endpoint – replaces the 3 paths above when set)</span></label>
+                      <input class="form-control" id="cred-test-odoo-pos-order-path" placeholder="/api/pos/order" style="font-family:monospace">
+                      <small class="text-muted">When set, a single call to this endpoint fetches orders, lines, and payments together using cursor-based pagination (<code>order_id&gt;</code> parameter). Leave blank to use the legacy 3-endpoint approach.</small>
+                    </div>
                     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
                       <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">🔬 Endpoint Explorer</div>
                       <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
@@ -340,6 +345,11 @@
                     <div class="form-group">
                       <label class="form-label">Payment Path <span style="font-size:11px;color:var(--muted)">default: /api/vSales/payment_lines</span></label>
                       <input class="form-control" id="cred-prod-odoo-pay-path" placeholder="/api/vSales/payment_lines">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">POS Order Path <span style="font-size:11px;color:var(--muted)">(unified endpoint – replaces the 3 paths above when set)</span></label>
+                      <input class="form-control" id="cred-prod-odoo-pos-order-path" placeholder="/api/pos/order" style="font-family:monospace">
+                      <small class="text-muted">When set, a single call to this endpoint fetches orders, lines, and payments together using cursor-based pagination (<code>order_id&gt;</code> parameter). Leave blank to use the legacy 3-endpoint approach.</small>
                     </div>
                     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
                       <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px">🔬 Endpoint Explorer</div>
@@ -917,6 +927,7 @@ async function loadCredentials() {
     setVal('cred-test-odoo-sale-path',      data.test?.odoo?.saleDetailPath);
     setVal('cred-test-odoo-line-path',      data.test?.odoo?.orderLinePath);
     setVal('cred-test-odoo-pay-path',       data.test?.odoo?.paymentPath);
+    setVal('cred-test-odoo-pos-order-path', data.test?.odoo?.posOrderPath);
 
     setVal('cred-prod-oracle-url',          data.production?.oracle?.baseUrl);
     setVal('cred-prod-oracle-user',         data.production?.oracle?.username);
@@ -927,6 +938,7 @@ async function loadCredentials() {
     setVal('cred-prod-odoo-sale-path',      data.production?.odoo?.saleDetailPath);
     setVal('cred-prod-odoo-line-path',      data.production?.odoo?.orderLinePath);
     setVal('cred-prod-odoo-pay-path',       data.production?.odoo?.paymentPath);
+    setVal('cred-prod-odoo-pos-order-path', data.production?.odoo?.posOrderPath);
 
     // Timezone offset – show non-zero values only (0 is the default/blank)
     if (data.test?.odoo?.tzOffset)        setVal('cred-test-odoo-tz-offset',  String(data.test.odoo.tzOffset));
@@ -1088,6 +1100,7 @@ async function saveCredentials(mode) {
       saleDetailPath : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-sale-path`)) : undefined,
       orderLinePath  : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-line-path`)) : undefined,
       paymentPath    : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-pay-path`))  : undefined,
+      posOrderPath   : isRest ? pathOrUndef(gv(`cred-${prefix}-odoo-pos-order-path`)) : undefined,
       // JSONRPC fields – when auth type is REST, explicitly clear stale JSONRPC
       // username/password from the DB (e.g. a URL accidentally saved as username)
       apiUrl   : !isRest ? (gv(`cred-${prefix}-odoo-api-url`)  || undefined) : undefined,
@@ -1514,6 +1527,7 @@ async function loadCountryConfigs() {
         : '';
       // Show endpoint path overrides if they exist
       const endpointHints = isRest ? [
+        c.odoo_pos_order_path   ? `<div style="color:#0a3622">POS&nbsp;${escHtml(c.odoo_pos_order_path)}</div>` : '',
         c.odoo_sale_detail_path ? `<div style="color:#1a56db">①&nbsp;${escHtml(c.odoo_sale_detail_path)}</div>` : '',
         c.odoo_order_line_path  ? `<div style="color:#1a56db">②&nbsp;${escHtml(c.odoo_order_line_path)}</div>`  : '',
         c.odoo_payment_path     ? `<div style="color:#1a56db">③&nbsp;${escHtml(c.odoo_payment_path)}</div>`     : '',
@@ -1590,6 +1604,13 @@ function openCCModal(code, existing) {
             </div>
             <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:8px">
               <div class="form-group" style="margin:0">
+                <label class="form-label">POS Order Path <span style="font-size:11px;font-weight:400;color:var(--muted)">(unified endpoint – replaces the 3 below when set)</span></label>
+                <input class="form-control" id="cc-pos-order-path" value="${escHtml(ex.odoo_pos_order_path||'')}" placeholder="/api/pos/order" style="font-family:monospace;font-size:12px">
+              </div>
+              <button class="btn btn-outline test-btn" style="height:38px" onclick="testCCEndpoint('pos-order')">⚡ Test</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:8px">
+              <div class="form-group" style="margin:0">
                 <label class="form-label">① Sale Headers (Sale_detail)</label>
                 <input class="form-control" id="cc-sale-detail-path" value="${escHtml(ex.odoo_sale_detail_path||'')}" placeholder="/api/vSales/Sale_detail" style="font-family:monospace;font-size:12px">
               </div>
@@ -1649,6 +1670,7 @@ async function testCCEndpoint(endpointType) {
   const apiKey = (document.getElementById('cc-api-key')   || {}).value || '';
   const authType = (document.getElementById('cc-auth-type') || {}).value || 'x-api-key';
   const pathMap = {
+    'pos-order'  : document.getElementById('cc-pos-order-path'),
     'sale-detail': document.getElementById('cc-sale-detail-path'),
     'order-line' : document.getElementById('cc-order-line-path'),
     'payment'    : document.getElementById('cc-payment-path'),
@@ -1704,6 +1726,7 @@ async function saveCCConfig() {
     odoo_sale_detail_path : document.getElementById('cc-sale-detail-path') ? document.getElementById('cc-sale-detail-path').value.trim() || null : null,
     odoo_order_line_path  : document.getElementById('cc-order-line-path') ? document.getElementById('cc-order-line-path').value.trim() || null : null,
     odoo_payment_path     : document.getElementById('cc-payment-path') ? document.getElementById('cc-payment-path').value.trim() || null : null,
+    odoo_pos_order_path   : document.getElementById('cc-pos-order-path') ? document.getElementById('cc-pos-order-path').value.trim() || null : null,
     oracle_base_url       : document.getElementById('cc-oracle-url').value.trim() || null,
     oracle_username       : document.getElementById('cc-oracle-user').value.trim() || null,
     oracle_password       : document.getElementById('cc-oracle-pass').value || null,
