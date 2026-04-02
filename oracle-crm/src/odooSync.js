@@ -310,8 +310,9 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
         totalLines    += lineRows.length;
         totalPayments += paymentRows.length;
 
-        // Advance cursor: last order id in this page
-        afterOrderId = page[page.length - 1].order.id;
+        // Advance cursor: last order id in this page (guard against null order)
+        const lastOrderId = page[page.length - 1]?.order?.id ?? null;
+        if (lastOrderId != null) afterOrderId = lastOrderId;
 
         jobLog(jobId, 'info', `Fetched & stored page: ${page.length} orders, ${lineRows.length} lines, ${paymentRows.length} payments`, {
           totalFetchedSoFar: totalFetched, afterOrderId,

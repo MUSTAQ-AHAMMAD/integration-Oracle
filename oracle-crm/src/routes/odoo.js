@@ -250,11 +250,7 @@ router.delete('/sales', (req, res) => {
   }
 
   try {
-    const result = db.clearSalesData({
-      dateFrom: dateFrom || undefined,
-      dateTo  : dateTo   || undefined,
-      country : country  || undefined,
-    });
+    const result = db.clearSalesData({ dateFrom, dateTo, country });
     logger.info('Fetched sales data cleared via API', { ...result, dateFrom, dateTo, country });
     res.json({
       success: true,
