@@ -232,6 +232,9 @@ function applyMigrations(db) {
   alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_sale_detail_path TEXT');
   alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_order_line_path  TEXT');
   alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_payment_path     TEXT');
+  // Unified POS order endpoint – when set, _runFetchJob uses a single endpoint
+  // (/api/pos/order) with cursor-based pagination instead of the 3 legacy endpoints.
+  alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_pos_order_path   TEXT');
   // Odoo version: 0 = legacy/auto (uses /jsonrpc), 17 or 18 = uses /web/session/authenticate
   //               + /web/dataset/call_kw instead of the old /jsonrpc endpoint.
   alterSafely('ALTER TABLE country_configs ADD COLUMN odoo_version          INTEGER NOT NULL DEFAULT 0');
@@ -972,6 +975,7 @@ function getActiveCredentials() {
   const odooSaleDetailPath = getAppSetting(`odoo_${mode}_sale_detail_path`) || (mode === 'production' ? process.env.ODOO_SALE_DETAIL_PATH || null : null);
   const odooOrderLinePath  = getAppSetting(`odoo_${mode}_order_line_path`)  || (mode === 'production' ? process.env.ODOO_ORDER_LINE_PATH  || null : null);
   const odooPaymentPath    = getAppSetting(`odoo_${mode}_payment_path`)     || (mode === 'production' ? process.env.ODOO_PAYMENT_PATH     || null : null);
+  const odooPosOrderPath   = getAppSetting(`odoo_${mode}_pos_order_path`)   || (mode === 'production' ? process.env.ODOO_POS_ORDER_PATH   || null : null);
   // Default timezone offset (hours ahead of UTC) used when fetching sales from Odoo.
   // Odoo stores date_order in UTC; this offset converts local calendar-day boundaries
   // to UTC before querying.  Set via the Config page or ODOO_TZ_OFFSET env var.
@@ -994,6 +998,7 @@ function getActiveCredentials() {
       saleDetailPath: odooSaleDetailPath,
       orderLinePath : odooOrderLinePath,
       paymentPath   : odooPaymentPath,
+      posOrderPath  : odooPosOrderPath,
       tzOffset      : odooTzOffset,
     },
   };
@@ -1027,10 +1032,10 @@ function getCountryConfig(countryCode) {
   return getDb().prepare('SELECT * FROM country_configs WHERE country_code = ?').get(countryCode) || null;
 }
 
-function upsertCountryConfig({ countryCode, countryName, odooUrl, odooDb, odooUsername, odooPassword, odooAuthType, odooApiKey, odooApiUrl, odooVersion, odooSaleDetailPath, odooOrderLinePath, odooPaymentPath, oracleBaseUrl, oracleUsername, oraclePassword, enabled = 1 }) {
+function upsertCountryConfig({ countryCode, countryName, odooUrl, odooDb, odooUsername, odooPassword, odooAuthType, odooApiKey, odooApiUrl, odooVersion, odooSaleDetailPath, odooOrderLinePath, odooPaymentPath, odooPosOrderPath, oracleBaseUrl, oracleUsername, oraclePassword, enabled = 1 }) {
   getDb().prepare(`
-    INSERT INTO country_configs (country_code, country_name, odoo_url, odoo_db, odoo_username, odoo_password, odoo_auth_type, odoo_api_key, odoo_api_url, odoo_version, odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path, oracle_base_url, oracle_username, oracle_password, enabled, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO country_configs (country_code, country_name, odoo_url, odoo_db, odoo_username, odoo_password, odoo_auth_type, odoo_api_key, odoo_api_url, odoo_version, odoo_sale_detail_path, odoo_order_line_path, odoo_payment_path, odoo_pos_order_path, oracle_base_url, oracle_username, oracle_password, enabled, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(country_code) DO UPDATE SET
       country_name          = excluded.country_name,
       odoo_url              = excluded.odoo_url,
@@ -1044,12 +1049,13 @@ function upsertCountryConfig({ countryCode, countryName, odooUrl, odooDb, odooUs
       odoo_sale_detail_path = excluded.odoo_sale_detail_path,
       odoo_order_line_path  = excluded.odoo_order_line_path,
       odoo_payment_path     = excluded.odoo_payment_path,
+      odoo_pos_order_path   = excluded.odoo_pos_order_path,
       oracle_base_url       = excluded.oracle_base_url,
       oracle_username       = excluded.oracle_username,
       oracle_password       = excluded.oracle_password,
       enabled               = excluded.enabled,
       updated_at            = datetime('now')
-  `).run(countryCode, countryName, odooUrl || null, odooDb || null, odooUsername || null, odooPassword || null, odooAuthType || 'jsonrpc', odooApiKey || null, odooApiUrl || null, odooVersion != null ? Number(odooVersion) : 0, odooSaleDetailPath || null, odooOrderLinePath || null, odooPaymentPath || null, oracleBaseUrl || null, oracleUsername || null, oraclePassword || null, enabled ? 1 : 0);
+  `).run(countryCode, countryName, odooUrl || null, odooDb || null, odooUsername || null, odooPassword || null, odooAuthType || 'jsonrpc', odooApiKey || null, odooApiUrl || null, odooVersion != null ? Number(odooVersion) : 0, odooSaleDetailPath || null, odooOrderLinePath || null, odooPaymentPath || null, odooPosOrderPath || null, oracleBaseUrl || null, oracleUsername || null, oraclePassword || null, enabled ? 1 : 0);
 }
 
 function deleteCountryConfig(countryCode) {
@@ -1080,6 +1086,7 @@ function getCredentialsForCountry(countryCode) {
       saleDetailPath: cc.odoo_sale_detail_path || defaults.odoo.saleDetailPath || null,
       orderLinePath : cc.odoo_order_line_path  || defaults.odoo.orderLinePath  || null,
       paymentPath   : cc.odoo_payment_path     || defaults.odoo.paymentPath    || null,
+      posOrderPath  : cc.odoo_pos_order_path   || defaults.odoo.posOrderPath   || null,
     },
   };
 }
@@ -1316,6 +1323,31 @@ function clearFusionSalesMetadata() {
 }
 
 /**
+ * Delete fetched sales data (and their cascaded lines + payments) matching the
+ * given optional filters.  When no filters are provided, ALL fetched data is deleted.
+ *
+ * @param {object} [filters]
+ * @param {string}  [filters.dateFrom]  YYYY-MM-DD – delete sales on or after this date
+ * @param {string}  [filters.dateTo]    YYYY-MM-DD – delete sales on or before this date
+ * @param {string}  [filters.country]   ISO-2 – delete only records for this country
+ * @returns {{ deleted: number }}  count of deleted sale-header rows
+ */
+function clearSalesData({ dateFrom, dateTo, country } = {}) {
+  const conditions = [];
+  const params     = [];
+  if (dateFrom) { conditions.push('date_order >= ?'); params.push(dateFrom); }
+  if (dateTo)   { conditions.push('date_order <= ?'); params.push(dateTo);   }
+  if (country)  { conditions.push('country = ?');      params.push(country);  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const stmt  = getDb().prepare(`DELETE FROM odoo_sales ${where}`);
+  const info  = stmt.run(...params);
+  logger.info('clearSalesData: deleted sale rows (lines + payments cascade)', {
+    deleted: info.changes, dateFrom, dateTo, country,
+  });
+  return { deleted: info.changes };
+}
+
+/**
  * Query stored sale order lines with optional filters.
  * @param {object} filters
  * @param {number}  [filters.saleId]         Internal sale id
@@ -1414,4 +1446,5 @@ module.exports = {
   getFusionSalesMetadataByKey,
   bulkUpsertFusionSalesMetadata,
   clearFusionSalesMetadata,
+  clearSalesData,
 };
