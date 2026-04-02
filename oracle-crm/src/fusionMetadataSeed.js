@@ -152,7 +152,12 @@ function seedFusionSalesMetadata(db, opts = {}) {
     return null;
   }
 
-  const csvPath = explicitPath || findLatestCsvFile();
+  // When an explicit path is supplied (e.g. from an API request body), only use
+  // its basename portion rejoined under the allowed CSV directory.  This prevents
+  // any path-traversal attack while still allowing callers to specify a filename.
+  const csvPath = explicitPath
+    ? path.join(CSV_DIR, path.basename(explicitPath))
+    : findLatestCsvFile();
   if (!csvPath) {
     logger.warn(`No FUSION_SALES_METADATA CSV file found in ${CSV_DIR} – fusion metadata not seeded`);
     return null;
@@ -162,7 +167,7 @@ function seedFusionSalesMetadata(db, opts = {}) {
   try {
     content = fs.readFileSync(csvPath, 'utf8');
   } catch (err) {
-    logger.warn(`Could not read fusion metadata CSV ${csvPath}: ${err.message}`);
+    logger.warn(`Could not read fusion metadata CSV ${path.basename(csvPath)}: ${err.message}`);
     return null;
   }
 
@@ -172,7 +177,7 @@ function seedFusionSalesMetadata(db, opts = {}) {
     .filter(r => r.subinventory && r.customer_type);  // skip blank/footer rows
 
   if (dbRows.length === 0) {
-    logger.warn(`CSV ${csvPath} contained no valid rows – fusion metadata not seeded`);
+    logger.warn(`CSV ${path.basename(csvPath)} contained no valid rows – fusion metadata not seeded`);
     return null;
   }
 
