@@ -837,12 +837,20 @@ async function _runPushJob(jobId, options) {
             const storeMeta  = resolveStoreMetadata(sale.store_id);
             const subinventory = (storeMeta && storeMeta.outlet_name)
               || sale.store_name || '';
-            const customerType = sale.customer_type
-              || (metadata && metadata.customerType)
+            // Configured customer type from UI override or per-store config.
+            const configuredCustomerType = (metadata && metadata.customerType)
               || (storeMeta && storeMeta.customer_type)
               || 'NORMAL';
+            // For service-provider payments (TABBY, TAMARA, MRSOOL, HUNGERSTATION, …)
+            // the payment type IS the customer_type key in fusion_sales_metadata.
+            // Try the primary payment type first; if no matching row exists (e.g. for
+            // 'Mada', 'Cash', 'Visa') fall back to the configured customer type.
+            const primaryPaymentType = (saleWithLines.payments && saleWithLines.payments.length > 0)
+              ? (saleWithLines.payments[0].payment_type || '').toUpperCase()
+              : '';
             const fusionMeta = subinventory
-              ? db.getFusionSalesMetadataByKey(subinventory, customerType)
+              ? (primaryPaymentType && db.getFusionSalesMetadataByKey(subinventory, primaryPaymentType))
+                  || db.getFusionSalesMetadataByKey(subinventory, configuredCustomerType)
               : null;
             const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata, fusionMeta);
             const effectiveOutlet = mergeStoreOutlet(storeMeta, outlet);
@@ -1034,7 +1042,19 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
 
             // ── Auto-resolve per-store metadata (same as _runPushJob) ─────────
             const storeMeta  = resolveStoreMetadata(saleWithLines.store_id);
-            const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata);
+            const subinventory = (storeMeta && storeMeta.outlet_name)
+              || saleWithLines.store_name || '';
+            const configuredCustomerType = (metadata && metadata.customerType)
+              || (storeMeta && storeMeta.customer_type)
+              || 'NORMAL';
+            const primaryPaymentType = (saleWithLines.payments && saleWithLines.payments.length > 0)
+              ? (saleWithLines.payments[0].payment_type || '').toUpperCase()
+              : '';
+            const fusionMeta = subinventory
+              ? (primaryPaymentType && db.getFusionSalesMetadataByKey(subinventory, primaryPaymentType))
+                  || db.getFusionSalesMetadataByKey(subinventory, configuredCustomerType)
+              : null;
+            const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata, fusionMeta);
             const effectiveOutlet = mergeStoreOutlet(storeMeta, outlet);
 
             const salePayload   = buildOracleSalePayload(saleWithLines, effectiveMeta, effectiveOutlet);
