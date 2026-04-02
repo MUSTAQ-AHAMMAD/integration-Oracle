@@ -657,4 +657,181 @@ router.delete('/store-metadata/:storeId', (req, res) => {
   }
 });
 
+// ── CSV parser ─────────────────────────────────────────────────────────────────
+// RFC-4180-compatible parser that handles quoted fields containing commas,
+// newlines, and doubled-quote escapes.  No external dependency required.
+
+/**
+ * Parse CSV text into an array of rows (each row is an array of field strings).
+ * Handles multi-line quoted fields, trailing commas, and BOM.
+ * @param {string} text
+ * @returns {string[][]}
+ */
+function parseCsv(text) {
+  // Strip BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  const rows  = [];
+  let fields  = [];
+  let field   = '';
+  let inQuote = false;
+  let i       = 0;
+
+  while (i < text.length) {
+    const ch   = text[i];
+    const next = text[i + 1];
+
+    if (inQuote) {
+      if (ch === '"') {
+        if (next === '"') { field += '"'; i += 2; }   // escaped quote
+        else              { inQuote = false; i++; }   // closing quote
+      } else {
+        field += ch; i++;
+      }
+    } else {
+      if (ch === '"') {
+        inQuote = true; i++;
+      } else if (ch === ',') {
+        fields.push(field); field = ''; i++;
+      } else if (ch === '\r' && next === '\n') {
+        fields.push(field); rows.push(fields); fields = []; field = ''; i += 2;
+      } else if (ch === '\n') {
+        fields.push(field); rows.push(fields); fields = []; field = ''; i++;
+      } else {
+        field += ch; i++;
+      }
+    }
+  }
+  // last field / row
+  fields.push(field);
+  if (fields.some(f => f !== '')) rows.push(fields);
+
+  return rows;
+}
+
+/**
+ * POST /api/odoo/store-metadata/import-csv
+ *
+ * Import a FUSION_SALES_METADATA CSV export into store_oracle_metadata.
+ * The CSV must use the column layout produced by Oracle (ROW_ID, BILL_TO_NAME, …).
+ * The SITE_NUMBER column is used as store_id (numeric).
+ * REC_ACTIVITY_NAME_BANK / REC_ACTIVITY_NAME_CASH are stored inside
+ * receipt_method_meta so they are picked up by the push handler.
+ *
+ * Body: text/plain or application/octet-stream containing the CSV text.
+ *       Alternatively send JSON { csv: "<csv text>" }.
+ *
+ * Returns: { imported, skipped, errors[] }
+ */
+router.post('/store-metadata/import-csv', express.text({ type: ['text/plain', 'text/csv'], limit: '10mb' }), (req, res) => {
+  try {
+    let csvText = '';
+    if (typeof req.body === 'string') {
+      // text/plain or text/csv – body already parsed by express.text() middleware above
+      csvText = req.body;
+    } else if (req.body && typeof req.body.csv === 'string') {
+      // application/json – { csv: "<csv text>" }
+      csvText = req.body.csv;
+    } else {
+      return badRequest(res, 'Request body must be CSV text (Content-Type: text/csv) or JSON { csv: "..." }');
+    }
+
+    const rows = parseCsv(csvText);
+    if (rows.length < 2) return badRequest(res, 'CSV must contain a header row and at least one data row');
+
+    const headers = rows[0].map(h => h.trim().toUpperCase());
+
+    const idx = (name) => headers.indexOf(name);
+    const COL = {
+      ROW_ID             : idx('ROW_ID'),
+      BILL_TO_NAME       : idx('BILL_TO_NAME'),
+      BILL_TO_ACCOUNT    : idx('BILL_TO_ACCOUNT'),
+      SITE_NUMBER        : idx('SITE_NUMBER'),
+      BUSINESS_UNIT      : idx('BUSINESS_UNIT'),
+      TXN_SOURCE         : idx('TXN_SOURCE'),
+      TXN_TYPE           : idx('TXN_TYPE'),
+      RATE_IS_CORPORATE  : idx('RATE_IS_CORPORATE'),
+      REC_ACTIVITY_BANK  : idx('REC_ACTIVITY_NAME_BANK'),
+      SUBINVENTORY       : idx('SUBINVENTORY'),
+      INTEGRATION_SOURCE : idx('INTEGRATION_SOURCE'),
+      DISTRIBUTION_ACC_ID: idx('DISTRIBUTION_ACC_ID'),
+      REC_ACTIVITY_CASH  : idx('REC_ACTIVITY_NAME_CASH'),
+      REGION             : idx('REGION'),
+      CUSTOMER_TYPE      : idx('CUSTOMER_TYPE'),
+      COST_CENTER_CODE   : idx('COST_CENTER_CODE'),
+    };
+
+    if (COL.SITE_NUMBER === -1) {
+      return badRequest(res, 'CSV is missing required SITE_NUMBER column');
+    }
+
+    let imported = 0;
+    let skipped  = 0;
+    const errors = [];
+
+    for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+      const fields = rows[rowIdx];
+      const get = (col) => (col !== -1 && fields[col] !== undefined ? fields[col].trim() : '');
+
+      const siteNumber = get(COL.SITE_NUMBER);
+      const storeId    = parseInt(siteNumber, 10);
+      if (isNaN(storeId) || storeId < 1) {
+        errors.push({ row: rowIdx + 1, reason: 'SITE_NUMBER is not a valid positive integer: ' + siteNumber });
+        skipped++;
+        continue;
+      }
+
+      const recActivityBank = get(COL.REC_ACTIVITY_BANK);
+      const recActivityCash = get(COL.REC_ACTIVITY_CASH);
+
+      // Build receipt_method_meta stub with receivable activity names when present.
+      // Keys match the push handler's payment-type lookup in pushOracle.js.
+      let receiptMethodMeta = null;
+      if (recActivityBank || recActivityCash) {
+        receiptMethodMeta = {};
+        if (recActivityBank) {
+          receiptMethodMeta['Bank']  = { receivableActivityName: recActivityBank };
+          receiptMethodMeta['Card']  = { receivableActivityName: recActivityBank };
+        }
+        if (recActivityCash) {
+          receiptMethodMeta['Cash']  = { receivableActivityName: recActivityCash };
+        }
+      }
+
+      const distAccIdRaw = get(COL.DISTRIBUTION_ACC_ID);
+      const distributionAccId = distAccIdRaw ? (parseInt(distAccIdRaw, 10) || null) : null;
+
+      try {
+        db.upsertStoreOracleMetadata({
+          storeId,
+          siteNumber      : siteNumber || null,
+          billToName      : get(COL.BILL_TO_NAME)         || null,
+          billToAccount   : get(COL.BILL_TO_ACCOUNT)      || null,
+          businessUnit    : get(COL.BUSINESS_UNIT)        || null,
+          txnSource       : get(COL.TXN_SOURCE)           || 'Vend',
+          txnType         : get(COL.TXN_TYPE)             || 'Vend Invoice',
+          rateIsCorporate : get(COL.RATE_IS_CORPORATE)    || '0',
+          region          : get(COL.REGION)               || 'AE',
+          customerType    : get(COL.CUSTOMER_TYPE)        || 'NORMAL',
+          costCenterCode  : get(COL.COST_CENTER_CODE)     || null,
+          subinventory    : get(COL.SUBINVENTORY)         || null,
+          integrationSource: get(COL.INTEGRATION_SOURCE)  || null,
+          distributionAccId,
+          receiptMethodMeta,
+        });
+        imported++;
+      } catch (upsertErr) {
+        errors.push({ row: rowIdx + 1, storeId, reason: upsertErr.message });
+        skipped++;
+      }
+    }
+
+    logger.info('FUSION_SALES_METADATA CSV import complete', { imported, skipped, errorCount: errors.length });
+    res.json({ imported, skipped, errors });
+  } catch (err) {
+    logger.error('CSV import failed', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

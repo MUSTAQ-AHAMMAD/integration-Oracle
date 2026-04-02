@@ -281,10 +281,18 @@ function applyMigrations(db) {
       receipt_method_meta TEXT,
       journal_meta        TEXT,
       uom_code_map        TEXT,
+      subinventory        TEXT,
+      integration_source  TEXT,
+      distribution_acc_id INTEGER,
       created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
       updated_at          TEXT    NOT NULL DEFAULT (datetime('now'))
     )
   `).run();
+
+  // Additive migrations for store_oracle_metadata (new columns added after initial release)
+  alterSafely('ALTER TABLE store_oracle_metadata ADD COLUMN subinventory        TEXT');
+  alterSafely('ALTER TABLE store_oracle_metadata ADD COLUMN integration_source  TEXT');
+  alterSafely('ALTER TABLE store_oracle_metadata ADD COLUMN distribution_acc_id INTEGER');
 }
 
 // ── Odoo Sales helpers ────────────────────────────────────────────────────────
@@ -1113,6 +1121,7 @@ function upsertStoreOracleMetadata(cfg) {
        currency, outlet_name, organization_name,
        default_payment_type, tax_name,
        receipt_method_meta, journal_meta, uom_code_map,
+       subinventory, integration_source, distribution_acc_id,
        updated_at)
     VALUES (?, ?, ?, ?, ?,
             ?, ?, ?, ?,
@@ -1120,6 +1129,7 @@ function upsertStoreOracleMetadata(cfg) {
             ?, ?, ?,
             ?, ?, ?,
             ?, ?,
+            ?, ?, ?,
             ?, ?, ?,
             datetime('now'))
     ON CONFLICT(store_id) DO UPDATE SET
@@ -1145,6 +1155,9 @@ function upsertStoreOracleMetadata(cfg) {
       receipt_method_meta = excluded.receipt_method_meta,
       journal_meta        = excluded.journal_meta,
       uom_code_map        = excluded.uom_code_map,
+      subinventory        = excluded.subinventory,
+      integration_source  = excluded.integration_source,
+      distribution_acc_id = excluded.distribution_acc_id,
       updated_at          = datetime('now')
   `).run(
     Number(cfg.storeId),
@@ -1169,7 +1182,10 @@ function upsertStoreOracleMetadata(cfg) {
     cfg.taxName         || null,
     cfg.receiptMethodMeta ? (typeof cfg.receiptMethodMeta === 'string' ? cfg.receiptMethodMeta : JSON.stringify(cfg.receiptMethodMeta)) : null,
     cfg.journalMeta     ? (typeof cfg.journalMeta === 'string' ? cfg.journalMeta : JSON.stringify(cfg.journalMeta)) : null,
-    cfg.uomCodeMap      ? (typeof cfg.uomCodeMap === 'string' ? cfg.uomCodeMap : JSON.stringify(cfg.uomCodeMap)) : null
+    cfg.uomCodeMap      ? (typeof cfg.uomCodeMap === 'string' ? cfg.uomCodeMap : JSON.stringify(cfg.uomCodeMap)) : null,
+    cfg.subinventory        || null,
+    cfg.integrationSource   || null,
+    cfg.distributionAccId != null ? Number(cfg.distributionAccId) : null
   );
 }
 

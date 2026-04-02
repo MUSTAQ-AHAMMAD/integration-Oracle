@@ -803,7 +803,17 @@
 
         <!-- Configured stores table -->
         <div style="margin-top:18px">
-          <h3 style="font-size:14px;font-weight:700;margin-bottom:8px">Configured Stores</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+            <h3 style="font-size:14px;font-weight:700;margin:0">Configured Stores</h3>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label class="btn btn-sm btn-outline" style="cursor:pointer;margin:0" title="Import FUSION_SALES_METADATA CSV">
+                📥 Import CSV
+                <input type="file" id="sm-csv-file" accept=".csv,text/csv,text/plain" style="display:none">
+              </label>
+              <button class="btn btn-sm" id="sm-csv-import-btn" disabled>Upload</button>
+            </div>
+          </div>
+          <div id="alert-sm-csv" class="alert hidden" style="margin-bottom:8px"></div>
           <div style="max-height:260px;overflow-y:auto">
             <table class="data-table" id="sm-table">
               <thead>
@@ -2043,6 +2053,34 @@ $('sm-save-btn').addEventListener('click', async () => {
     loadStoreMetaTable();
   } catch(e) {
     showAlert($('alert-store-meta'),'danger',escHtml(e.message));
+  }
+});
+
+// ── CSV Import ────────────────────────────────────────────────────────────────
+
+$('sm-csv-file').addEventListener('change', () => {
+  $('sm-csv-import-btn').disabled = !$('sm-csv-file').files.length;
+});
+
+$('sm-csv-import-btn').addEventListener('click', async () => {
+  const file = $('sm-csv-file').files[0];
+  if (!file) return;
+  const alertEl = $('alert-sm-csv');
+  showAlert(alertEl, 'info', 'Importing…');
+  $('sm-csv-import-btn').disabled = true;
+  try {
+    const csvText = await file.text();
+    const result = await api('/api/odoo/store-metadata/import-csv', 'POST', { csv: csvText });
+    const msg = `Imported ${result.imported} record(s)` +
+      (result.skipped  ? `, skipped ${result.skipped}` : '') +
+      (result.errors && result.errors.length ? ` — ${result.errors.length} error(s)` : '') + '.';
+    showAlert(alertEl, result.errors && result.errors.length ? 'warning' : 'success', msg);
+    $('sm-csv-file').value = '';
+    $('sm-csv-import-btn').disabled = true;
+    loadStoreMetaTable();
+  } catch(e) {
+    showAlert(alertEl, 'danger', escHtml(e.message));
+    $('sm-csv-import-btn').disabled = false;
   }
 });
 
