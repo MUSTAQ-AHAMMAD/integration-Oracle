@@ -285,6 +285,41 @@ function applyMigrations(db) {
       updated_at          TEXT    NOT NULL DEFAULT (datetime('now'))
     )
   `).run();
+
+  // Add receivable-activity columns to store_oracle_metadata (non-breaking migration)
+  alterSafely('ALTER TABLE store_oracle_metadata ADD COLUMN rec_activity_name_bank TEXT');
+  alterSafely('ALTER TABLE store_oracle_metadata ADD COLUMN rec_activity_name_cash TEXT');
+
+  // ── Oracle Fusion sales metadata reference table ─────────────────────────
+  // Seeded from FUSION_SALES_METADATA CSV exports (oracle-crm/*.csv).
+  // Keyed by (subinventory, customer_type) – mirrors Java's findSalesMetaData
+  // named query.  Used as a lowest-priority fallback when store_oracle_metadata
+  // has no billing identity configured for a store.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fusion_sales_metadata (
+      id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+      row_id                INTEGER,
+      subinventory          TEXT    NOT NULL,
+      customer_type         TEXT    NOT NULL,
+      bill_to_name          TEXT,
+      bill_to_account       TEXT,
+      site_number           TEXT,
+      business_unit         TEXT,
+      txn_source            TEXT,
+      txn_type              TEXT,
+      rate_is_corporate     TEXT    DEFAULT '1',
+      rec_activity_name_bank TEXT,
+      rec_activity_name_cash TEXT,
+      integration_source    TEXT,
+      distribution_acc_id   TEXT,
+      region                TEXT,
+      cost_center_code      TEXT,
+      created_at            TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at            TEXT    NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (subinventory, customer_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_fusion_meta_key ON fusion_sales_metadata(subinventory, customer_type);
+  `);
 }
 
 // ── Odoo Sales helpers ────────────────────────────────────────────────────────
@@ -1113,6 +1148,7 @@ function upsertStoreOracleMetadata(cfg) {
        currency, outlet_name, organization_name,
        default_payment_type, tax_name,
        receipt_method_meta, journal_meta, uom_code_map,
+       rec_activity_name_bank, rec_activity_name_cash,
        updated_at)
     VALUES (?, ?, ?, ?, ?,
             ?, ?, ?, ?,
@@ -1121,6 +1157,7 @@ function upsertStoreOracleMetadata(cfg) {
             ?, ?, ?,
             ?, ?,
             ?, ?, ?,
+            ?, ?,
             datetime('now'))
     ON CONFLICT(store_id) DO UPDATE SET
       store_name          = excluded.store_name,
@@ -1145,6 +1182,8 @@ function upsertStoreOracleMetadata(cfg) {
       receipt_method_meta = excluded.receipt_method_meta,
       journal_meta        = excluded.journal_meta,
       uom_code_map        = excluded.uom_code_map,
+      rec_activity_name_bank = excluded.rec_activity_name_bank,
+      rec_activity_name_cash = excluded.rec_activity_name_cash,
       updated_at          = datetime('now')
   `).run(
     Number(cfg.storeId),
@@ -1169,12 +1208,111 @@ function upsertStoreOracleMetadata(cfg) {
     cfg.taxName         || null,
     cfg.receiptMethodMeta ? (typeof cfg.receiptMethodMeta === 'string' ? cfg.receiptMethodMeta : JSON.stringify(cfg.receiptMethodMeta)) : null,
     cfg.journalMeta     ? (typeof cfg.journalMeta === 'string' ? cfg.journalMeta : JSON.stringify(cfg.journalMeta)) : null,
-    cfg.uomCodeMap      ? (typeof cfg.uomCodeMap === 'string' ? cfg.uomCodeMap : JSON.stringify(cfg.uomCodeMap)) : null
+    cfg.uomCodeMap      ? (typeof cfg.uomCodeMap === 'string' ? cfg.uomCodeMap : JSON.stringify(cfg.uomCodeMap)) : null,
+    cfg.recActivityNameBank || null,
+    cfg.recActivityNameCash || null
   );
 }
 
 function deleteStoreOracleMetadata(storeId) {
   getDb().prepare('DELETE FROM store_oracle_metadata WHERE store_id = ?').run(Number(storeId));
+}
+
+// ── Fusion Sales Metadata CRUD ────────────────────────────────────────────────
+// Reference data seeded from FUSION_SALES_METADATA CSV exports.
+// Provides Oracle billing identity (billToName, businessUnit, etc.) keyed by
+// subinventory + customer_type – mirrors Java's findSalesMetaData named query.
+
+function listFusionSalesMetadata() {
+  return getDb()
+    .prepare('SELECT * FROM fusion_sales_metadata ORDER BY subinventory, customer_type')
+    .all();
+}
+
+function countFusionSalesMetadata() {
+  return getDb().prepare('SELECT COUNT(*) AS cnt FROM fusion_sales_metadata').get().cnt;
+}
+
+/**
+ * Look up a single Fusion metadata row by subinventory code + customer type.
+ * Returns null when not found.
+ * @param {string} subinventory  – store/outlet code (e.g. 'HAYAT')
+ * @param {string} customerType  – 'NORMAL' | 'TAMARA' | 'TABBY' | 'HUNGERSTATION' | 'MRSOOL'
+ */
+function getFusionSalesMetadataByKey(subinventory, customerType) {
+  if (!subinventory || !customerType) return null;
+  return getDb()
+    .prepare('SELECT * FROM fusion_sales_metadata WHERE subinventory = ? AND customer_type = ?')
+    .get(String(subinventory).toUpperCase(), String(customerType).toUpperCase()) || null;
+}
+
+/**
+ * Bulk upsert fusion_sales_metadata rows (one transaction for efficiency).
+ * @param {object[]} rows  – array of plain objects with CSV-named fields
+ */
+function bulkUpsertFusionSalesMetadata(rows) {
+  const db   = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO fusion_sales_metadata
+      (row_id, subinventory, customer_type,
+       bill_to_name, bill_to_account, site_number, business_unit,
+       txn_source, txn_type, rate_is_corporate,
+       rec_activity_name_bank, rec_activity_name_cash,
+       integration_source, distribution_acc_id,
+       region, cost_center_code, updated_at)
+    VALUES
+      (@row_id, @subinventory, @customer_type,
+       @bill_to_name, @bill_to_account, @site_number, @business_unit,
+       @txn_source, @txn_type, @rate_is_corporate,
+       @rec_activity_name_bank, @rec_activity_name_cash,
+       @integration_source, @distribution_acc_id,
+       @region, @cost_center_code, datetime('now'))
+    ON CONFLICT(subinventory, customer_type) DO UPDATE SET
+      row_id                 = excluded.row_id,
+      bill_to_name           = excluded.bill_to_name,
+      bill_to_account        = excluded.bill_to_account,
+      site_number            = excluded.site_number,
+      business_unit          = excluded.business_unit,
+      txn_source             = excluded.txn_source,
+      txn_type               = excluded.txn_type,
+      rate_is_corporate      = excluded.rate_is_corporate,
+      rec_activity_name_bank = excluded.rec_activity_name_bank,
+      rec_activity_name_cash = excluded.rec_activity_name_cash,
+      integration_source     = excluded.integration_source,
+      distribution_acc_id    = excluded.distribution_acc_id,
+      region                 = excluded.region,
+      cost_center_code       = excluded.cost_center_code,
+      updated_at             = datetime('now')
+  `);
+
+  const upsertMany = db.transaction((items) => {
+    for (const r of items) stmt.run(r);
+  });
+
+  upsertMany(rows.map(r => ({
+    row_id                : r.row_id                 != null ? Number(r.row_id) : null,
+    subinventory          : String(r.subinventory    || '').toUpperCase(),
+    customer_type         : String(r.customer_type   || '').toUpperCase(),
+    bill_to_name          : r.bill_to_name           || null,
+    bill_to_account       : r.bill_to_account        || null,
+    site_number           : r.site_number            || null,
+    business_unit         : r.business_unit          || null,
+    txn_source            : r.txn_source             || null,
+    txn_type              : r.txn_type               || null,
+    rate_is_corporate     : r.rate_is_corporate      || '1',
+    rec_activity_name_bank: r.rec_activity_name_bank || null,
+    rec_activity_name_cash: r.rec_activity_name_cash || null,
+    integration_source    : r.integration_source     || null,
+    distribution_acc_id   : r.distribution_acc_id    || null,
+    region                : r.region                 || null,
+    cost_center_code      : r.cost_center_code       || null,
+  })));
+
+  return rows.length;
+}
+
+function clearFusionSalesMetadata() {
+  getDb().prepare('DELETE FROM fusion_sales_metadata').run();
 }
 
 /**
@@ -1271,4 +1409,9 @@ module.exports = {
   getStoreOracleMetadata,
   upsertStoreOracleMetadata,
   deleteStoreOracleMetadata,
+  listFusionSalesMetadata,
+  countFusionSalesMetadata,
+  getFusionSalesMetadataByKey,
+  bulkUpsertFusionSalesMetadata,
+  clearFusionSalesMetadata,
 };

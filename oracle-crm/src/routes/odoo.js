@@ -657,4 +657,66 @@ router.delete('/store-metadata/:storeId', (req, res) => {
   }
 });
 
+// ── Fusion Sales Metadata endpoints ──────────────────────────────────────────
+//
+// Reference data seeded from FUSION_SALES_METADATA CSV exports.
+// Provides Oracle billing identity keyed by (subinventory, customer_type).
+// Used as lowest-priority fallback during push when store_oracle_metadata has
+// no billing information configured for a store.
+
+const { seedFusionSalesMetadata } = require('../fusionMetadataSeed');
+
+/** GET /api/odoo/fusion-metadata – list all fusion sales metadata rows */
+router.get('/fusion-metadata', (req, res) => {
+  try {
+    const rows = db.listFusionSalesMetadata();
+    res.json({ count: rows.length, rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /api/odoo/fusion-metadata/:subinventory/:customerType – lookup by key */
+router.get('/fusion-metadata/:subinventory/:customerType', (req, res) => {
+  try {
+    const row = db.getFusionSalesMetadataByKey(
+      req.params.subinventory,
+      req.params.customerType
+    );
+    if (!row) return res.status(404).json({ error: 'No fusion metadata found for this key' });
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/odoo/fusion-metadata/seed
+ * Re-seed fusion_sales_metadata from the FUSION_SALES_METADATA CSV files.
+ * Body: { force?: boolean, csvPath?: string }
+ */
+router.post('/fusion-metadata/seed', (req, res) => {
+  try {
+    const { force = true, csvPath } = req.body || {};
+    const result = seedFusionSalesMetadata(db, { force, csvPath });
+    if (!result) {
+      return res.json({ seeded: 0, message: 'Already seeded or no CSV file found' });
+    }
+    res.json({ seeded: result.seeded, source: result.source });
+  } catch (err) {
+    logger.error('Failed to seed fusion metadata', { err: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** DELETE /api/odoo/fusion-metadata – clear all fusion metadata rows */
+router.delete('/fusion-metadata', (req, res) => {
+  try {
+    db.clearFusionSalesMetadata();
+    res.json({ deleted: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -9,6 +9,7 @@ const logger     = require('./src/logger');
 const db         = require('./src/db');
 const bcrypt     = require('bcryptjs');
 const { readMiddlewareCredentials } = require('./src/middlewareCredentials');
+const { seedFusionSalesMetadata }   = require('./src/fusionMetadataSeed');
 
 const salesRoutes      = require('./src/routes/sales');
 const configRoutes     = require('./src/routes/config');
@@ -95,5 +96,6 @@ function seedCredentialsFromMiddleware() {
 app.listen(PORT, async () => {
   await seedAdminUser();
   seedCredentialsFromMiddleware();
+  seedFusionSalesMetadata(db);
   logger.info(`Oracle CRM server listening on port ${PORT}`);
 });

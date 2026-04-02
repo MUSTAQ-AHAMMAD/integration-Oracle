@@ -831,8 +831,20 @@ async function _runPushJob(jobId, options) {
             // If the caller provided explicit metadata from the UI, use it.
             // Otherwise, look up the stored per-store configuration (mirrors
             // Java's FusionSalesMetadata query by subInventory/store).
+            // As a lowest-priority baseline, fall back to the fusion_sales_metadata
+            // reference table (seeded from FUSION_SALES_METADATA CSV exports) keyed
+            // by outlet/subinventory code + customer_type.
             const storeMeta  = resolveStoreMetadata(sale.store_id);
-            const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata);
+            const subinventory = (storeMeta && storeMeta.outlet_name)
+              || sale.store_name || '';
+            const customerType = sale.customer_type
+              || (metadata && metadata.customerType)
+              || (storeMeta && storeMeta.customer_type)
+              || 'NORMAL';
+            const fusionMeta = subinventory
+              ? db.getFusionSalesMetadataByKey(subinventory, customerType)
+              : null;
+            const effectiveMeta   = mergeStoreMetadata(storeMeta, metadata, fusionMeta);
             const effectiveOutlet = mergeStoreOutlet(storeMeta, outlet);
 
             const salePayload   = buildOracleSalePayload(saleWithLines, effectiveMeta, effectiveOutlet);
@@ -1124,58 +1136,89 @@ async function _runRetryJob(jobId, { sourceJobId, metadata, outlet }) {
 
 /**
  * Merge stored per-store Oracle metadata (from store_oracle_metadata table) with
- * optional UI-provided metadata.  UI values take precedence; stored values fill gaps.
+ * optional UI-provided metadata and an optional fusion-reference-data fallback.
+ *
+ * Priority (highest → lowest):
+ *   1. uiMeta    – values provided by the caller (push form / API body)
+ *   2. storeMeta – per-store row from store_oracle_metadata table
+ *   3. fusionMeta– row from fusion_sales_metadata (keyed by subinventory + customerType)
+ *
  * This mirrors the Java middleware's FusionSalesMetadata lookup by subInventory/store.
  *
  * @param {object|null} storeMeta  – DB row from store_oracle_metadata (may be null)
  * @param {object|null} uiMeta    – metadata provided by the caller (push form / API body)
- * @returns {object|null} merged metadata, or null if neither source exists
+ * @param {object|null} [fusionMeta] – row from fusion_sales_metadata (lowest priority)
+ * @returns {object|null} merged metadata, or null if no source exists
  */
-function mergeStoreMetadata(storeMeta, uiMeta) {
-  if (!storeMeta && !uiMeta) return null;
-  if (!storeMeta) return uiMeta;
+function mergeStoreMetadata(storeMeta, uiMeta, fusionMeta) {
+  if (!storeMeta && !uiMeta && !fusionMeta) return null;
+
+  // Build lowest-priority baseline from fusion_sales_metadata (CSV reference data)
+  const fromFusion = fusionMeta ? {
+    billToName          : fusionMeta.bill_to_name           || undefined,
+    billToAccount       : fusionMeta.bill_to_account        || undefined,
+    siteNumber          : fusionMeta.site_number            || undefined,
+    businessUnit        : fusionMeta.business_unit          || undefined,
+    txnSource           : fusionMeta.txn_source             || undefined,
+    txnType             : fusionMeta.txn_type               || undefined,
+    rateIsCorporate     : fusionMeta.rate_is_corporate      || undefined,
+    recActivityNameBank : fusionMeta.rec_activity_name_bank || undefined,
+    recActivityNameCash : fusionMeta.rec_activity_name_cash || undefined,
+    region              : fusionMeta.region                 || undefined,
+    customerType        : fusionMeta.customer_type          || undefined,
+    costCenterCode      : fusionMeta.cost_center_code       || undefined,
+  } : {};
+  Object.keys(fromFusion).forEach(k => { if (fromFusion[k] === undefined) delete fromFusion[k]; });
+
+  if (!storeMeta) {
+    // No per-store config – merge UI on top of fusion baseline
+    if (!uiMeta) return Object.keys(fromFusion).length ? fromFusion : null;
+    return { ...fromFusion, ...uiMeta };
+  }
 
   // Convert DB column names to the camelCase keys expected by buildOracleSalePayload
   const fromDb = {
-    billToName       : storeMeta.bill_to_name        || undefined,
-    billToAccount    : storeMeta.bill_to_account      || undefined,
-    siteNumber       : storeMeta.site_number          || undefined,
-    businessUnit     : storeMeta.business_unit        || undefined,
-    txnSource        : storeMeta.txn_source           || undefined,
-    txnType          : storeMeta.txn_type             || undefined,
-    paymentTermsName : storeMeta.payment_terms_name   || undefined,
-    rateIsCorporate  : storeMeta.rate_is_corporate    || undefined,
-    orgId            : storeMeta.org_id               || undefined,
-    costCenterCode   : storeMeta.cost_center_code     || undefined,
-    customerType     : storeMeta.customer_type        || undefined,
-    region           : storeMeta.region               || undefined,
-    tzOffset         : storeMeta.tz_offset != null    ? storeMeta.tz_offset : undefined,
-    defaultPaymentType: storeMeta.default_payment_type || undefined,
-    taxName          : storeMeta.tax_name             || undefined,
-    receiptMethodMeta: storeMeta.receipt_method_meta
-                         ? (typeof storeMeta.receipt_method_meta === 'string'
-                              ? JSON.parse(storeMeta.receipt_method_meta)
-                              : storeMeta.receipt_method_meta)
-                         : undefined,
-    journalMeta      : storeMeta.journal_meta
-                         ? (typeof storeMeta.journal_meta === 'string'
-                              ? JSON.parse(storeMeta.journal_meta)
-                              : storeMeta.journal_meta)
-                         : undefined,
-    uomCodeMap       : storeMeta.uom_code_map
-                         ? (typeof storeMeta.uom_code_map === 'string'
-                              ? JSON.parse(storeMeta.uom_code_map)
-                              : storeMeta.uom_code_map)
-                         : undefined,
+    billToName          : storeMeta.bill_to_name         || undefined,
+    billToAccount       : storeMeta.bill_to_account      || undefined,
+    siteNumber          : storeMeta.site_number          || undefined,
+    businessUnit        : storeMeta.business_unit        || undefined,
+    txnSource           : storeMeta.txn_source           || undefined,
+    txnType             : storeMeta.txn_type             || undefined,
+    paymentTermsName    : storeMeta.payment_terms_name   || undefined,
+    rateIsCorporate     : storeMeta.rate_is_corporate    || undefined,
+    orgId               : storeMeta.org_id               || undefined,
+    costCenterCode      : storeMeta.cost_center_code     || undefined,
+    customerType        : storeMeta.customer_type        || undefined,
+    region              : storeMeta.region               || undefined,
+    tzOffset            : storeMeta.tz_offset != null    ? storeMeta.tz_offset : undefined,
+    defaultPaymentType  : storeMeta.default_payment_type || undefined,
+    taxName             : storeMeta.tax_name             || undefined,
+    recActivityNameBank : storeMeta.rec_activity_name_bank || undefined,
+    recActivityNameCash : storeMeta.rec_activity_name_cash || undefined,
+    receiptMethodMeta   : storeMeta.receipt_method_meta
+                            ? (typeof storeMeta.receipt_method_meta === 'string'
+                                 ? JSON.parse(storeMeta.receipt_method_meta)
+                                 : storeMeta.receipt_method_meta)
+                            : undefined,
+    journalMeta         : storeMeta.journal_meta
+                            ? (typeof storeMeta.journal_meta === 'string'
+                                 ? JSON.parse(storeMeta.journal_meta)
+                                 : storeMeta.journal_meta)
+                            : undefined,
+    uomCodeMap          : storeMeta.uom_code_map
+                            ? (typeof storeMeta.uom_code_map === 'string'
+                                 ? JSON.parse(storeMeta.uom_code_map)
+                                 : storeMeta.uom_code_map)
+                            : undefined,
   };
 
-  // Remove undefined keys so they don't overwrite UI values
+  // Remove undefined keys so they don't overwrite lower-priority values
   Object.keys(fromDb).forEach(k => { if (fromDb[k] === undefined) delete fromDb[k]; });
 
-  if (!uiMeta) return fromDb;
+  if (!uiMeta) return { ...fromFusion, ...fromDb };
 
-  // UI-provided values win; DB-stored values fill the gaps
-  return { ...fromDb, ...uiMeta };
+  // UI-provided values win; DB-stored values fill the gaps; fusion provides the baseline
+  return { ...fromFusion, ...fromDb, ...uiMeta };
 }
 
 /**
