@@ -1417,11 +1417,12 @@ function getOracleDbConfig() {
   const password    = getAppSetting('oracle_db_password', null);
   const enabledRaw  = getAppSetting('oracle_db_enabled', '0');
   const tableName   = getAppSetting('oracle_db_table_name', null);
+  const role        = getAppSetting('oracle_db_role', null);
 
   const port    = portRaw ? parseInt(portRaw, 10) : null;
   const enabled = enabledRaw === '1' || enabledRaw === 'true';
 
-  return { host, port, serviceName, username, password, enabled, tableName };
+  return { host, port, serviceName, username, password, enabled, tableName, role };
 }
 
 /**
@@ -1435,6 +1436,7 @@ function getOracleDbConfig() {
  * @param {string} [config.password]
  * @param {boolean} [config.enabled]
  * @param {string} [config.tableName]
+ * @param {string} [config.role]
  */
 function setOracleDbConfig(config) {
   if (config.host !== undefined)        setAppSetting('oracle_db_host', config.host || null);
@@ -1444,6 +1446,7 @@ function setOracleDbConfig(config) {
   if (config.password !== undefined)    setAppSetting('oracle_db_password', config.password || null);
   if (config.enabled !== undefined)     setAppSetting('oracle_db_enabled', config.enabled ? '1' : '0');
   if (config.tableName !== undefined)   setAppSetting('oracle_db_table_name', config.tableName || null);
+  if (config.role !== undefined)        setAppSetting('oracle_db_role', config.role || null);
 }
 
 module.exports = {

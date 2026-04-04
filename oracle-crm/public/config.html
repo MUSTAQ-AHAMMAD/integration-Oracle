@@ -210,13 +210,22 @@
           <div>
             <div class="form-group">
               <label class="form-label">Username</label>
-              <input class="form-control" id="oracle-db-username" placeholder="e.g. fusion_user">
+              <input class="form-control" id="oracle-db-username" placeholder="e.g. SYS or fusion_user">
               <small class="text-muted">Database username with read access to metadata tables</small>
             </div>
             <div class="form-group">
               <label class="form-label">Password</label>
               <input class="form-control" id="oracle-db-password" type="password" placeholder="Leave blank to keep existing">
               <small class="text-muted">Database password (encrypted in storage)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role <span style="font-size:11px;color:var(--muted)">(optional)</span></label>
+              <select class="form-control" id="oracle-db-role">
+                <option value="">Normal Connection</option>
+                <option value="SYSDBA">SYSDBA</option>
+                <option value="SYSOPER">SYSOPER</option>
+              </select>
+              <small class="text-muted">Select SYSDBA for system administrator privileges (e.g., connecting as SYS)</small>
             </div>
             <div class="form-group">
               <label class="form-label">Table Name <span style="font-size:11px;color:var(--muted)">(optional)</span></label>
@@ -1843,6 +1852,7 @@ fetch('/api/config/oracle-db')
     document.getElementById('oracle-db-username').value = config.username || '';
     document.getElementById('oracle-db-password').value = ''; // Never pre-fill password
     document.getElementById('oracle-db-table-name').value = config.tableName || '';
+    document.getElementById('oracle-db-role').value = config.role || '';
   })
   .catch(err => {
     console.error('Failed to load Oracle DB config:', err);
@@ -1857,6 +1867,7 @@ async function saveOracleDbConfig() {
     password    : document.getElementById('oracle-db-password').value || null,
     enabled     : document.getElementById('oracle-db-enabled').checked,
     tableName   : document.getElementById('oracle-db-table-name').value.trim() || null,
+    role        : document.getElementById('oracle-db-role').value.trim() || null,
   };
 
   const resultDiv = document.getElementById('oracle-db-test-result');
@@ -1898,9 +1909,10 @@ async function testOracleDb() {
   const serviceName = document.getElementById('oracle-db-service-name').value.trim();
   const username    = document.getElementById('oracle-db-username').value.trim();
   const password    = document.getElementById('oracle-db-password').value;
+  const role        = document.getElementById('oracle-db-role').value.trim();
 
   const body = (host && port && serviceName && username && password)
-    ? { host, port: Number(port), serviceName, username, password }
+    ? { host, port: Number(port), serviceName, username, password, role: role || null }
     : {};
 
   try {
