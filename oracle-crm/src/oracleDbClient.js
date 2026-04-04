@@ -14,7 +14,16 @@
  *   - oracle_db_service_name
  *   - oracle_db_username
  *   - oracle_db_password
+ *   - oracle_db_role (optional: SYSDBA, SYSOPER for privileged connections)
  *   - oracle_db_enabled
+ *
+ * Example configuration for connecting as SYS with SYSDBA role:
+ *   Host: 193.122.68.27
+ *   Port: 1521
+ *   Service Name: TestDB_jed1sw.dbsubnet.testvcn.oraclevcn.com
+ *   Username: SYS
+ *   Password: <your-password>
+ *   Role: SYSDBA
  */
 
 const oracledb = require('oracledb');
@@ -33,10 +42,11 @@ oracledb.fetchAsString = [oracledb.CLOB];
  * @param {string} config.serviceName
  * @param {string} config.username
  * @param {string} config.password
+ * @param {string} [config.role] - Optional Oracle role (SYSDBA, SYSOPER, etc.)
  * @returns {Promise<Connection>}
  */
 async function createConnection(config) {
-  const { host, port, serviceName, username, password } = config;
+  const { host, port, serviceName, username, password, role } = config;
 
   if (!host || !port || !serviceName || !username || !password) {
     throw new Error('Oracle DB connection config incomplete: host, port, serviceName, username, and password are required');
@@ -44,16 +54,28 @@ async function createConnection(config) {
 
   const connectString = `${host}:${port}/${serviceName}`;
 
+  const connectionOptions = {
+    user         : username,
+    password     : password,
+    connectionString: connectString,
+  };
+
+  // Add privilege parameter if role is specified
+  if (role) {
+    const roleUpper = role.toUpperCase();
+    if (roleUpper === 'SYSDBA') {
+      connectionOptions.privilege = oracledb.SYSDBA;
+    } else if (roleUpper === 'SYSOPER') {
+      connectionOptions.privilege = oracledb.SYSOPER;
+    }
+  }
+
   try {
-    const connection = await oracledb.getConnection({
-      user         : username,
-      password     : password,
-      connectionString: connectString,
-    });
-    logger.info('Oracle DB connection established', { host, port, serviceName, user: username });
+    const connection = await oracledb.getConnection(connectionOptions);
+    logger.info('Oracle DB connection established', { host, port, serviceName, user: username, role: role || 'NORMAL' });
     return connection;
   } catch (err) {
-    logger.error('Oracle DB connection failed', { host, port, serviceName, user: username, error: err.message });
+    logger.error('Oracle DB connection failed', { host, port, serviceName, user: username, role: role || 'NORMAL', error: err.message });
     throw new Error(`Oracle DB connection failed: ${err.message}`);
   }
 }

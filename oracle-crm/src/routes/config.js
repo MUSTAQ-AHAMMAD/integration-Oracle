@@ -867,9 +867,9 @@ router.get('/oracle-db', (req, res) => {
 
 // ── PUT /api/config/oracle-db ─────────────────────────────────────────────────
 // Save Oracle database connection configuration.
-// Body: { host, port, serviceName, username, password, enabled, tableName }
+// Body: { host, port, serviceName, username, password, enabled, tableName, role }
 router.put('/oracle-db', (req, res) => {
-  const { host, port, serviceName, username, password, enabled, tableName } = req.body || {};
+  const { host, port, serviceName, username, password, enabled, tableName, role } = req.body || {};
 
   // Validate port
   if (port !== undefined && port !== null) {
@@ -891,6 +891,7 @@ router.put('/oracle-db', (req, res) => {
     password: resolvedPassword,
     enabled,
     tableName,
+    role,
   });
 
   res.json({ ok: true });
@@ -898,7 +899,7 @@ router.put('/oracle-db', (req, res) => {
 
 // ── POST /api/config/test-oracle-db ───────────────────────────────────────────
 // Test Oracle database connectivity.
-// Body: { host?, port?, serviceName?, username?, password? }
+// Body: { host?, port?, serviceName?, username?, password?, role? }
 // When body is empty, uses saved config from the database.
 router.post('/test-oracle-db', async (req, res) => {
   const body = req.body || {};
@@ -912,6 +913,7 @@ router.post('/test-oracle-db', async (req, res) => {
       serviceName: String(body.serviceName).trim(),
       username   : String(body.username).trim(),
       password   : String(body.password),
+      role       : body.role ? String(body.role).trim() : null,
     };
   } else {
     // Use saved credentials
