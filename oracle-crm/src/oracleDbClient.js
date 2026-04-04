@@ -14,7 +14,16 @@
  *   - oracle_db_service_name
  *   - oracle_db_username
  *   - oracle_db_password
+ *   - oracle_db_role (optional: SYSDBA, SYSOPER for privileged connections)
  *   - oracle_db_enabled
+ *
+ * Example configuration for connecting as SYS with SYSDBA role:
+ *   Host: 193.122.68.27
+ *   Port: 1521
+ *   Service Name: TestDB_jed1sw.dbsubnet.testvcn.oraclevcn.com
+ *   Username: SYS
+ *   Password: <your-password>
+ *   Role: SYSDBA
  */
 
 const oracledb = require('oracledb');
