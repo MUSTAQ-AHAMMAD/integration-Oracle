@@ -562,20 +562,35 @@ class OdooRestClient {
    * @param {string}  startDatetime  Start datetime, e.g. '2026-02-01 21:00:00'
    * @param {string}  endDatetime    End datetime,   e.g. '2026-02-02 20:59:59'
    * @param {number|null} [afterOrderId]  Cursor: fetch records with id > this value
+   * @param {object}  [options]      Additional query parameters
+   * @param {number}  [options.companyId]  Filter by Odoo company_id
+   * @param {number}  [options.limit]      Page size limit (default: determined by API)
+   * @param {string}  [options.orderId]    Filter by specific order_id
    * @returns {Array<{ order: object, lines: object[], payments: object[] }>}
    */
-  async getPosOrders(startDatetime, endDatetime, afterOrderId = null) {
+  async getPosOrders(startDatetime, endDatetime, afterOrderId = null, options = {}) {
     if (!this.paths.posOrder) {
       throw new Error('POS Order endpoint path is not configured. Set posOrderPath in credentials.');
     }
     logger.debug('REST: fetching POS orders (unified endpoint)', {
-      startDatetime, endDatetime, afterOrderId,
+      startDatetime, endDatetime, afterOrderId, options,
     });
     const params = {
       start_date: startDatetime,
       end_date  : endDatetime,
-      order_by  : 'id ASC',
     };
+
+    // Add optional parameters
+    if (options.companyId != null) {
+      params.company_id = options.companyId;
+    }
+    if (options.limit != null) {
+      params.limit = options.limit;
+    }
+    if (options.orderId != null) {
+      params.order_id = options.orderId;
+    }
+
     if (afterOrderId != null) {
       // Cursor-based pagination: fetch records with id strictly greater than
       // the last received order id.  The API uses the literal key 'order_id>'

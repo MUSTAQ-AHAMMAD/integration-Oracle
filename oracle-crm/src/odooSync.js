@@ -221,7 +221,9 @@ async function _runFetchJob(jobId, { dateFrom, dateTo, storeId, country, company
       const allOrderIdSet = new Set();
 
       while (true) {
-        const page = await odoo.getPosOrders(startDatetime, endDatetime, afterOrderId);
+        const options = {};
+        if (companyId != null) options.companyId = companyId;
+        const page = await odoo.getPosOrders(startDatetime, endDatetime, afterOrderId, options);
         if (page.length === 0) break;
 
         const now = new Date().toISOString();
