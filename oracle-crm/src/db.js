@@ -1393,6 +1393,59 @@ function querySaleLines({ saleId, dateFrom, dateTo, storeId, country, limit = 50
   return { rows, total };
 }
 
+// ── Oracle Database Configuration helpers ────────────────────────────────────
+
+/**
+ * Get Oracle database connection settings.
+ * Returns null for missing/empty values to distinguish between "not set" and "".
+ *
+ * @returns {{
+ *   host: string|null,
+ *   port: number|null,
+ *   serviceName: string|null,
+ *   username: string|null,
+ *   password: string|null,
+ *   enabled: boolean,
+ *   tableName: string|null
+ * }}
+ */
+function getOracleDbConfig() {
+  const host        = getAppSetting('oracle_db_host', null);
+  const portRaw     = getAppSetting('oracle_db_port', null);
+  const serviceName = getAppSetting('oracle_db_service_name', null);
+  const username    = getAppSetting('oracle_db_username', null);
+  const password    = getAppSetting('oracle_db_password', null);
+  const enabledRaw  = getAppSetting('oracle_db_enabled', '0');
+  const tableName   = getAppSetting('oracle_db_table_name', null);
+
+  const port    = portRaw ? parseInt(portRaw, 10) : null;
+  const enabled = enabledRaw === '1' || enabledRaw === 'true';
+
+  return { host, port, serviceName, username, password, enabled, tableName };
+}
+
+/**
+ * Save Oracle database connection settings.
+ *
+ * @param {object} config
+ * @param {string} [config.host]
+ * @param {number} [config.port]
+ * @param {string} [config.serviceName]
+ * @param {string} [config.username]
+ * @param {string} [config.password]
+ * @param {boolean} [config.enabled]
+ * @param {string} [config.tableName]
+ */
+function setOracleDbConfig(config) {
+  if (config.host !== undefined)        setAppSetting('oracle_db_host', config.host || null);
+  if (config.port !== undefined)        setAppSetting('oracle_db_port', config.port ? String(config.port) : null);
+  if (config.serviceName !== undefined) setAppSetting('oracle_db_service_name', config.serviceName || null);
+  if (config.username !== undefined)    setAppSetting('oracle_db_username', config.username || null);
+  if (config.password !== undefined)    setAppSetting('oracle_db_password', config.password || null);
+  if (config.enabled !== undefined)     setAppSetting('oracle_db_enabled', config.enabled ? '1' : '0');
+  if (config.tableName !== undefined)   setAppSetting('oracle_db_table_name', config.tableName || null);
+}
+
 module.exports = {
   getDb,
   upsertSales,
@@ -1447,4 +1500,6 @@ module.exports = {
   bulkUpsertFusionSalesMetadata,
   clearFusionSalesMetadata,
   clearSalesData,
+  getOracleDbConfig,
+  setOracleDbConfig,
 };

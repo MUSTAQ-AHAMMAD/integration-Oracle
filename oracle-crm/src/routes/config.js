@@ -854,4 +854,149 @@ router.post('/import-middleware-credentials', (req, res) => {
   res.json({ ok: true, oracle, modes, sources });
 });
 
+// ── GET /api/config/oracle-db ────────────────────────────────────────────────
+// Get Oracle database connection configuration.
+router.get('/oracle-db', (req, res) => {
+  const config = db.getOracleDbConfig();
+  // Mask password
+  res.json({
+    ...config,
+    password: config.password ? PASSWORD_MASK : null,
+  });
+});
+
+// ── PUT /api/config/oracle-db ─────────────────────────────────────────────────
+// Save Oracle database connection configuration.
+// Body: { host, port, serviceName, username, password, enabled, tableName }
+router.put('/oracle-db', (req, res) => {
+  const { host, port, serviceName, username, password, enabled, tableName } = req.body || {};
+
+  // Validate port
+  if (port !== undefined && port !== null) {
+    const portNum = Number(port);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      return res.status(400).json({ error: 'port must be a number between 1 and 65535' });
+    }
+  }
+
+  // Get existing config to handle masked password
+  const existing = db.getOracleDbConfig();
+  const resolvedPassword = (password === PASSWORD_MASK) ? existing.password : password;
+
+  db.setOracleDbConfig({
+    host,
+    port,
+    serviceName,
+    username,
+    password: resolvedPassword,
+    enabled,
+    tableName,
+  });
+
+  res.json({ ok: true });
+});
+
+// ── POST /api/config/test-oracle-db ───────────────────────────────────────────
+// Test Oracle database connectivity.
+// Body: { host?, port?, serviceName?, username?, password? }
+// When body is empty, uses saved config from the database.
+router.post('/test-oracle-db', async (req, res) => {
+  const body = req.body || {};
+
+  let config;
+  if (body.host && body.port && body.serviceName && body.username && body.password) {
+    // Use inline credentials (test before save)
+    config = {
+      host       : String(body.host).trim(),
+      port       : Number(body.port),
+      serviceName: String(body.serviceName).trim(),
+      username   : String(body.username).trim(),
+      password   : String(body.password),
+    };
+  } else {
+    // Use saved credentials
+    config = db.getOracleDbConfig();
+    if (!config.enabled) {
+      return res.status(200).json({ ok: false, error: 'Oracle database integration is disabled. Enable it in the configuration and try again.' });
+    }
+    if (!config.host || !config.port || !config.serviceName || !config.username || !config.password) {
+      return res.status(400).json({ ok: false, error: 'Oracle database connection not fully configured. Please provide all required fields.' });
+    }
+  }
+
+  try {
+    const oracleDbClient = require('../oracleDbClient');
+    const result = await oracleDbClient.testConnection(config);
+    res.json(result);
+  } catch (err) {
+    res.status(200).json({ ok: false, error: err.message });
+  }
+});
+
+// ── POST /api/config/sync-fusion-metadata ─────────────────────────────────────
+// Sync fusion sales metadata from Oracle database to SQLite.
+// Fetches data from Oracle DB and upserts it into the local fusion_sales_metadata table.
+router.post('/sync-fusion-metadata', async (req, res) => {
+  const config = db.getOracleDbConfig();
+
+  if (!config.enabled) {
+    return res.status(200).json({ ok: false, error: 'Oracle database integration is disabled' });
+  }
+
+  if (!config.host || !config.port || !config.serviceName || !config.username || !config.password) {
+    return res.status(400).json({ ok: false, error: 'Oracle database connection not fully configured' });
+  }
+
+  try {
+    const oracleDbClient = require('../oracleDbClient');
+    const rows = await oracleDbClient.fetchFusionSalesMetadata(config, {
+      tableName: config.tableName || 'FUSION_SALES_METADATA',
+    });
+
+    if (rows.length === 0) {
+      return res.json({ ok: true, synced: 0, message: 'No fusion metadata found in Oracle database' });
+    }
+
+    const synced = db.bulkUpsertFusionSalesMetadata(rows);
+    res.json({ ok: true, synced, message: `Synced ${synced} fusion metadata records from Oracle database to SQLite` });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── POST /api/config/sync-store-metadata ──────────────────────────────────────
+// Sync store Oracle metadata from Oracle database to SQLite.
+router.post('/sync-store-metadata', async (req, res) => {
+  const config = db.getOracleDbConfig();
+
+  if (!config.enabled) {
+    return res.status(200).json({ ok: false, error: 'Oracle database integration is disabled' });
+  }
+
+  if (!config.host || !config.port || !config.serviceName || !config.username || !config.password) {
+    return res.status(400).json({ ok: false, error: 'Oracle database connection not fully configured' });
+  }
+
+  try {
+    const oracleDbClient = require('../oracleDbClient');
+    const rows = await oracleDbClient.fetchStoreOracleMetadata(config, {
+      tableName: 'STORE_ORACLE_METADATA',
+    });
+
+    if (rows.length === 0) {
+      return res.json({ ok: true, synced: 0, message: 'No store metadata found in Oracle database' });
+    }
+
+    let synced = 0;
+    for (const row of rows) {
+      db.upsertStoreOracleMetadata(row);
+      synced++;
+    }
+
+    res.json({ ok: true, synced, message: `Synced ${synced} store metadata records from Oracle database to SQLite` });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 module.exports = router;

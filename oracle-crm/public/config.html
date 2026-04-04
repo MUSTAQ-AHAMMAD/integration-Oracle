@@ -162,6 +162,89 @@
       </div>
     </div>
 
+    <!-- ── Oracle Database Configuration ────────────────────────────── -->
+    <div class="card" id="oracle-db-card">
+      <div class="card-header">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+        Oracle Database Connection
+        <span class="text-muted" style="font-size:12px;font-weight:400;margin-left:8px">
+          Connect to Oracle database to read fusion metadata directly
+        </span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Configure a connection to your Oracle database where sales data and fusion mapping tables reside.
+          When enabled, the middleware can read metadata directly from Oracle instead of relying solely on CSV imports.
+        </p>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:#f8f9fa;border-radius:4px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+            <input type="checkbox" id="oracle-db-enabled">
+            <span style="font-weight:600">Enable Oracle Database Integration</span>
+          </label>
+          <div style="flex:1"></div>
+          <button class="btn btn-outline test-btn" onclick="testOracleDb()">⚡ Test Connection</button>
+          <button class="btn btn-primary" onclick="saveOracleDbConfig()">💾 Save Configuration</button>
+        </div>
+
+        <div id="oracle-db-test-result" class="test-result hidden" style="margin-bottom:12px"></div>
+
+        <div class="two-col">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Host / Hostname</label>
+              <input class="form-control" id="oracle-db-host" placeholder="e.g. oracledb.example.com">
+              <small class="text-muted">Oracle database server hostname or IP address</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Port</label>
+              <input class="form-control" id="oracle-db-port" type="number" placeholder="1521" value="1521">
+              <small class="text-muted">Default Oracle port is 1521</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Service Name</label>
+              <input class="form-control" id="oracle-db-service-name" placeholder="e.g. ORCL or XEPDB1">
+              <small class="text-muted">Oracle service name or SID</small>
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input class="form-control" id="oracle-db-username" placeholder="e.g. fusion_user">
+              <small class="text-muted">Database username with read access to metadata tables</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input class="form-control" id="oracle-db-password" type="password" placeholder="Leave blank to keep existing">
+              <small class="text-muted">Database password (encrypted in storage)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Table Name <span style="font-size:11px;color:var(--muted)">(optional)</span></label>
+              <input class="form-control" id="oracle-db-table-name" placeholder="FUSION_SALES_METADATA">
+              <small class="text-muted">Override default table name for fusion metadata</small>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-weight:600;margin-bottom:10px">📥 Sync Metadata from Oracle Database</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+            Fetch metadata from your Oracle database and sync it to the local SQLite cache.
+            This allows the middleware to use Oracle data even when the database is temporarily unavailable.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="syncFusionMetadata()">
+              🔄 Sync Fusion Sales Metadata
+            </button>
+            <button class="btn btn-outline" onclick="syncStoreMetadata()">
+              🔄 Sync Store Metadata
+            </button>
+          </div>
+          <div id="oracle-db-sync-result" class="test-result hidden" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Server Credentials Management ─────────────────────────── -->
     <div class="card" id="section-credentials">
       <div class="card-header">
@@ -1745,6 +1828,143 @@ async function deleteCCConfig(code) {
   if (!confirm(`Delete config for "${code}"?`)) return;
   await fetch(`/api/config/country-configs/${code}`, { method:'DELETE' });
   loadCountryConfigs();
+}
+
+// ── Oracle Database Configuration ────────────────────────────────────────────
+
+// Load Oracle DB config on page load
+fetch('/api/config/oracle-db')
+  .then(r => r.json())
+  .then(config => {
+    document.getElementById('oracle-db-enabled').checked = config.enabled || false;
+    document.getElementById('oracle-db-host').value = config.host || '';
+    document.getElementById('oracle-db-port').value = config.port || '1521';
+    document.getElementById('oracle-db-service-name').value = config.serviceName || '';
+    document.getElementById('oracle-db-username').value = config.username || '';
+    document.getElementById('oracle-db-password').value = ''; // Never pre-fill password
+    document.getElementById('oracle-db-table-name').value = config.tableName || '';
+  })
+  .catch(err => {
+    console.error('Failed to load Oracle DB config:', err);
+  });
+
+async function saveOracleDbConfig() {
+  const config = {
+    host        : document.getElementById('oracle-db-host').value.trim() || null,
+    port        : document.getElementById('oracle-db-port').value ? Number(document.getElementById('oracle-db-port').value) : null,
+    serviceName : document.getElementById('oracle-db-service-name').value.trim() || null,
+    username    : document.getElementById('oracle-db-username').value.trim() || null,
+    password    : document.getElementById('oracle-db-password').value || null,
+    enabled     : document.getElementById('oracle-db-enabled').checked,
+    tableName   : document.getElementById('oracle-db-table-name').value.trim() || null,
+  };
+
+  const resultDiv = document.getElementById('oracle-db-test-result');
+  resultDiv.textContent = 'Saving...';
+  resultDiv.className = 'test-result';
+  resultDiv.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/config/oracle-db', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      resultDiv.textContent = '❌ Save failed: ' + (data.error || 'Unknown error');
+      resultDiv.className = 'test-result fail';
+      return;
+    }
+    resultDiv.textContent = '✅ Oracle database configuration saved successfully';
+    resultDiv.className = 'test-result ok';
+    // Clear password field after successful save
+    document.getElementById('oracle-db-password').value = '';
+  } catch (err) {
+    resultDiv.textContent = '❌ Error: ' + err.message;
+    resultDiv.className = 'test-result fail';
+  }
+}
+
+async function testOracleDb() {
+  const resultDiv = document.getElementById('oracle-db-test-result');
+  resultDiv.textContent = 'Testing connection...';
+  resultDiv.className = 'test-result';
+  resultDiv.classList.remove('hidden');
+
+  // Use inline values if provided, otherwise test saved config
+  const host        = document.getElementById('oracle-db-host').value.trim();
+  const port        = document.getElementById('oracle-db-port').value;
+  const serviceName = document.getElementById('oracle-db-service-name').value.trim();
+  const username    = document.getElementById('oracle-db-username').value.trim();
+  const password    = document.getElementById('oracle-db-password').value;
+
+  const body = (host && port && serviceName && username && password)
+    ? { host, port: Number(port), serviceName, username, password }
+    : {};
+
+  try {
+    const res = await fetch('/api/config/test-oracle-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultDiv.textContent = '✅ ' + data.message + (data.version ? ' (' + data.version + ')' : '');
+      resultDiv.className = 'test-result ok';
+    } else {
+      resultDiv.textContent = '❌ ' + (data.error || 'Connection failed');
+      resultDiv.className = 'test-result fail';
+    }
+  } catch (err) {
+    resultDiv.textContent = '❌ Error: ' + err.message;
+    resultDiv.className = 'test-result fail';
+  }
+}
+
+async function syncFusionMetadata() {
+  const resultDiv = document.getElementById('oracle-db-sync-result');
+  resultDiv.textContent = 'Syncing fusion metadata from Oracle database...';
+  resultDiv.className = 'test-result';
+  resultDiv.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/config/sync-fusion-metadata', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      resultDiv.textContent = '✅ ' + (data.message || `Synced ${data.synced} records`);
+      resultDiv.className = 'test-result ok';
+    } else {
+      resultDiv.textContent = '❌ ' + (data.error || 'Sync failed');
+      resultDiv.className = 'test-result fail';
+    }
+  } catch (err) {
+    resultDiv.textContent = '❌ Error: ' + err.message;
+    resultDiv.className = 'test-result fail';
+  }
+}
+
+async function syncStoreMetadata() {
+  const resultDiv = document.getElementById('oracle-db-sync-result');
+  resultDiv.textContent = 'Syncing store metadata from Oracle database...';
+  resultDiv.className = 'test-result';
+  resultDiv.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/config/sync-store-metadata', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      resultDiv.textContent = '✅ ' + (data.message || `Synced ${data.synced} records`);
+      resultDiv.className = 'test-result ok';
+    } else {
+      resultDiv.textContent = '❌ ' + (data.error || 'Sync failed');
+      resultDiv.className = 'test-result fail';
+    }
+  } catch (err) {
+    resultDiv.textContent = '❌ Error: ' + err.message;
+    resultDiv.className = 'test-result fail';
+  }
 }
 </script>
 </body>
