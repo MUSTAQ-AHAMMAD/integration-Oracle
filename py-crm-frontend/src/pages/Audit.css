@@ -1,0 +1,6 @@
+.audit {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #e2e8f0;
+}

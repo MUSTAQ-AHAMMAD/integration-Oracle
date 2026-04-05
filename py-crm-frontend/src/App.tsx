@@ -4,7 +4,12 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
-import { Placeholder } from './pages/Placeholder'
+import { Jobs } from './pages/Jobs'
+import { Integrations } from './pages/Integrations'
+import { Mapping } from './pages/Mapping'
+import { Users } from './pages/Users'
+import { Audit } from './pages/Audit'
+import { Settings } from './pages/Settings'
 import './App.css'
 
 function App() {
@@ -15,12 +20,12 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/jobs" element={<Placeholder title="Jobs & Schedules" />} />
-            <Route path="/integrations" element={<Placeholder title="Integrations" />} />
-            <Route path="/mapping" element={<Placeholder title="Data Mapping" />} />
-            <Route path="/users" element={<Placeholder title="Users & Roles" />} />
-            <Route path="/audit" element={<Placeholder title="Audit Logs" />} />
-            <Route path="/settings" element={<Placeholder title="Settings" />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/integrations" element={<Integrations />} />
+            <Route path="/mapping" element={<Mapping />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/audit" element={<Audit />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Dashboard />} />
           </Route>
         </Route>
