@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     environment: str = "local"
     debug: bool = False
     api_prefix: str = "/api"
+    secret_key: str = Field(default="change-me", env="SECRET_KEY")
+    jwt_algorithm: str = "HS256"
+    access_token_exp_minutes: int = Field(default=60, env="ACCESS_TOKEN_EXP_MIN")
+    refresh_token_exp_days: int = Field(default=7, env="REFRESH_TOKEN_EXP_DAYS")
 
     database_url: AnyUrl = Field(..., env="DATABASE_URL")
     redis_url: Optional[str] = Field(default=None, env="REDIS_URL")

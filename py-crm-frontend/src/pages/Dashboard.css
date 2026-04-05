@@ -1,0 +1,93 @@
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  color: #e2e8f0;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  background: #0b1220;
+}
+
+.card .value {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.card .label {
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.card.green {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.card.blue {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+.card.red {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+.card.amber {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.panel {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #cbd5e1;
+}
+
+.muted {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.pill {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.pill.ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.pill.warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
