@@ -1,0 +1,94 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.sidebar {
+  background: #0b1220;
+  border-right: 1px solid #1f2937;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: #e2e8f0;
+}
+
+.brand .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22d3ee, #6366f1);
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.nav-item {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-item.active,
+.nav-item:hover {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.logout {
+  margin-top: auto;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.content {
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid #1f2937;
+  background: #0b1220;
+}
+
+.env {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #0ea5e9;
+  color: #0b1220;
+  font-weight: 600;
+}
+
+.user-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #1e293b;
+}
+
+.page {
+  padding: 1.5rem;
+}

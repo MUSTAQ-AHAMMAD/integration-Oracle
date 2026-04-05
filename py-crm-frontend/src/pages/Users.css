@@ -1,0 +1,19 @@
+.users {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #e2e8f0;
+}
+
+.roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.role-card {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+  background: #0b1220;
+}

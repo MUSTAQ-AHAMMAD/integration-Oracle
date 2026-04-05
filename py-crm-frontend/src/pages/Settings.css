@@ -1,0 +1,19 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #e2e8f0;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.setting {
+  padding: 1rem;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  background: #0b1220;
+}
