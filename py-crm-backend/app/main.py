@@ -8,6 +8,7 @@ from app.services.auth import get_user_by_email, create_user
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.utils.logging import configure_logging
+from app.workers.scheduler import start_scheduler, stop_scheduler
 
 
 def get_app() -> FastAPI:
@@ -35,6 +36,7 @@ def get_app() -> FastAPI:
 
     @app.on_event("startup")
     async def seed_admin() -> None:
+        start_scheduler()
         async for session in get_db():
             existing = await get_user_by_email(session, "admin@example.com")
             if not existing:
@@ -46,6 +48,10 @@ def get_app() -> FastAPI:
                     roles=["Admin"],
                     is_superuser=True,
                 )
+
+    @app.on_event("shutdown")
+    async def shutdown_events() -> None:
+        stop_scheduler()
 
     return app
 

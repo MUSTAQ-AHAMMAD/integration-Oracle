@@ -3,7 +3,6 @@
 ## Prerequisites
 - Python 3.11+
 - PostgreSQL (recommended) or any SQLAlchemy-supported DB
-- Redis (for Celery)
 
 ## Setup (Windows)
 ```powershell
@@ -43,8 +42,5 @@ alembic revision --autogenerate -m "init"
 alembic upgrade head
 ```
 
-## Celery
-```powershell
-celery -A app.workers.celery_app worker --loglevel=info
-celery -A app.workers.celery_app beat --loglevel=info
-```
+## Scheduler (no broker)
+APScheduler runs in-process on startup (heartbeat job every 5 min). No external broker needed.
