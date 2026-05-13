@@ -1,0 +1,262 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: vyrooq-postgres
+    environment:
+      POSTGRES_DB: vyrooq
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: vyrooq123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vyrooq-network
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: vyrooq-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vyrooq-network
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: vyrooq-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: vyrooq
+      RABBITMQ_DEFAULT_PASS: vyrooq123
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - vyrooq-network
+
+  # Apache Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: vyrooq-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - vyrooq-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: vyrooq-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - vyrooq-network
+
+  # Temporal Server
+  temporal:
+    image: temporalio/auto-setup:1.22.0
+    container_name: vyrooq-temporal
+    depends_on:
+      - postgres
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=vyrooq123
+      - POSTGRES_SEEDS=postgres
+    ports:
+      - "7233:7233"  # gRPC
+      - "8233:8233"  # UI
+    networks:
+      - vyrooq-network
+
+  # Gateway API
+  gateway-api:
+    build:
+      context: ./gateway-api
+      dockerfile: Dockerfile
+    container_name: vyrooq-gateway-api
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:vyrooq123@postgres:5432/vyrooq
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://vyrooq:vyrooq123@rabbitmq:5672
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gateway-api:/app
+      - /app/node_modules
+    command: npm run start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vyrooq-network
+
+  # Workflow Engine
+  workflow-engine:
+    build:
+      context: ./workflow-engine
+      dockerfile: Dockerfile
+    container_name: vyrooq-workflow-engine
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+    environment:
+      DATABASE_URL: postgresql://postgres:vyrooq123@postgres:5432/vyrooq
+      TEMPORAL_HOST: temporal:7233
+      KAFKA_BROKERS: kafka:29092
+    volumes:
+      - ./workflow-engine:/app
+    command: python main.py
+    networks:
+      - vyrooq-network
+
+  # Retry Engine
+  retry-engine:
+    build:
+      context: ./retry-engine
+      dockerfile: Dockerfile
+    container_name: vyrooq-retry-engine
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://postgres:vyrooq123@postgres:5432/vyrooq
+    volumes:
+      - ./retry-engine:/app
+      - /app/node_modules
+    command: npm run start
+    networks:
+      - vyrooq-network
+
+  # Manual Control Engine
+  manual-control-engine:
+    build:
+      context: ./manual-control-engine
+      dockerfile: Dockerfile
+    container_name: vyrooq-manual-control
+    depends_on:
+      - postgres
+      - redis
+      - temporal
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:vyrooq123@postgres:5432/vyrooq
+      REDIS_URL: redis://redis:6379
+      TEMPORAL_HOST: temporal:7233
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./manual-control-engine:/app
+      - /app/node_modules
+    command: npm run start
+    networks:
+      - vyrooq-network
+
+  # Prometheus (Metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vyrooq-prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - vyrooq-network
+
+  # Grafana (Dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vyrooq-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: vyrooq123
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3002:3000"
+    networks:
+      - vyrooq-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_logs:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  vyrooq-network:
+    driver: bridge
