@@ -282,6 +282,113 @@ services:
     networks:
       - vyrooq-network
 
+  # Fusion Adapter
+  fusion-adapter:
+    build:
+      context: ./fusion-adapter
+      dockerfile: Dockerfile
+    container_name: vyrooq-fusion-adapter
+    environment:
+      PORT: 8300
+      FUSION_BASE_URL: ${FUSION_BASE_URL}
+      FUSION_USERNAME: ${FUSION_USERNAME}
+      FUSION_PASSWORD: ${FUSION_PASSWORD}
+      LOG_LEVEL: info
+    ports:
+      - "8300:8300"
+    volumes:
+      - ./fusion-adapter:/app
+    command: python main.py
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8300/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vyrooq-network
+
+  # Reconciliation Engine
+  reconciliation-engine:
+    build:
+      context: ./reconciliation-engine
+      dockerfile: Dockerfile
+    container_name: vyrooq-reconciliation-engine
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      PORT: 3500
+      DATABASE_URL: postgresql://postgres:vyrooq123@postgres:5432/vyrooq
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+    ports:
+      - "3500:3500"
+    volumes:
+      - ./reconciliation-engine:/app
+      - /app/node_modules
+    command: npm run start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3500/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vyrooq-network
+
+  # Audit Engine
+  audit-engine:
+    build:
+      context: ./audit-engine
+      dockerfile: Dockerfile
+    container_name: vyrooq-audit-engine
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      PORT: 3600
+      DATABASE_URL: postgresql://postgres:vyrooq123@postgres:5432/vyrooq
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+    ports:
+      - "3600:3600"
+    volumes:
+      - ./audit-engine:/app
+      - /app/node_modules
+    command: npm run start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3600/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vyrooq-network
+
+  # Event Bus
+  event-bus:
+    build:
+      context: ./event-bus
+      dockerfile: Dockerfile
+    container_name: vyrooq-event-bus
+    depends_on:
+      - kafka
+    environment:
+      PORT: 3700
+      KAFKA_BROKERS: kafka:29092
+      LOG_LEVEL: info
+    ports:
+      - "3700:3700"
+    volumes:
+      - ./event-bus:/app
+      - /app/node_modules
+    command: npm run start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vyrooq-network
+
 volumes:
   postgres_data:
   redis_data:
