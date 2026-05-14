@@ -1,9 +1,8 @@
-# Oracle CRM – VendHQ to Oracle Fusion Sync Tool
+# Oracle CRM – Odoo/VendHQ to Oracle Fusion Integration Platform
 
-A standalone Node.js web application that lets you manually push VendHQ sales
-data to Oracle Fusion Cloud without running the Java scheduler.
+A comprehensive Node.js web application with role-based access control that manages Oracle Fusion Cloud integration, supporting both Odoo and VendHQ data sources with real-time monitoring, reporting, and user management.
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 cd oracle-crm
@@ -20,31 +19,132 @@ npm start
 # Open http://localhost:3000
 ```
 
-## Default Login Credentials
+## 🔐 Default Login Credentials
 
-When the server starts for the first time with no existing users, it automatically
-creates a default admin account:
+When the server starts for the first time, it automatically creates two default accounts:
 
+### Super Administrator
+| Field    | Value               |
+|----------|---------------------|
+| Username | `superadmin`        |
+| Password | `SuperAdmin@1234`   |
+| Role     | `super_admin`       |
+
+### Administrator
 | Field    | Value        |
 |----------|--------------|
 | Username | `admin`      |
 | Password | `Admin@1234` |
+| Role     | `admin`      |
 
-> ⚠️ **Change this password immediately** after your first login via the Profile page
-> or via **Admin → Users**. The default password is well-known and must not remain in
-> a production environment.
+> ⚠️ **SECURITY WARNING:** Change these passwords immediately after your first login via the Profile page or via **Admin → Users**. Default passwords are well-known and must not remain in production environments.
 
-> **Windows users:** See the step-by-step [Windows Installation Guide](../WINDOWS_INSTALL.md) for full instructions including Node.js setup, environment configuration, and troubleshooting.
+> **Windows users:** See the step-by-step [Windows Installation Guide](../WINDOWS_INSTALL.md) for full instructions.
 
-## Pages
+---
 
-| Page | URL | Purpose |
-|------|-----|---------|
-| Dashboard | `/` | Overview, connection status, API sequence reference |
-| New Sale Push | `/new-sale.html` | Enter sale data and push to Oracle Fusion |
-| Sync History | `/sync-history.html` | Session push history + troubleshooting guide |
-| Configuration | `/config.html` | Credential setup instructions + region reference |
-| Calculations Ref | `/calculations.html` | All 16 calculations with live interactive demos |
+## 👥 User Roles & Permissions
+
+The system implements a hierarchical role-based access control (RBAC):
+
+| Role | Level | Capabilities |
+|------|-------|--------------|
+| **Super Admin** | 5 | Full system access, manage all users including super admins, system configuration |
+| **Admin** | 4 | User management (except super admins), configuration, reports |
+| **Management** | 3 | View all reports, analytics, job history, export data |
+| **User/Operator** | 2 | Push/fetch data, view own jobs, basic dashboard |
+| **Viewer** | 1 | Read-only access to dashboard and sales data |
+
+📖 **Detailed Documentation:** See [USER_MANAGEMENT_AND_REPORTING.md](./USER_MANAGEMENT_AND_REPORTING.md) for complete role descriptions, API endpoints, and security guidelines.
+
+---
+
+## 📊 Key Features
+
+### 1. **Role-Based User Management**
+- Hierarchical permission system
+- Privilege escalation protection
+- Multi-level access control
+- User activity audit trails
+
+### 2. **Comprehensive Reporting**
+- **Dashboard Statistics:** Real-time overview of sales, migrations, and system health
+- **Migration Reports:** Detailed tracking of Odoo/VendHQ to Oracle Fusion data transfers
+- **Job History:** Complete audit trail of all sync operations
+- **Analytics:** Time-series data with customizable grouping (day/week/month)
+- **Store Performance:** Revenue, order volume, and success rates per store
+- **CSV Export:** Download reports for external analysis
+
+### 3. **Data Integration**
+- Odoo POS sales synchronization
+- VendHQ sales data integration
+- Oracle Fusion ERP push operations
+- Automated retry for failed records
+- Multi-country and multi-store support
+
+### 4. **Advanced Features**
+- Multi-currency support (AED, SAR, KWD, OMR, BHD, QAR)
+- Country-specific configurations
+- Store-level Oracle metadata mapping
+- Real-time job monitoring
+- Failed record tracking and retry mechanisms
+
+---
+
+## 📱 Web Pages
+
+| Page | URL | Purpose | Min. Role |
+|------|-----|---------|-----------|
+| Dashboard | `/` | Overview, connection status, API reference | Viewer |
+| Odoo Sales | `/odoo-sales.html` | Fetch and push Odoo sales data | User |
+| New Sale Push | `/new-sale.html` | Manual sale entry and push | User |
+| Orders | `/orders.html` | View and manage orders | User |
+| Sync History | `/sync-history.html` | Job history and troubleshooting | User |
+| Reports | `/reports.html` | Comprehensive migration reports | Management |
+| Configuration | `/config.html` | System and credential setup | Admin |
+| Users Management | `/users.html` | User administration | Admin |
+| Profile | `/profile.html` | Personal settings | All |
+| Calculations Ref | `/calculations.html` | Interactive calculation demos | All |
+| Benchmark | `/benchmark.html` | Performance testing | Admin |
+
+---
+
+## 🔌 API Endpoints
+
+### Reports API
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/reports/dashboard` | GET | All | Dashboard statistics |
+| `/api/reports/migration/overview` | GET | Management+ | Migration overview with filters |
+| `/api/reports/migration/jobs` | GET | Management+ | Detailed job history |
+| `/api/reports/migration/failures` | GET | Management+ | Failed records report |
+| `/api/reports/analytics/timeline` | GET | All | Time-series analytics |
+| `/api/reports/audit/users` | GET | Management+ | User activity audit |
+| `/api/reports/performance/stores` | GET | Management+ | Store performance metrics |
+| `/api/reports/export/csv` | GET | Management+ | CSV export |
+
+### User Management API
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/users` | GET | Admin+ | List all users |
+| `/api/users` | POST | Admin+ | Create new user |
+| `/api/users/:id` | PUT | Admin+ | Update user |
+| `/api/users/:id` | DELETE | Admin+ | Delete user |
+
+### Authentication API
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/login` | POST | Public | User login |
+| `/api/auth/me` | GET | All | Current user info |
+| `/api/auth/profile` | PUT | All | Update profile |
+| `/api/auth/change-password` | POST | All | Change password |
+
+📖 **Complete API Documentation:** See [USER_MANAGEMENT_AND_REPORTING.md](./USER_MANAGEMENT_AND_REPORTING.md)
+
+---
 
 ## What It Does
 
