@@ -247,6 +247,41 @@ services:
     networks:
       - vyrooq-network
 
+  # Admin Dashboard
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    container_name: vyrooq-admin-dashboard
+    depends_on:
+      - gateway-api
+      - retry-engine
+      - manual-control-engine
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      AUTH_SERVICE_URL: http://gateway-api:3000
+      RETRY_ENGINE_URL: http://retry-engine:3200
+      DEDUPLICATION_ENGINE_URL: http://dedup-engine:3300
+      MANUAL_CONTROL_ENGINE_URL: http://manual-control-engine:3001
+      GATEWAY_API_URL: http://gateway-api:3000
+      VENDHQ_ADAPTER_URL: http://vendhq-adapter:8100
+      OPENCART_ADAPTER_URL: http://opencart-adapter:8200
+      SESSION_SECRET: vyrooq-admin-session-secret-change-in-production
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./admin-dashboard:/app
+      - /app/node_modules
+    command: npm run start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - vyrooq-network
+
 volumes:
   postgres_data:
   redis_data:

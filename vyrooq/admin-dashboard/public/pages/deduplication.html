@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deduplication - Vyrooq Admin</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-card i {
+            font-size: 36px;
+            color: #3b82f6;
+            margin-bottom: 12px;
+        }
+        .stat-card h3 {
+            margin: 0 0 8px 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .fingerprint-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .fingerprint-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .fingerprint-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .fingerprint-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .fingerprint-table tr:hover {
+            background: #f8fafc;
+        }
+        .fingerprint-hash {
+            font-family: monospace;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-duplicate {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-unique {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .filter-bar {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-network-wired"></i>
+            <span>Vyrooq Admin</span>
+        </div>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/pages/queues.html">Queue Control</a>
+            <a href="/pages/deduplication.html" class="active">Deduplication</a>
+            <a href="/pages/integrations.html">Integrations</a>
+            <a href="/pages/monitoring.html">Monitoring</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info">Not Logged In</span>
+            <button id="logout-btn" class="btn btn-secondary" style="display:none;">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-fingerprint"></i> Transaction Deduplication</h1>
+            <p>Monitor transaction fingerprinting and duplicate detection</p>
+            <button id="refresh-btn" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </header>
+
+        <!-- Statistics -->
+        <section>
+            <h2><i class="fas fa-chart-pie"></i> Deduplication Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>Total Transactions</h3>
+                    <div class="value" id="total-transactions">-</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                    <h3>Unique Transactions</h3>
+                    <div class="value" id="unique-transactions">-</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-copy" style="color: #ef4444;"></i>
+                    <h3>Duplicates Detected</h3>
+                    <div class="value" id="duplicate-transactions">-</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-percentage" style="color: #f59e0b;"></i>
+                    <h3>Duplicate Rate</h3>
+                    <div class="value" id="duplicate-rate">-</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <h3>Last 24 Hours</h3>
+                    <div class="value" id="daily-count">-</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-database"></i>
+                    <h3>Fingerprints Stored</h3>
+                    <div class="value" id="stored-fingerprints">-</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters -->
+        <section>
+            <div class="filter-bar">
+                <label>
+                    <strong>Status:</strong>
+                    <select id="filter-status">
+                        <option value="all">All</option>
+                        <option value="unique">Unique Only</option>
+                        <option value="duplicate">Duplicates Only</option>
+                    </select>
+                </label>
+                <label>
+                    <strong>Source:</strong>
+                    <select id="filter-source">
+                        <option value="all">All Sources</option>
+                        <option value="vendhq">VendHQ</option>
+                        <option value="opencart">Opencart</option>
+                        <option value="fusion">Oracle Fusion</option>
+                    </select>
+                </label>
+                <label>
+                    <strong>Date:</strong>
+                    <input type="date" id="filter-date">
+                </label>
+                <button class="btn btn-primary" onclick="applyFilters()">
+                    <i class="fas fa-filter"></i> Apply
+                </button>
+            </div>
+        </section>
+
+        <!-- Recent Fingerprints -->
+        <section>
+            <h2><i class="fas fa-list"></i> Recent Transaction Fingerprints</h2>
+            <div class="fingerprint-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source</th>
+                            <th>Transaction ID</th>
+                            <th>Fingerprint Hash</th>
+                            <th>Status</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fingerprint-list">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 24px;">
+                                <div class="spinner"></div>
+                                <p>Loading fingerprints...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Duplicate Analysis -->
+        <section style="margin-top: 32px;">
+            <h2><i class="fas fa-exclamation-triangle"></i> Duplicate Transaction Groups</h2>
+            <div id="duplicate-groups" class="chart-container">
+                <p class="text-muted">Loading duplicate analysis...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('authToken');
+
+        // Check authentication
+        function checkAuth() {
+            if (!authToken) {
+                window.location.href = '/';
+                return false;
+            }
+            return true;
+        }
+
+        // Update user info
+        function updateUserInfo() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('user-info').textContent = user.email || 'Admin';
+            document.getElementById('logout-btn').style.display = 'inline-block';
+        }
+
+        // Logout
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        });
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Load deduplication statistics
+        async function loadDedupStats() {
+            try {
+                const response = await fetch(`${API_BASE}/dedup/stats`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to fetch deduplication stats');
+
+                const data = await response.json();
+                document.getElementById('total-transactions').textContent = data.totalTransactions || 0;
+                document.getElementById('unique-transactions').textContent = data.uniqueTransactions || 0;
+                document.getElementById('duplicate-transactions').textContent = data.duplicateTransactions || 0;
+
+                const dupRate = data.totalTransactions > 0
+                    ? ((data.duplicateTransactions / data.totalTransactions) * 100).toFixed(2)
+                    : '0.00';
+                document.getElementById('duplicate-rate').textContent = dupRate + '%';
+
+                document.getElementById('daily-count').textContent = data.last24Hours || 0;
+                document.getElementById('stored-fingerprints').textContent = data.storedFingerprints || 0;
+            } catch (error) {
+                console.error('Error loading deduplication stats:', error);
+                showToast('Failed to load statistics', 'error');
+            }
+        }
+
+        // Load fingerprint list
+        async function loadFingerprints() {
+            try {
+                const response = await fetch(`${API_BASE}/dedup/fingerprints`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to fetch fingerprints');
+
+                const data = await response.json();
+                const tbody = document.getElementById('fingerprint-list');
+
+                if (!data.fingerprints || data.fingerprints.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No fingerprints found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.fingerprints.map(fp => `
+                    <tr>
+                        <td>${new Date(fp.timestamp).toLocaleString()}</td>
+                        <td><strong>${fp.source}</strong></td>
+                        <td>${fp.transactionId}</td>
+                        <td class="fingerprint-hash">${fp.fingerprint}</td>
+                        <td>
+                            <span class="badge ${fp.isDuplicate ? 'badge-duplicate' : 'badge-unique'}">
+                                ${fp.isDuplicate ? 'DUPLICATE' : 'UNIQUE'}
+                            </span>
+                        </td>
+                        <td>${fp.count || 1}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading fingerprints:', error);
+                document.getElementById('fingerprint-list').innerHTML =
+                    '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading fingerprints</td></tr>';
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            showToast('Applying filters...', 'info');
+            loadFingerprints();
+        }
+
+        // Refresh button
+        document.getElementById('refresh-btn')?.addEventListener('click', () => {
+            loadDedupStats();
+            loadFingerprints();
+            showToast('Refreshing...', 'info');
+        });
+
+        // Initialize
+        if (checkAuth()) {
+            updateUserInfo();
+            loadDedupStats();
+            loadFingerprints();
+            setInterval(() => {
+                loadDedupStats();
+                loadFingerprints();
+            }, 30000); // Refresh every 30 seconds
+        }
+    </script>
+</body>
+</html>

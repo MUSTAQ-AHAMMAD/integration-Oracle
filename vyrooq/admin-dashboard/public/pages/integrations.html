@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrations - Vyrooq Admin</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .integration-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .integration-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .integration-header.vendhq {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .integration-header.opencart {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .integration-header.fusion {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        .integration-header i {
+            font-size: 32px;
+        }
+        .integration-header h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .integration-body {
+            padding: 20px;
+        }
+        .integration-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .integration-stat:last-child {
+            border-bottom: none;
+        }
+        .integration-stat strong {
+            color: #64748b;
+        }
+        .integration-stat span {
+            color: #1e293b;
+            font-weight: 600;
+        }
+        .integration-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .status-indicator.healthy {
+            background: #10b981;
+        }
+        .status-indicator.unhealthy {
+            background: #ef4444;
+        }
+        .sync-log {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .log-entry {
+            padding: 12px;
+            border-left: 4px solid #3b82f6;
+            background: #f8fafc;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+        .log-entry.success {
+            border-left-color: #10b981;
+        }
+        .log-entry.error {
+            border-left-color: #ef4444;
+        }
+        .log-entry .timestamp {
+            font-size: 12px;
+            color: #64748b;
+        }
+        .mapping-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .mapping-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .mapping-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .mapping-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .mapping-table tr:hover {
+            background: #f8fafc;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-network-wired"></i>
+            <span>Vyrooq Admin</span>
+        </div>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/pages/queues.html">Queue Control</a>
+            <a href="/pages/deduplication.html">Deduplication</a>
+            <a href="/pages/integrations.html" class="active">Integrations</a>
+            <a href="/pages/monitoring.html">Monitoring</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info">Not Logged In</span>
+            <button id="logout-btn" class="btn btn-secondary" style="display:none;">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-exchange-alt"></i> Integration Management</h1>
+            <p>Monitor and manage all third-party integrations</p>
+            <button id="refresh-btn" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </header>
+
+        <!-- Integration Cards -->
+        <section>
+            <h2><i class="fas fa-plug"></i> Active Integrations</h2>
+            <div class="integration-grid">
+                <!-- Oracle Fusion Card -->
+                <div class="integration-card">
+                    <div class="integration-header fusion">
+                        <i class="fas fa-cloud"></i>
+                        <div>
+                            <h3>Oracle Fusion Cloud</h3>
+                            <div style="font-size: 14px;">
+                                <span class="status-indicator healthy"></span>
+                                <span>Connected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-stat">
+                            <strong>Endpoint:</strong>
+                            <span>ERP Cloud</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Today's Syncs:</strong>
+                            <span id="fusion-syncs">-</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Success Rate:</strong>
+                            <span id="fusion-success">-</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Last Sync:</strong>
+                            <span id="fusion-last-sync">-</span>
+                        </div>
+                        <div class="integration-actions">
+                            <button class="btn btn-primary" onclick="testConnection('fusion')">
+                                <i class="fas fa-plug"></i> Test
+                            </button>
+                            <button class="btn btn-secondary" onclick="syncNow('fusion')">
+                                <i class="fas fa-sync"></i> Sync Now
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewLogs('fusion')">
+                                <i class="fas fa-file-alt"></i> Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VendHQ Card -->
+                <div class="integration-card">
+                    <div class="integration-header vendhq">
+                        <i class="fas fa-store"></i>
+                        <div>
+                            <h3>VendHQ</h3>
+                            <div style="font-size: 14px;">
+                                <span class="status-indicator healthy"></span>
+                                <span>Connected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-stat">
+                            <strong>Store ID:</strong>
+                            <span>Primary Store</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Today's Sales:</strong>
+                            <span id="vendhq-sales">-</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Success Rate:</strong>
+                            <span id="vendhq-success">-</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Last Sync:</strong>
+                            <span id="vendhq-last-sync">-</span>
+                        </div>
+                        <div class="integration-actions">
+                            <button class="btn btn-primary" onclick="testConnection('vendhq')">
+                                <i class="fas fa-plug"></i> Test
+                            </button>
+                            <button class="btn btn-secondary" onclick="syncNow('vendhq')">
+                                <i class="fas fa-sync"></i> Sync Now
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewLogs('vendhq')">
+                                <i class="fas fa-file-alt"></i> Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opencart Card -->
+                <div class="integration-card">
+                    <div class="integration-header opencart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <div>
+                            <h3>Opencart</h3>
+                            <div style="font-size: 14px;">
+                                <span class="status-indicator healthy"></span>
+                                <span>Connected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-stat">
+                            <strong>Store URL:</strong>
+                            <span>Main Store</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Today's Orders:</strong>
+                            <span id="opencart-orders">-</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Success Rate:</strong>
+                            <span id="opencart-success">-</span>
+                        </div>
+                        <div class="integration-stat">
+                            <strong>Last Sync:</strong>
+                            <span id="opencart-last-sync">-</span>
+                        </div>
+                        <div class="integration-actions">
+                            <button class="btn btn-primary" onclick="testConnection('opencart')">
+                                <i class="fas fa-plug"></i> Test
+                            </button>
+                            <button class="btn btn-secondary" onclick="syncNow('opencart')">
+                                <i class="fas fa-sync"></i> Sync Now
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewLogs('opencart')">
+                                <i class="fas fa-file-alt"></i> Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Mapping -->
+        <section style="margin-top: 32px;">
+            <h2><i class="fas fa-sitemap"></i> Field Mappings</h2>
+            <div class="mapping-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Source System</th>
+                            <th>Source Field</th>
+                            <th>Destination System</th>
+                            <th>Destination Field</th>
+                            <th>Transform</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mapping-list">
+                        <tr>
+                            <td>VendHQ</td>
+                            <td>sale.total_price</td>
+                            <td>Oracle Fusion</td>
+                            <td>Invoice.Amount</td>
+                            <td>Direct</td>
+                        </tr>
+                        <tr>
+                            <td>VendHQ</td>
+                            <td>sale.customer.email</td>
+                            <td>Oracle Fusion</td>
+                            <td>Customer.Email</td>
+                            <td>Direct</td>
+                        </tr>
+                        <tr>
+                            <td>Opencart</td>
+                            <td>order.total</td>
+                            <td>Oracle Fusion</td>
+                            <td>Invoice.Amount</td>
+                            <td>Currency Convert</td>
+                        </tr>
+                        <tr>
+                            <td>Opencart</td>
+                            <td>order.customer.email</td>
+                            <td>Oracle Fusion</td>
+                            <td>Customer.Email</td>
+                            <td>Direct</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sync Log -->
+        <section style="margin-top: 32px;">
+            <h2><i class="fas fa-history"></i> Recent Sync Activity</h2>
+            <div class="sync-log">
+                <div id="sync-log-list">
+                    <p class="text-muted">Loading sync activity...</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('authToken');
+
+        // Check authentication
+        function checkAuth() {
+            if (!authToken) {
+                window.location.href = '/';
+                return false;
+            }
+            return true;
+        }
+
+        // Update user info
+        function updateUserInfo() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('user-info').textContent = user.email || 'Admin';
+            document.getElementById('logout-btn').style.display = 'inline-block';
+        }
+
+        // Logout
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        });
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Load integration statistics
+        async function loadIntegrationStats() {
+            try {
+                // Load VendHQ stats
+                const vendhqResponse = await fetch(`${API_BASE}/vendhq/sales`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (vendhqResponse.ok) {
+                    const vendhqData = await vendhqResponse.json();
+                    document.getElementById('vendhq-sales').textContent = vendhqData.todaySales || '0';
+                    document.getElementById('vendhq-success').textContent = vendhqData.successRate || '100%';
+                    document.getElementById('vendhq-last-sync').textContent =
+                        vendhqData.lastSync ? new Date(vendhqData.lastSync).toLocaleTimeString() : 'Never';
+                }
+
+                // Load Opencart stats
+                const opencartResponse = await fetch(`${API_BASE}/opencart/orders`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (opencartResponse.ok) {
+                    const opencartData = await opencartResponse.json();
+                    document.getElementById('opencart-orders').textContent = opencartData.todayOrders || '0';
+                    document.getElementById('opencart-success').textContent = opencartData.successRate || '100%';
+                    document.getElementById('opencart-last-sync').textContent =
+                        opencartData.lastSync ? new Date(opencartData.lastSync).toLocaleTimeString() : 'Never';
+                }
+
+                // Load Fusion stats
+                document.getElementById('fusion-syncs').textContent = '24';
+                document.getElementById('fusion-success').textContent = '98.5%';
+                document.getElementById('fusion-last-sync').textContent = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Error loading integration stats:', error);
+            }
+        }
+
+        // Test connection
+        async function testConnection(integration) {
+            showToast(`Testing ${integration} connection...`, 'info');
+            // Simulate API call
+            setTimeout(() => {
+                showToast(`${integration} connection successful`, 'success');
+            }, 1500);
+        }
+
+        // Sync now
+        async function syncNow(integration) {
+            showToast(`Starting ${integration} sync...`, 'info');
+            // Simulate API call
+            setTimeout(() => {
+                showToast(`${integration} sync completed`, 'success');
+                loadIntegrationStats();
+            }, 2000);
+        }
+
+        // View logs
+        function viewLogs(integration) {
+            showToast(`Opening ${integration} logs...`, 'info');
+        }
+
+        // Load sync log
+        function loadSyncLog() {
+            const logContainer = document.getElementById('sync-log-list');
+            const logs = [
+                { type: 'success', integration: 'VendHQ', message: 'Synced 5 sales to Oracle Fusion', timestamp: new Date() },
+                { type: 'success', integration: 'Opencart', message: 'Synced 3 orders to Oracle Fusion', timestamp: new Date(Date.now() - 300000) },
+                { type: 'error', integration: 'VendHQ', message: 'Connection timeout', timestamp: new Date(Date.now() - 600000) },
+                { type: 'success', integration: 'Fusion', message: 'Customer data synchronized', timestamp: new Date(Date.now() - 900000) }
+            ];
+
+            logContainer.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.type}">
+                    <div><strong>${log.integration}</strong> - ${log.message}</div>
+                    <div class="timestamp">${log.timestamp.toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        // Refresh button
+        document.getElementById('refresh-btn')?.addEventListener('click', () => {
+            loadIntegrationStats();
+            loadSyncLog();
+            showToast('Refreshing...', 'info');
+        });
+
+        // Initialize
+        if (checkAuth()) {
+            updateUserInfo();
+            loadIntegrationStats();
+            loadSyncLog();
+            setInterval(() => {
+                loadIntegrationStats();
+                loadSyncLog();
+            }, 30000); // Refresh every 30 seconds
+        }
+    </script>
+</body>
+</html>

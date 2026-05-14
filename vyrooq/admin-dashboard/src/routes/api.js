@@ -198,4 +198,18 @@ router.get('/opencart/orders', async (req, res) => {
   }
 });
 
+// Deduplication - get fingerprints
+router.get('/dedup/fingerprints', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const response = await proxyRequest(SERVICES.dedup, '/fingerprints', 'GET', null, token);
+    res.json(response.data);
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to get fingerprints',
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;
