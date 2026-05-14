@@ -1,0 +1,20 @@
+{
+  "name": "fusion-adapter",
+  "version": "1.0.0",
+  "description": "Oracle Fusion ERP Adapter - SOAP and REST client microservice",
+  "main": "main.py",
+  "scripts": {
+    "start": "python main.py",
+    "dev": "python main.py",
+    "test": "pytest tests/",
+    "lint": "pylint **/*.py"
+  },
+  "keywords": [
+    "oracle-fusion",
+    "erp",
+    "soap",
+    "rest"
+  ],
+  "author": "Vyrooq Team",
+  "license": "MIT"
+}
