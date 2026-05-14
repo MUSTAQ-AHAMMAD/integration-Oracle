@@ -1,0 +1,17 @@
+fastapi==0.109.2
+temporalio==1.5.1
+asyncio==3.4.3
+polars==0.20.6
+celery==5.3.6
+redis==5.0.1
+httpx==0.26.0
+pydantic==2.6.1
+pydantic-settings==2.1.0
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-instrumentation-fastapi==0.43b0
+python-dotenv==1.0.1
+loguru==0.7.2

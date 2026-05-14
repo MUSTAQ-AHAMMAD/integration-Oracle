@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-engine
+  namespace: vyrooq
+  labels:
+    app: workflow-engine
+    tier: processing
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: workflow-engine
+  template:
+    metadata:
+      labels:
+        app: workflow-engine
+        tier: processing
+    spec:
+      containers:
+      - name: workflow-engine
+        image: vyrooq/workflow-engine:latest
+        env:
+        - name: TEMPORAL_HOST
+          value: "temporal:7233"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: connection-string
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: FUSION_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: fusion-credentials
+              key: base-url
+        - name: FUSION_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: fusion-credentials
+              key: username
+        - name: FUSION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fusion-credentials
+              key: password
+        - name: VENDHQ_API_URL
+          valueFrom:
+            secretKeyRef:
+              name: vendhq-credentials
+              key: api-url
+        - name: VENDHQ_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vendhq-credentials
+              key: api-token
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: workflow-engine-hpa
+  namespace: vyrooq
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: workflow-engine
+  minReplicas: 2
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
