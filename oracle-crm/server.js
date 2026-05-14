@@ -17,6 +17,7 @@ const odooRoutes       = require('./src/routes/odoo');
 const authRoutes       = require('./src/routes/auth');
 const usersRoutes      = require('./src/routes/users');
 const benchmarkRoutes  = require('./src/routes/benchmark');
+const reportsRoutes    = require('./src/routes/reports');
 const { requireAuth } = require('./src/middleware/auth');
 
 const app  = express();
@@ -45,6 +46,7 @@ app.use('/api/sales',     requireAuth, salesRoutes);
 app.use('/api/config',    requireAuth, configRoutes);
 app.use('/api/odoo',      requireAuth, odooRoutes);
 app.use('/api/benchmark', requireAuth, benchmarkRoutes);
+app.use('/api/reports',   requireAuth, reportsRoutes);
 app.use('/api/users',     usersRoutes);  // admin check is inside
 
 // SPA fallback – serve index.html for unknown routes (except /api/*)
@@ -58,9 +60,40 @@ async function seedAdminUser() {
   try {
     const users = db.listUsers();
     if (users.length === 0) {
-      const hash = await bcrypt.hash('Admin@1234', 10);
-      db.createUser({ username: 'admin', email: 'admin@oracle-crm.local', passwordHash: hash, role: 'admin', displayName: 'Administrator' });
+      // Create super_admin user
+      const superAdminHash = await bcrypt.hash('SuperAdmin@1234', 10);
+      db.createUser({
+        username: 'superadmin',
+        email: 'superadmin@oracle-crm.local',
+        passwordHash: superAdminHash,
+        role: 'super_admin',
+        displayName: 'Super Administrator'
+      });
+      logger.info('Default super_admin user created (username: superadmin, password: SuperAdmin@1234) – CHANGE THIS IMMEDIATELY');
+
+      // Create regular admin user
+      const adminHash = await bcrypt.hash('Admin@1234', 10);
+      db.createUser({
+        username: 'admin',
+        email: 'admin@oracle-crm.local',
+        passwordHash: adminHash,
+        role: 'admin',
+        displayName: 'Administrator'
+      });
       logger.info('Default admin user created (username: admin, password: Admin@1234) – CHANGE THIS IMMEDIATELY');
+    } else {
+      // Ensure at least one super_admin exists
+      if (db.countSuperAdmins() === 0) {
+        const superAdminHash = await bcrypt.hash('SuperAdmin@1234', 10);
+        db.createUser({
+          username: 'superadmin',
+          email: 'superadmin@oracle-crm.local',
+          passwordHash: superAdminHash,
+          role: 'super_admin',
+          displayName: 'Super Administrator'
+        });
+        logger.info('Super admin user created (username: superadmin, password: SuperAdmin@1234) – CHANGE THIS IMMEDIATELY');
+      }
     }
   } catch (err) {
     logger.warn('Could not seed admin user', { err: err.message });
