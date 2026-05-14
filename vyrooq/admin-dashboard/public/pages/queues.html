@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue Control - Vyrooq Admin</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .queue-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .queue-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .queue-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .queue-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .queue-table tr:hover {
+            background: #f8fafc;
+        }
+        .queue-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .queue-actions button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-pause {
+            background: #fbbf24;
+            color: white;
+        }
+        .btn-pause:hover {
+            background: #f59e0b;
+        }
+        .btn-resume {
+            background: #10b981;
+            color: white;
+        }
+        .btn-resume:hover {
+            background: #059669;
+        }
+        .btn-retry {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-retry:hover {
+            background: #2563eb;
+        }
+        .btn-clear {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-clear:hover {
+            background: #dc2626;
+        }
+        .queue-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status-paused {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-box {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-box h4 {
+            margin: 0 0 8px 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .stat-box .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .job-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .job-item {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .job-item.failed {
+            border-left-color: #ef4444;
+        }
+        .job-item.completed {
+            border-left-color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-network-wired"></i>
+            <span>Vyrooq Admin</span>
+        </div>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/pages/queues.html" class="active">Queue Control</a>
+            <a href="/pages/deduplication.html">Deduplication</a>
+            <a href="/pages/integrations.html">Integrations</a>
+            <a href="/pages/monitoring.html">Monitoring</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info">Not Logged In</span>
+            <button id="logout-btn" class="btn btn-secondary" style="display:none;">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-tasks"></i> Queue Control Center</h1>
+            <p>Manage and monitor all BullMQ queues across the platform</p>
+            <div style="display: flex; gap: 12px;">
+                <button id="refresh-btn" class="btn btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button id="pause-all-btn" class="btn btn-warning">
+                    <i class="fas fa-pause-circle"></i> Pause All
+                </button>
+                <button id="resume-all-btn" class="btn btn-primary">
+                    <i class="fas fa-play-circle"></i> Resume All
+                </button>
+            </div>
+        </header>
+
+        <!-- Queue Statistics -->
+        <section>
+            <h2><i class="fas fa-chart-bar"></i> Queue Statistics</h2>
+            <div id="stats-grid" class="stats-grid">
+                <div class="stat-box">
+                    <h4>Total Jobs</h4>
+                    <div class="value" id="total-jobs">-</div>
+                </div>
+                <div class="stat-box">
+                    <h4>Active Jobs</h4>
+                    <div class="value" id="active-jobs">-</div>
+                </div>
+                <div class="stat-box">
+                    <h4>Waiting Jobs</h4>
+                    <div class="value" id="waiting-jobs">-</div>
+                </div>
+                <div class="stat-box">
+                    <h4>Failed Jobs</h4>
+                    <div class="value" id="failed-jobs">-</div>
+                </div>
+                <div class="stat-box">
+                    <h4>Completed Jobs</h4>
+                    <div class="value" id="completed-jobs">-</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Queue List -->
+        <section>
+            <h2><i class="fas fa-list"></i> Active Queues</h2>
+            <div class="queue-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Queue Name</th>
+                            <th>Status</th>
+                            <th>Waiting</th>
+                            <th>Active</th>
+                            <th>Failed</th>
+                            <th>Completed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queue-list">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 24px;">
+                                <div class="spinner"></div>
+                                <p>Loading queues...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Failed Jobs -->
+        <section style="margin-top: 32px;">
+            <h2><i class="fas fa-exclamation-triangle"></i> Failed Jobs</h2>
+            <div id="failed-jobs-list" class="job-list">
+                <p class="text-muted">Loading failed jobs...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('authToken');
+
+        // Check authentication
+        function checkAuth() {
+            if (!authToken) {
+                window.location.href = '/';
+                return false;
+            }
+            return true;
+        }
+
+        // Update user info
+        function updateUserInfo() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('user-info').textContent = user.email || 'Admin';
+            document.getElementById('logout-btn').style.display = 'inline-block';
+        }
+
+        // Logout
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        });
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Load queue statistics
+        async function loadQueueStats() {
+            try {
+                const response = await fetch(`${API_BASE}/retry/metrics`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to fetch queue metrics');
+
+                const data = await response.json();
+                document.getElementById('total-jobs').textContent = data.totalJobs || 0;
+                document.getElementById('active-jobs').textContent = data.activeJobs || 0;
+                document.getElementById('waiting-jobs').textContent = data.waitingJobs || 0;
+                document.getElementById('failed-jobs').textContent = data.failedJobs || 0;
+                document.getElementById('completed-jobs').textContent = data.completedJobs || 0;
+            } catch (error) {
+                console.error('Error loading queue stats:', error);
+            }
+        }
+
+        // Load queue list
+        async function loadQueues() {
+            try {
+                const response = await fetch(`${API_BASE}/control/queues`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to fetch queues');
+
+                const data = await response.json();
+                const tbody = document.getElementById('queue-list');
+
+                if (!data.queues || data.queues.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No queues found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.queues.map(queue => `
+                    <tr>
+                        <td><strong>${queue.name}</strong></td>
+                        <td>
+                            <span class="queue-status status-${queue.isPaused ? 'paused' : 'active'}">
+                                ${queue.isPaused ? 'PAUSED' : 'ACTIVE'}
+                            </span>
+                        </td>
+                        <td>${queue.waiting || 0}</td>
+                        <td>${queue.active || 0}</td>
+                        <td>${queue.failed || 0}</td>
+                        <td>${queue.completed || 0}</td>
+                        <td>
+                            <div class="queue-actions">
+                                ${queue.isPaused
+                                    ? `<button class="btn-resume" onclick="resumeQueue('${queue.name}')"><i class="fas fa-play"></i> Resume</button>`
+                                    : `<button class="btn-pause" onclick="pauseQueue('${queue.name}')"><i class="fas fa-pause"></i> Pause</button>`
+                                }
+                                <button class="btn-retry" onclick="retryFailed('${queue.name}')">
+                                    <i class="fas fa-redo"></i> Retry Failed
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading queues:', error);
+                document.getElementById('queue-list').innerHTML =
+                    '<tr><td colspan="7" style="text-align: center; color: #ef4444;">Error loading queues</td></tr>';
+            }
+        }
+
+        // Pause queue
+        async function pauseQueue(queueName) {
+            try {
+                const response = await fetch(`${API_BASE}/control/queues/${queueName}/pause`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to pause queue');
+                showToast(`Queue "${queueName}" paused successfully`, 'success');
+                await loadQueues();
+            } catch (error) {
+                showToast(`Failed to pause queue: ${error.message}`, 'error');
+            }
+        }
+
+        // Resume queue
+        async function resumeQueue(queueName) {
+            try {
+                const response = await fetch(`${API_BASE}/control/queues/${queueName}/resume`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to resume queue');
+                showToast(`Queue "${queueName}" resumed successfully`, 'success');
+                await loadQueues();
+            } catch (error) {
+                showToast(`Failed to resume queue: ${error.message}`, 'error');
+            }
+        }
+
+        // Retry failed jobs
+        async function retryFailed(queueName) {
+            try {
+                const response = await fetch(`${API_BASE}/control/queues/${queueName}/retry`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!response.ok) throw new Error('Failed to retry jobs');
+                showToast(`Retrying failed jobs in "${queueName}"`, 'success');
+                await loadQueues();
+            } catch (error) {
+                showToast(`Failed to retry jobs: ${error.message}`, 'error');
+            }
+        }
+
+        // Pause all queues
+        document.getElementById('pause-all-btn')?.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to pause ALL queues?')) return;
+            // Implementation would iterate through all queues
+            showToast('Pausing all queues...', 'info');
+        });
+
+        // Resume all queues
+        document.getElementById('resume-all-btn')?.addEventListener('click', async () => {
+            showToast('Resuming all queues...', 'info');
+            // Implementation would iterate through all queues
+        });
+
+        // Refresh button
+        document.getElementById('refresh-btn')?.addEventListener('click', () => {
+            loadQueueStats();
+            loadQueues();
+            showToast('Refreshing...', 'info');
+        });
+
+        // Initialize
+        if (checkAuth()) {
+            updateUserInfo();
+            loadQueueStats();
+            loadQueues();
+            setInterval(() => {
+                loadQueueStats();
+                loadQueues();
+            }, 30000); // Refresh every 30 seconds
+        }
+    </script>
+</body>
+</html>

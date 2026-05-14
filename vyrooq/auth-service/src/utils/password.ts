@@ -1,0 +1,56 @@
+import bcrypt from 'bcrypt';
+import { config } from '../config.js';
+
+export class PasswordService {
+  /**
+   * Hash a password using bcrypt
+   */
+  static async hash(password: string): Promise<string> {
+    return bcrypt.hash(password, config.bcrypt.rounds);
+  }
+
+  /**
+   * Compare a password with a hash
+   */
+  static async compare(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+
+  /**
+   * Validate password strength
+   * Requirements:
+   * - At least 8 characters
+   * - Contains uppercase letter
+   * - Contains lowercase letter
+   * - Contains number
+   * - Contains special character
+   */
+  static validateStrength(password: string): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      errors.push('Password must contain at least one special character');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+}

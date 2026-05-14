@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vyrooq Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-network-wired"></i>
+            <span>Vyrooq Admin</span>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="active">Dashboard</a>
+            <a href="/pages/queues.html">Queue Control</a>
+            <a href="/pages/deduplication.html">Deduplication</a>
+            <a href="/pages/integrations.html">Integrations</a>
+            <a href="/pages/monitoring.html">Monitoring</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info">Not Logged In</span>
+            <button id="logout-btn" class="btn btn-secondary" style="display:none;">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Login Modal -->
+        <div id="login-modal" class="modal">
+            <div class="modal-content">
+                <h2><i class="fas fa-lock"></i> Admin Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required
+                               placeholder="admin@vyrooq.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <div id="login-error" class="error-message" style="display:none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Header -->
+        <header class="dashboard-header">
+            <h1><i class="fas fa-tachometer-alt"></i> System Dashboard</h1>
+            <p>Real-time monitoring and control of Vyrooq middleware platform</p>
+            <button id="refresh-btn" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </header>
+
+        <!-- Services Status Grid -->
+        <section class="services-section">
+            <h2><i class="fas fa-server"></i> Services Status</h2>
+            <div id="services-grid" class="services-grid">
+                <div class="service-card loading">
+                    <div class="spinner"></div>
+                    <p>Loading services...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="actions-section">
+            <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+            <div class="actions-grid">
+                <button class="action-card" onclick="pauseAllQueues()">
+                    <i class="fas fa-pause-circle"></i>
+                    <h3>Pause All Queues</h3>
+                    <p>Emergency stop processing</p>
+                </button>
+                <button class="action-card" onclick="resumeAllQueues()">
+                    <i class="fas fa-play-circle"></i>
+                    <h3>Resume All Queues</h3>
+                    <p>Restart processing</p>
+                </button>
+                <button class="action-card" onclick="viewMetrics()">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>View Metrics</h3>
+                    <p>Queue statistics</p>
+                </button>
+                <button class="action-card" onclick="viewDedupStats()">
+                    <i class="fas fa-fingerprint"></i>
+                    <h3>Deduplication Stats</h3>
+                    <p>Transaction fingerprints</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- System Metrics -->
+        <section class="metrics-section">
+            <h2><i class="fas fa-chart-bar"></i> System Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <i class="fas fa-tasks"></i>
+                    <h3>Queue Metrics</h3>
+                    <div id="queue-metrics" class="metric-content">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <i class="fas fa-copy"></i>
+                    <h3>Deduplication</h3>
+                    <div id="dedup-metrics" class="metric-content">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <i class="fas fa-exchange-alt"></i>
+                    <h3>Integrations</h3>
+                    <div id="integration-metrics" class="metric-content">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="activity-section">
+            <h2><i class="fas fa-history"></i> Recent Activity</h2>
+            <div id="activity-log" class="activity-log">
+                <p class="text-muted">Loading activity...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>

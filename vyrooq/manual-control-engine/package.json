@@ -1,0 +1,46 @@
+{
+  "name": "@vyrooq/manual-control-engine",
+  "version": "1.0.0",
+  "description": "Manual control APIs for workflow management in Vyrooq Integration Platform",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/helmet": "^12.0.1",
+    "@fastify/jwt": "^8.0.1",
+    "bullmq": "^5.13.2",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.0.0",
+    "ioredis": "^5.4.1",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "@prisma/client": "^5.19.1",
+    "@temporalio/client": "^1.10.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@typescript-eslint/eslint-plugin": "^8.5.0",
+    "@typescript-eslint/parser": "^8.5.0",
+    "eslint": "^9.10.0",
+    "jest": "^29.7.0",
+    "prisma": "^5.19.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.2"
+  },
+  "keywords": [
+    "workflow",
+    "control",
+    "admin",
+    "manual",
+    "microservice"
+  ],
+  "author": "Vyrooq Team",
+  "license": "MIT"
+}
