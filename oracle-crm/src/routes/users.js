@@ -4,7 +4,7 @@ const express  = require('express');
 const bcrypt   = require('bcryptjs');
 const router   = express.Router();
 const db       = require('../db');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireAdmin, requireSuperAdmin, hasMinimumRole } = require('../middleware/auth');
 
 // GET /api/users
 router.get('/', requireAdmin, (req, res) => {
@@ -20,15 +20,23 @@ router.post('/', requireAdmin, async (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
   }
-  const validRoles = ['admin', 'operator', 'viewer'];
+  const validRoles = ['super_admin', 'admin', 'management', 'user', 'operator', 'viewer'];
   if (role && !validRoles.includes(role)) {
     return res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` });
+  }
+  // Only super_admin can create super_admin users
+  if (role === 'super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only super admin can create super admin users' });
+  }
+  // Admins cannot create users with higher privileges than themselves
+  if (role && !hasMinimumRole(req.user.role, role)) {
+    return res.status(403).json({ error: 'Cannot create users with higher privileges than your own' });
   }
   if (db.getUserByUsername(username)) {
     return res.status(409).json({ error: 'Username already exists' });
   }
   const hash = await bcrypt.hash(password, 10);
-  const user = db.createUser({ username, email, passwordHash: hash, role: role || 'operator', displayName: display_name });
+  const user = db.createUser({ username, email, passwordHash: hash, role: role || 'user', displayName: display_name });
   res.status(201).json({ id: user.id, username: user.username, email: user.email, role: user.role, display_name: user.display_name });
 });
 
@@ -38,12 +46,27 @@ router.put('/:id', requireAdmin, async (req, res) => {
   const { email, role, display_name, password } = req.body || {};
   const target = db.getUserById(id);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const validRoles = ['admin', 'operator', 'viewer'];
+  const validRoles = ['super_admin', 'admin', 'management', 'user', 'operator', 'viewer'];
   if (role && !validRoles.includes(role)) {
     return res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` });
   }
-  if (role && role !== 'admin' && target.role === 'admin' && db.countAdmins() <= 1) {
+  // Only super_admin can modify super_admin users
+  if (target.role === 'super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only super admin can modify super admin users' });
+  }
+  // Only super_admin can promote to super_admin
+  if (role === 'super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only super admin can promote users to super admin' });
+  }
+  // Cannot promote users to a role higher than your own
+  if (role && !hasMinimumRole(req.user.role, role)) {
+    return res.status(403).json({ error: 'Cannot promote users to a role higher than your own' });
+  }
+  if (role && role !== 'admin' && role !== 'super_admin' && target.role === 'admin' && db.countAdmins() <= 1) {
     return res.status(400).json({ error: 'Cannot demote the last admin' });
+  }
+  if (role && role !== 'super_admin' && target.role === 'super_admin' && db.countSuperAdmins() <= 1) {
+    return res.status(400).json({ error: 'Cannot demote the last super admin' });
   }
   const fields = {};
   if (email        !== undefined) fields.email        = email;
@@ -65,8 +88,15 @@ router.delete('/:id', requireAdmin, (req, res) => {
   }
   const target = db.getUserById(id);
   if (!target) return res.status(404).json({ error: 'User not found' });
+  // Only super_admin can delete super_admin users
+  if (target.role === 'super_admin' && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Only super admin can delete super admin users' });
+  }
   if (target.role === 'admin' && db.countAdmins() <= 1) {
     return res.status(400).json({ error: 'Cannot delete the last admin' });
+  }
+  if (target.role === 'super_admin' && db.countSuperAdmins() <= 1) {
+    return res.status(400).json({ error: 'Cannot delete the last super admin' });
   }
   db.deleteUser(id);
   res.json({ ok: true });

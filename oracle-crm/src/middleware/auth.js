@@ -53,15 +53,83 @@ function requireAuth(req, res, next) {
 }
 
 /**
- * Middleware that requires admin role.
+ * Role hierarchy levels (higher number = more privileges)
+ * super_admin > admin > management > user > viewer
+ */
+const ROLE_HIERARCHY = {
+  'viewer': 1,
+  'user': 2,
+  'operator': 2,  // alias for user
+  'management': 3,
+  'admin': 4,
+  'super_admin': 5
+};
+
+/**
+ * Check if a role has at least the specified minimum level
+ */
+function hasMinimumRole(userRole, minimumRole) {
+  const userLevel = ROLE_HIERARCHY[userRole] || 0;
+  const requiredLevel = ROLE_HIERARCHY[minimumRole] || 0;
+  return userLevel >= requiredLevel;
+}
+
+/**
+ * Middleware that requires admin role (admin or super_admin).
  */
 function requireAdmin(req, res, next) {
   requireAuth(req, res, () => {
-    if (req.user.role !== 'admin') {
+    if (!hasMinimumRole(req.user.role, 'admin')) {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();
   });
 }
 
-module.exports = { signToken, verifyToken, requireAuth, requireAdmin };
+/**
+ * Middleware that requires super_admin role.
+ */
+function requireSuperAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Super admin access required' });
+    }
+    next();
+  });
+}
+
+/**
+ * Middleware that requires management role or higher.
+ */
+function requireManagement(req, res, next) {
+  requireAuth(req, res, () => {
+    if (!hasMinimumRole(req.user.role, 'management')) {
+      return res.status(403).json({ error: 'Management access required' });
+    }
+    next();
+  });
+}
+
+/**
+ * Middleware that requires user role or higher (excludes viewer).
+ */
+function requireUser(req, res, next) {
+  requireAuth(req, res, () => {
+    if (!hasMinimumRole(req.user.role, 'user')) {
+      return res.status(403).json({ error: 'User access required' });
+    }
+    next();
+  });
+}
+
+module.exports = {
+  signToken,
+  verifyToken,
+  requireAuth,
+  requireAdmin,
+  requireSuperAdmin,
+  requireManagement,
+  requireUser,
+  hasMinimumRole,
+  ROLE_HIERARCHY
+};

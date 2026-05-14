@@ -1135,6 +1135,10 @@ function countAdmins() {
   return getDb().prepare("SELECT COUNT(*) AS cnt FROM users WHERE role = 'admin'").get().cnt;
 }
 
+function countSuperAdmins() {
+  return getDb().prepare("SELECT COUNT(*) AS cnt FROM users WHERE role = 'super_admin'").get().cnt;
+}
+
 // ── Store Oracle Metadata CRUD ────────────────────────────────────────────────
 
 function listStoreOracleMetadata() {
@@ -1493,6 +1497,7 @@ module.exports = {
   updateUserLastLogin,
   deleteUser,
   countAdmins,
+  countSuperAdmins,
   listStoreOracleMetadata,
   getStoreOracleMetadata,
   upsertStoreOracleMetadata,
