@@ -1,0 +1,20 @@
+{
+  "name": "@vyrooq/opencart-adapter",
+  "version": "1.0.0",
+  "description": "Opencart REST API client for Vyrooq Integration Platform",
+  "main": "index.py",
+  "scripts": {
+    "start": "python src/main.py",
+    "test": "pytest tests/",
+    "lint": "pylint src/",
+    "format": "black src/"
+  },
+  "keywords": [
+    "opencart",
+    "ecommerce",
+    "adapter",
+    "integration"
+  ],
+  "author": "Vyrooq Team",
+  "license": "MIT"
+}

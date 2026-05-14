@@ -1,0 +1,21 @@
+{
+  "name": "@vyrooq/vendhq-adapter",
+  "version": "1.0.0",
+  "description": "VendHQ REST API client for Vyrooq Integration Platform",
+  "main": "index.py",
+  "scripts": {
+    "start": "python src/main.py",
+    "test": "pytest tests/",
+    "lint": "pylint src/",
+    "format": "black src/"
+  },
+  "keywords": [
+    "vendhq",
+    "pos",
+    "retail",
+    "adapter",
+    "integration"
+  ],
+  "author": "Vyrooq Team",
+  "license": "MIT"
+}
