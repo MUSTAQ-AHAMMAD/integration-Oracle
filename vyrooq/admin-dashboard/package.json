@@ -1,0 +1,35 @@
+{
+  "name": "@vyrooq/admin-dashboard",
+  "version": "1.0.0",
+  "description": "Admin Dashboard UI for Vyrooq Integration Platform",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"No tests yet\"",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.18.0",
+    "cookie-parser": "^1.4.6",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "ejs": "^3.1.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "eslint": "^9.10.0"
+  },
+  "keywords": [
+    "admin",
+    "dashboard",
+    "vyrooq",
+    "middleware",
+    "ui"
+  ],
+  "author": "Vyrooq Team",
+  "license": "MIT"
+}
