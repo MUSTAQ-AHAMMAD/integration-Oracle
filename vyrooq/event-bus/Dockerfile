@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies - configure npm for better network reliability
+# Install all dependencies with network retry configuration
 RUN npm config set fetch-retries 10 && \
     npm config set fetch-retry-mintimeout 60000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
