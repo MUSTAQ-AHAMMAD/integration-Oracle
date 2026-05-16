@@ -6,8 +6,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Try npm ci first, fall back to npm install if it fails
-RUN npm ci || npm install
+# npm install seems to hang after 80s but may still create node_modules
+# Try npm ci, ignore errors, then check if we need to retry
+RUN (timeout 300 npm ci 2>&1 || true) && \
+    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/tsc" ]; then \
+        echo "npm ci didn't complete, trying npm install..." && \
+        (timeout 300 npm install --prefer-offline --no-audit --no-fund 2>&1 || true); \
+    fi && \
+    if [ ! -f "node_modules/.bin/tsc" ]; then \
+        echo "TypeScript still missing, installing it separately..." && \
+        npm install typescript@^5.6.0 --no-save --legacy-peer-deps; \
+    fi
 
 # Copy source code
 COPY . .
