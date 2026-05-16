@@ -1,20 +1,28 @@
-FROM node:22-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci || npm install
 
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine
+# Remove devDependencies after build
+RUN npm prune --omit=dev
+
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Copy production node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+
+# Copy built artifacts from builder stage
+COPY --from=builder /app/dist ./dist
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001

@@ -1,19 +1,36 @@
-# Gateway API Dockerfile
-FROM node:22-alpine
+# Build stage
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Try npm ci first, fall back to npm install if it fails
+RUN npm ci || npm install
 
 # Copy source code
 COPY . .
 
 # Build TypeScript
 RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --omit=dev
+
+# Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Copy production node_modules from builder
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy built artifacts from builder stage
+COPY --from=builder /app/dist ./dist
 
 # Expose port
 EXPOSE 3000
