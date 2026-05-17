@@ -30,17 +30,26 @@ const oracledb = require('oracledb');
 const logger   = require('./logger').child('OracleDB');
 const os       = require('os');
 const path     = require('path');
+const fs       = require('fs');
 
 // Oracle client configuration
 oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
 oracledb.fetchAsString = [oracledb.CLOB];
 
-// Initialize Oracle Client for Windows
-// This is required when using Oracle Instant Client on Windows
+// Initialize Oracle Client in thick mode
+// This is required for Advanced Networking Options (encryption, data integrity)
+// which are commonly enabled on Oracle Cloud and production databases.
+//
+// Thick mode requires Oracle Instant Client libraries to be available.
+// For installation instructions, see:
+// https://node-oracledb.readthedocs.io/en/latest/user_guide/installation.html
 try {
-  // Only initialize if not already initialized and on Windows
-  if (os.platform() === 'win32') {
-    // Check common Oracle Client installation paths on Windows
+  // Determine the library directory for thick mode initialization
+  let libDir = undefined;
+  const platform = os.platform();
+
+  if (platform === 'win32') {
+    // Windows: Check common Oracle Client installation paths
     const commonPaths = [
       process.env.ORACLE_HOME,
       'C:\\oracle\\instantclient_21_3',
@@ -51,35 +60,84 @@ try {
       'C:\\Oracle\\instantclient',
     ].filter(Boolean);
 
-    // Try to initialize with available paths
-    let initialized = false;
     for (const clientPath of commonPaths) {
       try {
-        if (require('fs').existsSync(clientPath)) {
-          oracledb.initOracleClient({ libDir: clientPath });
-          logger.info('Oracle Client initialized', { libDir: clientPath });
-          initialized = true;
+        if (fs.existsSync(clientPath)) {
+          libDir = clientPath;
           break;
         }
-      } catch (err) {
-        // Continue to next path if this one fails
-        if (err.message.includes('DPI-1047')) {
-          // Already initialized, which is fine
-          initialized = true;
-          break;
-        }
+      } catch (_) {
+        // Continue to next path
       }
     }
+  } else if (platform === 'linux') {
+    // Linux: Check common installation paths
+    const linuxPaths = [
+      process.env.ORACLE_HOME,
+      '/usr/lib/oracle/21/client64/lib',
+      '/usr/lib/oracle/19/client64/lib',
+      '/opt/oracle/instantclient_21_3',
+      '/opt/oracle/instantclient_19_3',
+      '/usr/local/lib',
+    ].filter(Boolean);
 
-    if (!initialized) {
-      logger.warn('Oracle Client not initialized. Using system-wide installation. If you encounter connection issues, set ORACLE_HOME environment variable.');
+    for (const clientPath of linuxPaths) {
+      try {
+        if (fs.existsSync(clientPath)) {
+          libDir = clientPath;
+          break;
+        }
+      } catch (_) {
+        // Continue to next path
+      }
+    }
+  } else if (platform === 'darwin') {
+    // macOS: Check common installation paths
+    const macPaths = [
+      process.env.ORACLE_HOME,
+      '/opt/oracle/instantclient_19_8',
+      '/usr/local/lib',
+    ].filter(Boolean);
+
+    for (const clientPath of macPaths) {
+      try {
+        if (fs.existsSync(clientPath)) {
+          libDir = clientPath;
+          break;
+        }
+      } catch (_) {
+        // Continue to next path
+      }
+    }
+  }
+
+  // Initialize thick mode with or without explicit library directory
+  // If libDir is undefined, node-oracledb will try to find it automatically
+  try {
+    oracledb.initOracleClient({ libDir });
+    logger.info('Oracle Client initialized in thick mode', {
+      libDir: libDir || 'auto-detected',
+      platform
+    });
+  } catch (err) {
+    // If already initialized, that's fine
+    if (err.message.includes('DPI-1047')) {
+      logger.info('Oracle Client already initialized in thick mode');
+    } else {
+      // For other errors, log a detailed warning with troubleshooting steps
+      logger.warn('Oracle Client thick mode initialization failed', {
+        error: err.message,
+        platform,
+        attemptedLibDir: libDir || 'auto-detect'
+      });
+      logger.warn('Thick mode is required for Advanced Networking Options (NJS-533 error)');
+      logger.warn('To fix: Install Oracle Instant Client and set ORACLE_HOME or LD_LIBRARY_PATH');
+      logger.warn('Download from: https://www.oracle.com/database/technologies/instant-client/downloads.html');
     }
   }
 } catch (err) {
-  // Initialization errors are non-fatal - the system may have Oracle Client configured globally
-  if (!err.message.includes('DPI-1047')) {
-    logger.warn('Oracle Client initialization failed', { error: err.message });
-  }
+  // Unexpected errors during initialization setup
+  logger.error('Oracle Client initialization setup failed', { error: err.message });
 }
 
 /**
@@ -205,6 +263,19 @@ async function testConnection(config) {
     // Provide more detailed error messages based on error codes
     let detailedMessage = err.message;
     let troubleshooting = [];
+
+    // NJS-533: Advanced Networking Option service negotiation failed
+    if (err.message.includes('NJS-533') || err.message.includes('ORA-12660')) {
+      troubleshooting.push('Advanced Networking Options (encryption/data integrity) required by the server.');
+      troubleshooting.push('This error occurs when the Oracle database requires encryption but node-oracledb is not running in thick mode.');
+      troubleshooting.push('SOLUTION:');
+      troubleshooting.push('1. Install Oracle Instant Client from: https://www.oracle.com/database/technologies/instant-client/downloads.html');
+      troubleshooting.push('2. For Linux: Extract to /opt/oracle/instantclient_21_3 or set LD_LIBRARY_PATH');
+      troubleshooting.push('3. For Windows: Extract to C:\\oracle\\instantclient_21_3 or set PATH/ORACLE_HOME');
+      troubleshooting.push('4. For macOS: Extract to /opt/oracle/instantclient_19_8');
+      troubleshooting.push('5. Restart the application after installing Oracle Instant Client');
+      troubleshooting.push('6. Alternatively, disable encryption on the Oracle server (sqlnet.ora: SQLNET.ENCRYPTION_SERVER=rejected)');
+    }
 
     // NJS-500 / NJS-521: Connection broken / end-of-file
     if (err.message.includes('NJS-500') || err.message.includes('NJS-521')) {
