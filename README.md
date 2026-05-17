@@ -1,6 +1,45 @@
 # integration-Oracle
 
-A production-grade **Enterprise Integration Platform** built on Oracle ADF 12.x that synchronises data between **Oracle Fusion ERP**, **VendHQ POS**, and **Opencart E-commerce** through a layered middleware architecture.
+A production-grade **Enterprise Integration Platform** that synchronises data between **Oracle Fusion ERP**, **VendHQ POS**, and **Opencart E-commerce** through a layered middleware architecture.
+
+---
+
+## 🚀 Looking for Vyrooq Middleware?
+
+**The modern integration middleware platform is here:**
+
+### **👉 [Go to vyrooq/](./vyrooq/) ← Installation & Documentation**
+
+Or read the installation guide directly:
+- **[vyrooq/INSTALLATION.md](./vyrooq/INSTALLATION.md)** - Complete installation guide
+- **[vyrooq/START_HERE.md](./vyrooq/START_HERE.md)** - Quick navigation guide
+- **[vyrooq/README.md](./vyrooq/README.md)** - Architecture & features
+
+### Quick Start (5 Minutes)
+
+```bash
+cd vyrooq
+./quick-start.sh
+```
+
+---
+
+## 📂 Repository Structure
+
+This repository contains two integration platforms:
+
+### 1. **Vyrooq** (Modern Platform) - **[vyrooq/](./vyrooq/)**
+- **Technology:** Node.js, Python, TypeScript, Docker, Kubernetes
+- **Architecture:** Microservices, event-driven, cloud-native
+- **Performance:** 10,000+ transactions/hour (40x faster)
+- **Status:** ✅ Production-ready, fully documented
+- **Use this for:** New installations, production deployments
+
+### 2. **Legacy Platform** (Oracle ADF) - Root directory
+- **Technology:** Java EE, Oracle ADF 12.x, WebLogic
+- **Architecture:** Monolithic, J2EE application
+- **Status:** 📦 Archived, reference only
+- **Documentation below** for the legacy system
 
 ---
 
