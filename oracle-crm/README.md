@@ -39,6 +39,20 @@ When the server starts for the first time, it automatically creates two default 
 
 > ⚠️ **SECURITY WARNING:** Change these passwords immediately after your first login via the Profile page or via **Admin → Users**. Default passwords are well-known and must not remain in production environments.
 
+### Reset Credentials Utility
+
+To generate new secure random passwords for admin accounts:
+
+```bash
+# For local development:
+node reset-credentials.js
+
+# For Docker deployment (see Docker section below):
+docker exec -it oracle-crm node reset-credentials.js
+```
+
+The utility creates new secure 16-character passwords and saves them to `/tmp/oracle-crm-credentials.txt` for easy reference.
+
 > **Windows users:** See the step-by-step [Windows Installation Guide](../WINDOWS_INSTALL.md) for full instructions.
 
 ---
@@ -192,9 +206,75 @@ The CRM implements the same 8-step Oracle Fusion API sequence as the Java schedu
 
 **Never commit `.env` to version control.**
 
+## 🐳 Docker Deployment
+
+### Building and Running with Docker Compose
+
+```bash
+# Build and start the container
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop the container
+docker-compose down
+```
+
+### Important: Rebuilding After Code Updates
+
+When you pull new code changes (e.g., after `git pull`), Docker doesn't automatically rebuild the image. You must rebuild to include the new files:
+
+```bash
+# Rebuild and restart
+docker-compose up -d --build
+```
+
+**Without `--build`, Docker uses the cached image and new files won't be available inside the container.**
+
+### Running the Credential Reset Utility
+
+After building the Docker image with the latest code:
+
+```bash
+# Method 1: Run directly
+docker exec -it oracle-crm node reset-credentials.js
+
+# Method 2: Interactive shell first
+docker exec -it oracle-crm sh
+node reset-credentials.js
+exit
+```
+
+The `reset-credentials.js` script generates secure random passwords for the superadmin and admin accounts. Use this when you need to reset credentials or create fresh login details.
+
+### Common Docker Commands
+
+```bash
+# View running containers
+docker ps
+
+# Restart the container
+docker-compose restart
+
+# Rebuild without cache (force fresh build)
+docker-compose build --no-cache
+docker-compose up -d
+
+# View container logs
+docker logs oracle-crm
+
+# Access container shell
+docker exec -it oracle-crm sh
+
+# Remove container and image (clean slate)
+docker-compose down
+docker rmi oracle-crm_oracle-crm
+```
+
 ## Security
 
-- Oracle credentials are stored only in the `.env` file (never in source code)  
-- HTTP Basic Auth is sent only to Oracle Fusion APIs over HTTPS  
-- The `.gitignore` excludes `.env` and `node_modules/`  
-- No credentials are logged or exposed in API responses  
+- Oracle credentials are stored only in the `.env` file (never in source code)
+- HTTP Basic Auth is sent only to Oracle Fusion APIs over HTTPS
+- The `.gitignore` excludes `.env` and `node_modules/`
+- No credentials are logged or exposed in API responses
