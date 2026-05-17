@@ -4,7 +4,9 @@
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_partman";
+-- Note: pg_partman is optional for basic setup
+-- For production with partitioning, install pg_partman extension separately
+-- CREATE EXTENSION IF NOT EXISTS "pg_partman";
 
 -- ============================================================================
 -- AUDIT AND EVENT SOURCING TABLES
