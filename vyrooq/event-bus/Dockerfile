@@ -1,22 +1,17 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# npm install seems to hang after 80s but may still create node_modules
-# Try npm ci, ignore errors, then check if we need to retry
-RUN (timeout 300 npm ci 2>&1 || true) && \
-    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/tsc" ]; then \
-        echo "npm ci didn't complete, trying npm install..." && \
-        (timeout 300 npm install --prefer-offline --no-audit --no-fund 2>&1 || true); \
-    fi && \
-    if [ ! -f "node_modules/.bin/tsc" ]; then \
-        echo "TypeScript still missing, installing it separately..." && \
-        npm install typescript@^5.6.0 --no-save --legacy-peer-deps; \
-    fi
+# Install all dependencies with network retry configuration
+RUN npm config set fetch-retries 10 && \
+    npm config set fetch-retry-mintimeout 60000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-timeout 300000 && \
+    npm ci || npm install
 
 # Copy source code
 COPY . .
@@ -28,7 +23,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
