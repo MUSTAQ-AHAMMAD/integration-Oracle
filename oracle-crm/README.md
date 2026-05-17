@@ -272,6 +272,16 @@ docker-compose down
 docker rmi oracle-crm_oracle-crm
 ```
 
+## 📚 Additional Documentation
+
+- **[Oracle Database Integration Setup](./ORACLE_DB_SETUP.md)** – Complete guide for enabling Oracle DB integration, including:
+  - Oracle Instant Client installation (Windows, Linux, macOS, Docker)
+  - Fixing NJS-533 Advanced Networking Options error
+  - Connection configuration and troubleshooting
+  - Database schema requirements
+- **[User Management & Reporting](./USER_MANAGEMENT_AND_REPORTING.md)** – Role-based access control, permissions, and reporting features
+- **[Windows Installation Guide](../WINDOWS_INSTALL.md)** – Step-by-step setup for Windows environments
+
 ## Security
 
 - Oracle credentials are stored only in the `.env` file (never in source code)
