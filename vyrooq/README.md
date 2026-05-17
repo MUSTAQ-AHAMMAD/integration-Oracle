@@ -115,15 +115,27 @@ vyrooq/
 
 ## 🚦 Quick Start
 
-**⚠️ IMPORTANT: Before starting, read the setup guides below:**
+**⚠️ NEW USERS: Start with the Installation Guide!**
 
-### 📖 Setup Documentation
+### 📖 Installation Documentation
 
-Choose the guide that matches your needs:
+**Choose the guide that matches your needs:**
 
-1. **[LOCAL_SETUP_GUIDE.md](./LOCAL_SETUP_GUIDE.md)** - **START HERE!** Complete step-by-step guide for running locally
-2. **[BUILD_TROUBLESHOOTING.md](./BUILD_TROUBLESHOOTING.md)** - Solutions for Docker build and npm issues
-3. **[QUICKSTART.md](./QUICKSTART.md)** - Ultra-quick reference for experienced users
+1. **[INSTALLATION.md](./INSTALLATION.md)** - **🌟 START HERE!** Complete installation guide with everything you need
+   - Step-by-step Docker installation
+   - Manual installation instructions
+   - Prerequisites and system requirements
+   - Troubleshooting common issues
+   - Verification steps
+
+2. **[quick-start.sh](./quick-start.sh)** - **⚡ One-command installation** - Run this script for automated setup
+   ```bash
+   ./quick-start.sh
+   ```
+
+3. **[LOCAL_SETUP_GUIDE.md](./LOCAL_SETUP_GUIDE.md)** - Detailed local development setup
+4. **[BUILD_TROUBLESHOOTING.md](./BUILD_TROUBLESHOOTING.md)** - Solutions for Docker build and npm issues
+5. **[QUICKSTART.md](./QUICKSTART.md)** - Ultra-quick reference for experienced users
 
 ### 🔍 Diagnostic Tool
 
