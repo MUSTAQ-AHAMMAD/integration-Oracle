@@ -452,9 +452,264 @@ async function fetchStoreOracleMetadata(config, opts = {}) {
   }
 }
 
+/**
+ * Check if sale already exists in BACKUP_VENDHQ_SALES
+ * Matches Java: session.getIsSalesExists(sale.getInvoiceNumber(), sale.getSaleDate())
+ */
+async function checkSaleExists(connection, invoiceNumber, saleDate) {
+  const result = await connection.execute(
+    `SELECT COUNT(*) as CNT FROM BACKUP_VENDHQ_SALES
+     WHERE INVOICE_NUMBER = :invoiceNumber
+     AND TRUNC(SALE_DATE) = TRUNC(TO_DATE(:saleDate, 'YYYY-MM-DD'))`,
+    { invoiceNumber, saleDate },
+    { outFormat: oracledb.OUT_FORMAT_OBJECT }
+  );
+  return result.rows[0].CNT > 0;
+}
+
+/**
+ * Transform Odoo sale to BACKUP_VENDHQ_SALES format
+ * Matches Java: transform(Sale sale, VendhqServiceProviders serviceProvider)
+ */
+function transformSaleHeader(sale, region) {
+  return {
+    INVOICE_NUMBER: sale.name,
+    OUTLET_NAME: sale.store_name || 'DEFAULT',
+    REGISTER_NAME: sale.register_name || 'DEFAULT',
+    SALE_DATE: sale.date_order,
+    TOTAL_PRICE: sale.amount_untaxed || 0,
+    TOTAL_TAX: sale.amount_tax || 0,
+    TOTAL_LOYALTY: sale.total_loyalty || null,
+    TOTAL_PRICE_INCL_TAX: sale.amount_total || 0,
+    VERSION: 1,
+    REGION: region || sale.country || 'SA',
+    CUSTOMER_TYPE: sale.customer_type || 'NORMAL'
+  };
+}
+
+/**
+ * Transform Odoo sale lines to BACKUP_VENDHQ_LINE_ITEMS format
+ * Matches Java: transform(Sale sale, LineItem lineItem, String taxName)
+ */
+function transformSaleLines(sale, lines, region) {
+  return lines.map((line, index) => ({
+    INVOICE_NUMBER: sale.name,
+    SALE_DATE: sale.date_order,
+    LINE_NUMBER: index + 1,
+    ITEM_NUMBER: line.product_code || line.product_name || 'UNKNOWN',
+    ITEM_NAME: line.product_name || 'Unknown Product',
+    QUANTITY: line.qty || 0,
+    LOYALTY_VALUE: line.loyalty_value || null,
+    TOTAL_PRICE: line.price_subtotal || 0,
+    TOTAL_TAX: line.price_tax || 0,
+    TOTAL_DISCOUNT: line.discount_amount || null,
+    TOTAL_LOYALTY: null,
+    REGION: region || sale.country || 'SA',
+    TAX_NAME: line.tax_name || 'VAT'
+  }));
+}
+
+/**
+ * Transform Odoo payments to BACKUP_VENDHQ_PAYMENTS format
+ * Matches Java: transform(Sale sale, Payment payment)
+ */
+function transformSalePayments(sale, payments, region) {
+  return payments.map(payment => ({
+    INVOICE_NUMBER: sale.name,
+    OUTLET_NAME: sale.store_name || 'DEFAULT',
+    REGISTER_NAME: sale.register_name || 'DEFAULT',
+    AMOUNT: payment.amount || 0,
+    CURRENCY: sale.currency || 'USD',
+    PAYMENT_TYPE: payment.payment_method_name || 'CASH',
+    PAYMENT_DATE: payment.payment_date || sale.date_order,
+    DELETED_AT: null,
+    REGION: region || sale.country || 'SA',
+    SALE_DATE: sale.date_order
+  }));
+}
+
+/**
+ * Insert sale header into BACKUP_VENDHQ_SALES
+ * Matches Java: session.mergeBackupVendhqSales(transform(sale, serviceProvider))
+ */
+async function insertSaleHeader(connection, saleData) {
+  await connection.execute(
+    `INSERT INTO BACKUP_VENDHQ_SALES
+     (ROW_ID, INVOICE_NUMBER, OUTLET_NAME, REGISTER_NAME, SALE_DATE,
+      TOTAL_PRICE, TOTAL_TAX, TOTAL_LOYALTY, TOTAL_PRICE_INCL_TAX,
+      VERSION, REGION, CUSTOMER_TYPE)
+     VALUES
+     (BACKUP_VENDHQ_SALES_SEQ_GEN.NEXTVAL, :INVOICE_NUMBER, :OUTLET_NAME,
+      :REGISTER_NAME, TO_DATE(:SALE_DATE, 'YYYY-MM-DD'),
+      :TOTAL_PRICE, :TOTAL_TAX, :TOTAL_LOYALTY, :TOTAL_PRICE_INCL_TAX,
+      :VERSION, :REGION, :CUSTOMER_TYPE)`,
+    saleData
+  );
+}
+
+/**
+ * Insert line item into BACKUP_VENDHQ_LINE_ITEMS
+ * Matches Java: session.mergeBackupVendhqLineItems(transform(sale, lineItem, taxName))
+ */
+async function insertLineItem(connection, lineData) {
+  await connection.execute(
+    `INSERT INTO BACKUP_VENDHQ_LINE_ITEMS
+     (ROW_ID, INVOICE_NUMBER, LINE_NUMBER, ITEM_NUMBER, ITEM_NAME,
+      QUANTITY, LOYALTY_VALUE, TOTAL_PRICE, TOTAL_TAX, TOTAL_DISCOUNT,
+      TOTAL_LOYALTY, REGION, SALE_DATE, TAX_NAME)
+     VALUES
+     (BACKUP_VENDHQ_LINE_SEQ_GEN.NEXTVAL, :INVOICE_NUMBER, :LINE_NUMBER,
+      :ITEM_NUMBER, :ITEM_NAME, :QUANTITY, :LOYALTY_VALUE, :TOTAL_PRICE,
+      :TOTAL_TAX, :TOTAL_DISCOUNT, :TOTAL_LOYALTY, :REGION,
+      TO_DATE(:SALE_DATE, 'YYYY-MM-DD'), :TAX_NAME)`,
+    lineData
+  );
+}
+
+/**
+ * Insert payment into BACKUP_VENDHQ_PAYMENTS
+ * Matches Java: session.mergeBackupVendhqPayments(transform(sale, payment))
+ */
+async function insertPayment(connection, paymentData) {
+  await connection.execute(
+    `INSERT INTO BACKUP_VENDHQ_PAYMENTS
+     (ROW_ID, INVOICE_NUMBER, OUTLET_NAME, REGISTER_NAME, AMOUNT,
+      CURRENCY, PAYMENT_TYPE, PAYMENT_DATE, DELETED_AT, REGION, SALE_DATE)
+     VALUES
+     (BACKUP_VENDHQ_PAY_SEQ_GEN.NEXTVAL, :INVOICE_NUMBER, :OUTLET_NAME,
+      :REGISTER_NAME, :AMOUNT, :CURRENCY, :PAYMENT_TYPE,
+      TO_DATE(:PAYMENT_DATE, 'YYYY-MM-DD'), :DELETED_AT, :REGION,
+      TO_DATE(:SALE_DATE, 'YYYY-MM-DD'))`,
+    paymentData
+  );
+}
+
+/**
+ * Sync single sale to Oracle BACKUP tables
+ * Matches Java: syncSales(Sale sale) from BackupSalesVendHqPersistence.java
+ */
+async function syncSale(connection, sale, lines, payments, region) {
+  // Check if sale already exists
+  const exists = await checkSaleExists(connection, sale.name, sale.date_order);
+  if (exists) {
+    logger.debug('Sale already exists, skipping', { invoiceNumber: sale.name });
+    return { skipped: true, reason: 'ALREADY_EXISTS' };
+  }
+
+  // Transform data
+  const saleHeader = transformSaleHeader(sale, region);
+  const saleLines = transformSaleLines(sale, lines, region);
+  const salePayments = transformSalePayments(sale, payments, region);
+
+  // Insert header
+  await insertSaleHeader(connection, saleHeader);
+  logger.debug('Inserted sale header', { invoiceNumber: sale.name });
+
+  // Insert lines
+  for (const line of saleLines) {
+    await insertLineItem(connection, line);
+  }
+  logger.debug('Inserted line items', {
+    invoiceNumber: sale.name,
+    lineCount: saleLines.length
+  });
+
+  // Insert payments
+  for (const payment of salePayments) {
+    await insertPayment(connection, payment);
+  }
+  logger.debug('Inserted payments', {
+    invoiceNumber: sale.name,
+    paymentCount: salePayments.length
+  });
+
+  return {
+    success: true,
+    invoiceNumber: sale.name,
+    linesInserted: saleLines.length,
+    paymentsInserted: salePayments.length
+  };
+}
+
+/**
+ * Batch sync multiple sales to Oracle
+ * Main function matching Java: backupSales(String domainName, Credential vendHqCredential)
+ */
+async function syncSalesToOracle(config, salesData, region = 'SA') {
+  let connection;
+  const results = {
+    total: salesData.length,
+    synced: 0,
+    skipped: 0,
+    failed: 0,
+    errors: []
+  };
+
+  try {
+    connection = await createConnection(config);
+
+    for (const saleData of salesData) {
+      try {
+        const { sale, lines, payments } = saleData;
+
+        // Sync to Oracle
+        const result = await syncSale(connection, sale, lines, payments, region);
+
+        if (result.skipped) {
+          results.skipped++;
+        } else if (result.success) {
+          results.synced++;
+        }
+
+      } catch (err) {
+        results.failed++;
+        results.errors.push({
+          invoiceNumber: saleData.sale?.name || 'UNKNOWN',
+          error: err.message
+        });
+        logger.error('Failed to sync sale', {
+          invoiceNumber: saleData.sale?.name,
+          error: err.message
+        });
+      }
+    }
+
+    // Commit all changes
+    await connection.commit();
+    logger.info('Batch sync completed', results);
+
+  } catch (err) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackErr) {
+        logger.error('Rollback failed', { error: rollbackErr.message });
+      }
+    }
+    logger.error('Batch sync failed', { error: err.message });
+    throw err;
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (closeErr) {
+        logger.error('Connection close failed', { error: closeErr.message });
+      }
+    }
+  }
+
+  return results;
+}
+
 module.exports = {
   createConnection,
   testConnection,
   fetchFusionSalesMetadata,
   fetchStoreOracleMetadata,
+  syncSalesToOracle,
+  syncSale,
+  checkSaleExists,
+  transformSaleHeader,
+  transformSaleLines,
+  transformSalePayments
 };

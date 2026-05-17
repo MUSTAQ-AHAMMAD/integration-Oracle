@@ -20,6 +20,7 @@ const authRoutes       = require('./src/routes/auth');
 const usersRoutes      = require('./src/routes/users');
 const benchmarkRoutes  = require('./src/routes/benchmark');
 const reportsRoutes    = require('./src/routes/reports');
+const backupSyncRoutes = require('./src/routes/backupSync');
 const { requireAuth } = require('./src/middleware/auth');
 
 // ── Validate required environment variables ──────────────────────────────────
@@ -143,12 +144,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoutes);
 
 // Protected API routes
-app.use('/api/sales',     requireAuth, salesRoutes);
-app.use('/api/config',    requireAuth, configRoutes);
-app.use('/api/odoo',      requireAuth, odooRoutes);
-app.use('/api/benchmark', requireAuth, benchmarkRoutes);
-app.use('/api/reports',   requireAuth, reportsRoutes);
-app.use('/api/users',     usersRoutes);  // admin check is inside
+app.use('/api/sales',       requireAuth, salesRoutes);
+app.use('/api/config',      requireAuth, configRoutes);
+app.use('/api/odoo',        requireAuth, odooRoutes);
+app.use('/api/backup-sync', requireAuth, backupSyncRoutes);
+app.use('/api/benchmark',   requireAuth, benchmarkRoutes);
+app.use('/api/reports',     requireAuth, reportsRoutes);
+app.use('/api/users',       usersRoutes);  // admin check is inside
 
 // SPA fallback – serve index.html for unknown routes (except /api/*)
 app.get('*', (req, res, next) => {

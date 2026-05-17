@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  oracle-db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oracle-integration-db
+    hostname: oracle-db
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    environment:
+      - ORACLE_SID=${ORACLE_SID:-XE}
+      - ORACLE_PDB=${ORACLE_PDB:-XEPDB1}
+      - ORACLE_PWD=${ORACLE_PWD:-Oracle123}
+      - ORACLE_CHARACTERSET=${ORACLE_CHARACTERSET:-AL32UTF8}
+      - DB_PASSWORD=${DB_PASSWORD:-Oracle123}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - oracle-backup:/opt/oracle/backup
+      - ./init-scripts:/opt/oracle/scripts/setup
+      - ./logs:/opt/oracle/diag
+    networks:
+      - oracle-network
+    restart: unless-stopped
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM DUAL;' | sqlplus -L sys/${ORACLE_PWD}@localhost:1521/${ORACLE_SID} as sysdba"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Optional: Oracle SQL Developer Web (APEX)
+  # Already included in Oracle XE 21c
+
+volumes:
+  oracle-data:
+    driver: local
+  oracle-backup:
+    driver: local
+
+networks:
+  oracle-network:
+    driver: bridge
