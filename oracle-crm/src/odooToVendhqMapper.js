@@ -27,8 +27,6 @@
  *   - FusionJournalEntryMapping.java: Journal entry mapping
  */
 
-const logger = require('./logger').child('OdooToVendhqMapper');
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Sale Order → BACKUP_VENDHQ_SALES
 // ─────────────────────────────────────────────────────────────────────────────
