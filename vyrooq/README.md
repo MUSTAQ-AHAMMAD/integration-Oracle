@@ -113,38 +113,57 @@ vyrooq/
 - **Loki** (log aggregation)
 - **ELK Stack** (search & analytics)
 
-## 🚦 Quick Start (Windows Local Development)
+## 🚦 Quick Start
+
+**⚠️ IMPORTANT: Before starting, read the setup guides below:**
+
+### 📖 Setup Documentation
+
+Choose the guide that matches your needs:
+
+1. **[LOCAL_SETUP_GUIDE.md](./LOCAL_SETUP_GUIDE.md)** - **START HERE!** Complete step-by-step guide for running locally
+2. **[BUILD_TROUBLESHOOTING.md](./BUILD_TROUBLESHOOTING.md)** - Solutions for Docker build and npm issues
+3. **[QUICKSTART.md](./QUICKSTART.md)** - Ultra-quick reference for experienced users
+
+### 🔍 Diagnostic Tool
+
+Run the diagnostic script to check your environment:
+
+```bash
+./diagnose.sh
+```
+
+This will verify Docker installation, check ports, validate configuration, and identify issues.
+
+### ⚡ Fastest Path to Running
+
+```bash
+# 1. Clone repository
+git clone https://github.com/MUSTAQ-AHAMMAD/integration-Oracle.git
+cd integration-Oracle/vyrooq
+
+# 2. Configure credentials (edit FUSION_BASE_URL, FUSION_USERNAME, FUSION_PASSWORD)
+nano .env  # or use your favorite editor
+
+# 3. Start infrastructure
+docker compose up -d postgres redis rabbitmq kafka zookeeper
+
+# 4. Wait 30 seconds for services to initialize
+sleep 30
+
+# 5. Start core application services
+docker compose up -d gateway-api fusion-adapter reconciliation-engine
+
+# 6. Verify
+curl http://localhost:3000/health
+```
 
 ### Prerequisites
 
-- Windows 10/11 or Windows Server 2019+
-- Docker Desktop for Windows
-- Node.js 22+ LTS
-- Python 3.13+
-- PostgreSQL 16+ (or use Docker)
-- Redis 7+ (or use Docker)
-
-### 1. Clone Repository
-
-```powershell
-git clone https://github.com/MUSTAQ-AHAMMAD/integration-Oracle.git
-cd integration-Oracle/vyrooq
-```
-
-### 2. Run Windows Setup Script
-
-```powershell
-# Run as Administrator
-.\scripts\windows-setup.ps1
-```
-
-This script will:
-- Install all dependencies
-- Set up PostgreSQL database
-- Start Redis and RabbitMQ containers
-- Initialize Temporal.io server
-- Create environment configuration files
-- Build all services
+- **Docker Desktop** (Windows/Mac) or **Docker Engine** (Linux) - version 20.10+
+- **8GB RAM minimum** (16GB recommended)
+- **50GB free disk space**
+- **Oracle Fusion credentials** (required for integration)
 
 ### 3. Configure Environment
 
