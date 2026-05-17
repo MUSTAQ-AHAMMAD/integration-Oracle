@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  oracle-crm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oracle-crm
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DB_PATH=/app/data/crm.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "scripts/health-check.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - oracle-crm-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  oracle-crm-network:
+    driver: bridge
