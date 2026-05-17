@@ -6,3 +6,7 @@ Model/classes/
 ViewController/classes/
 oracle-crm/data/
 oracle-crm/node_modules/
+node_modules/
+dist/
+build/
+*.log

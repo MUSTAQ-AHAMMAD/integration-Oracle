@@ -122,20 +122,8 @@ Object.entries(queues).forEach(([name, queue]) => {
     logger.error({ queue: name, error }, 'Queue error');
   });
 
-  queue.on('waiting', (jobId) => {
-    logger.debug({ queue: name, jobId }, 'Job waiting');
-  });
-
-  queue.on('active', (job) => {
-    logger.debug({ queue: name, jobId: job.id }, 'Job active');
-  });
-
-  queue.on('completed', (job) => {
-    logger.info({ queue: name, jobId: job.id }, 'Job completed');
-  });
-
-  queue.on('failed', (job, error) => {
-    logger.error({ queue: name, jobId: job?.id, error }, 'Job failed');
+  queue.on('waiting', (job) => {
+    logger.debug({ queue: name, jobId: job.id }, 'Job waiting');
   });
 });
 
