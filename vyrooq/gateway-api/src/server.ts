@@ -4,7 +4,6 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { setupRoutes } from './routes';
 import { setupOpenTelemetry } from './telemetry';
 import { logger } from './utils/logger';
@@ -13,13 +12,12 @@ import { config } from './config';
 // Initialize OpenTelemetry
 setupOpenTelemetry();
 
-// Create Fastify instance with TypeBox
+// Create Fastify instance
 const server = Fastify({
-  logger: logger,
   trustProxy: true,
   requestIdHeader: 'x-correlation-id',
   requestIdLogLabel: 'correlationId'
-}).withTypeProvider<TypeBoxTypeProvider>();
+});
 
 async function start() {
   try {
@@ -107,7 +105,7 @@ async function start() {
           }
         }
       }
-    }, async (request, reply) => {
+    }, async () => {
       return {
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -122,7 +120,7 @@ async function start() {
         tags: ['Health'],
         description: 'Readiness check endpoint'
       }
-    }, async (request, reply) => {
+    }, async () => {
       // Check database connection
       // Check Redis connection
       // Check external services

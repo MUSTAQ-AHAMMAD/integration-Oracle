@@ -2,26 +2,51 @@
 
 const jwt = require('jsonwebtoken');
 const db  = require('../db');
+const logger = require('../logger').child('Auth');
 
-const JWT_SECRET  = process.env.JWT_SECRET || (() => {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET environment variable must be set in production');
+let JWT_SECRET = null;
+let JWT_SECRET_INITIALIZED = false;
+
+/**
+ * Lazily initialize JWT_SECRET on first use.
+ * This allows the server to start even if JWT_SECRET is not set;
+ * it will fail gracefully when a request tries to authenticate.
+ */
+function initJwtSecret() {
+  if (JWT_SECRET_INITIALIZED) return JWT_SECRET;
+  
+  JWT_SECRET_INITIALIZED = true;
+  
+  if (process.env.JWT_SECRET) {
+    JWT_SECRET = process.env.JWT_SECRET;
+    return JWT_SECRET;
   }
-  console.warn('[WARN] JWT_SECRET not set – using insecure default. Set JWT_SECRET in .env for production.');
-  return 'oracle-crm-secret-change-in-production';
-})();
+
+  if (process.env.NODE_ENV === 'production') {
+    const err = new Error('JWT_SECRET environment variable must be set in production');
+    logger.error('Critical: JWT_SECRET not set in production', { error: err.message });
+    throw err;
+  }
+
+  logger.warn('JWT_SECRET not set – using insecure default. Set JWT_SECRET in .env for production.');
+  JWT_SECRET = 'oracle-crm-secret-change-in-production';
+  return JWT_SECRET;
+}
+
 const JWT_EXPIRES = '12h';
 
 function signToken(user) {
+  const secret = initJwtSecret();
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
-    JWT_SECRET,
+    secret,
     { expiresIn: JWT_EXPIRES }
   );
 }
 
 function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET);
+  const secret = initJwtSecret();
+  return jwt.verify(token, secret);
 }
 
 /**
@@ -40,15 +65,33 @@ function requireAuth(req, res, next) {
   }
 
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
+    logger.warn('Authentication required but no token provided', { 
+      path: req.path, 
+      method: req.method,
+      requestId: req.id 
+    });
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      code: 'AUTH_REQUIRED',
+      statusCode: 401
+    });
   }
 
   try {
     const payload = verifyToken(token);
     req.user = payload;
     next();
-  } catch (_) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+  } catch (err) {
+    logger.warn('Invalid or expired token', { 
+      error: err.message,
+      path: req.path,
+      requestId: req.id 
+    });
+    return res.status(401).json({ 
+      error: 'Invalid or expired token',
+      code: 'INVALID_TOKEN',
+      statusCode: 401
+    });
   }
 }
 
@@ -80,7 +123,17 @@ function hasMinimumRole(userRole, minimumRole) {
 function requireAdmin(req, res, next) {
   requireAuth(req, res, () => {
     if (!hasMinimumRole(req.user.role, 'admin')) {
-      return res.status(403).json({ error: 'Admin access required' });
+      logger.warn('Admin access denied for user', { 
+        username: req.user.username,
+        role: req.user.role,
+        path: req.path,
+        requestId: req.id 
+      });
+      return res.status(403).json({ 
+        error: 'Admin access required',
+        code: 'INSUFFICIENT_ROLE',
+        statusCode: 403
+      });
     }
     next();
   });
@@ -92,7 +145,17 @@ function requireAdmin(req, res, next) {
 function requireSuperAdmin(req, res, next) {
   requireAuth(req, res, () => {
     if (req.user.role !== 'super_admin') {
-      return res.status(403).json({ error: 'Super admin access required' });
+      logger.warn('Super admin access denied for user', { 
+        username: req.user.username,
+        role: req.user.role,
+        path: req.path,
+        requestId: req.id 
+      });
+      return res.status(403).json({ 
+        error: 'Super admin access required',
+        code: 'INSUFFICIENT_ROLE',
+        statusCode: 403
+      });
     }
     next();
   });
@@ -104,7 +167,17 @@ function requireSuperAdmin(req, res, next) {
 function requireManagement(req, res, next) {
   requireAuth(req, res, () => {
     if (!hasMinimumRole(req.user.role, 'management')) {
-      return res.status(403).json({ error: 'Management access required' });
+      logger.warn('Management access denied for user', { 
+        username: req.user.username,
+        role: req.user.role,
+        path: req.path,
+        requestId: req.id 
+      });
+      return res.status(403).json({ 
+        error: 'Management access required',
+        code: 'INSUFFICIENT_ROLE',
+        statusCode: 403
+      });
     }
     next();
   });
@@ -116,7 +189,17 @@ function requireManagement(req, res, next) {
 function requireUser(req, res, next) {
   requireAuth(req, res, () => {
     if (!hasMinimumRole(req.user.role, 'user')) {
-      return res.status(403).json({ error: 'User access required' });
+      logger.warn('User access denied', { 
+        username: req.user.username,
+        role: req.user.role,
+        path: req.path,
+        requestId: req.id 
+      });
+      return res.status(403).json({ 
+        error: 'User access required',
+        code: 'INSUFFICIENT_ROLE',
+        statusCode: 403
+      });
     }
     next();
   });

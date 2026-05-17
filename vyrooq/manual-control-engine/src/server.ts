@@ -240,7 +240,7 @@ async function buildServer() {
   });
 
   // Error handler
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error: any, request, reply) => {
     logger.error({ error, requestId: request.id }, 'Request error');
     reply.code(error.statusCode || 500).send({
       error: error.name || 'Internal Server Error',
