@@ -5,6 +5,7 @@ const express    = require('express');
 const path       = require('path');
 const morgan     = require('morgan');
 const rateLimit  = require('express-rate-limit');
+const helmet     = require('helmet');
 const logger     = require('./src/logger');
 const db         = require('./src/db');
 const bcrypt     = require('bcryptjs');
@@ -30,10 +31,66 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
 app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim(), { source: 'http' }) } }));
 app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
+
+// Health check endpoint (no auth required)
+app.get('/api/health', (req, res) => {
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: require('./package.json').version
+  };
+
+  // Check database connectivity
+  try {
+    db.listUsers(); // Simple DB query to verify connection
+    health.database = 'connected';
+  } catch (err) {
+    health.database = 'error';
+    health.status = 'degraded';
+    logger.error('Health check: database error', { err: err.message });
+  }
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
+});
+
+// Readiness check endpoint (for Kubernetes)
+app.get('/api/ready', (req, res) => {
+  try {
+    db.listUsers();
+    res.status(200).json({ ready: true });
+  } catch (err) {
+    res.status(503).json({ ready: false, error: err.message });
+  }
+});
+
+// Liveness check endpoint (for Kubernetes)
+app.get('/api/live', (req, res) => {
+  res.status(200).json({ alive: true });
+});
 
 // Static files (public HTML/CSS/JS – no auth required)
 app.use(express.static(path.join(__dirname, 'public')));

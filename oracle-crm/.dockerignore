@@ -1,0 +1,48 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Environment files (should be mounted at runtime)
+.env
+.env.*
+
+# Development files
+*.md
+!README.md
+.git
+.gitignore
+.vscode
+.idea
+
+# Test files
+tests
+coverage
+*.test.js
+*.spec.js
+
+# Build artifacts
+dist
+build
+
+# Logs
+logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Database files (should be in volumes)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Documentation
+docs
+screenshots
