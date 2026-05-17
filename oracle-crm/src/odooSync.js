@@ -33,8 +33,30 @@ const { randomUUID }  = require('crypto');
 const OdooClient      = require('./odooClient');
 const OdooRestClient  = require('./odooRestClient');
 const OraclePushService = require('./pushOracle');
+const odooMapper      = require('./odooToVendhqMapper');
 const db              = require('./db');
 const logger          = require('./logger').child('OdooSync');
+
+// ── Odoo to VendHQ Mapper ─────────────────────────────────────────────────────
+// The odooMapper module provides field-by-field mappings from Odoo API data to
+// VendHQ backup table structure (BACKUP_VENDHQ_SALES, BACKUP_VENDHQ_LINE_ITEMS,
+// BACKUP_VENDHQ_PAYMENTS) as defined in database.sql.
+//
+// This mapping is used for Oracle Database integration, enabling the middleware
+// to write Odoo data directly to Oracle backup tables in the ODOO_INTEGRATION
+// schema, following the same structure used by the Java middleware.
+//
+// Currently, data is stored in SQLite for the Node.js/Oracle Fusion REST API
+// integration. To enable Oracle DB backup table integration, use the mapper:
+//
+//   const mapped = odooMapper.mapCompleteSale(odooSale, lines, payments, {
+//     region: 'AE',
+//     outletName: 'Dubai Store',
+//     customerType: 'NORMAL'
+//   });
+//
+// See ODOO_VENDHQ_MAPPING.md and ORACLE_OPERATIONS_MAPPING.md for details.
+// ──────────────────────────────────────────────────────────────────────────────
 
 // Max concurrent Oracle pushes per job chunk (keep CRM responsive)
 const MAX_CONCURRENT    = Number(process.env.ODOO_PUSH_CONCURRENCY)  || 10;
@@ -1765,4 +1787,7 @@ module.exports = {
   buildOracleSalePayload,
   fetchPaymentsForSale,
   buildOdooClient,
+  // Odoo to VendHQ backup table mapper (for Oracle DB integration)
+  odooMapper,
 };
+
