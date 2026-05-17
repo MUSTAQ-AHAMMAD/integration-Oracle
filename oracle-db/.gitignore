@@ -1,0 +1,28 @@
+# Environment files
+.env
+
+# Oracle Database files
+*.dmp
+*.log
+*.trc
+*.trm
+
+# Backup files
+backup/
+*.bak
+
+# Logs
+logs/
+*.log
+
+# Data directories (handled by Docker volumes)
+oradata/
+diag/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml

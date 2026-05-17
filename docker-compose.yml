@@ -1,0 +1,85 @@
+version: '3.8'
+
+# Main Docker Compose file for Oracle Integration Platform
+# This includes Oracle Database, Oracle CRM, and all supporting services
+
+services:
+  # Oracle Database Service
+  oracle-db:
+    build:
+      context: ./oracle-db
+      dockerfile: Dockerfile
+    container_name: oracle-integration-db
+    hostname: oracle-db
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    environment:
+      - ORACLE_SID=${ORACLE_SID:-XE}
+      - ORACLE_PDB=${ORACLE_PDB:-XEPDB1}
+      - ORACLE_PWD=${ORACLE_PWD:-Oracle123}
+      - ORACLE_CHARACTERSET=${ORACLE_CHARACTERSET:-AL32UTF8}
+      - DB_PASSWORD=${DB_PASSWORD:-Oracle123}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - oracle-backup:/opt/oracle/backup
+      - ./oracle-db/init-scripts:/opt/oracle/scripts/setup
+      - ./oracle-db/logs:/opt/oracle/diag
+    networks:
+      - integration-network
+    restart: unless-stopped
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM DUAL;' | sqlplus -L sys/${ORACLE_PWD}@localhost:1521/${ORACLE_SID} as sysdba"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Oracle CRM Service
+  oracle-crm:
+    build:
+      context: ./oracle-crm
+      dockerfile: Dockerfile
+    container_name: oracle-crm
+    ports:
+      - "${CRM_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-oracle-crm-temp-secret-change-immediately}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DB_PATH=/app/data/crm.db
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-150}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+      # Oracle Database Connection
+      - ORACLE_HOST=oracle-db
+      - ORACLE_PORT=1521
+      - ORACLE_SID=XE
+      - ORACLE_USER=ODOO_INTEGRATION
+      - ORACLE_PASSWORD=${DB_PASSWORD:-Oracle123}
+    volumes:
+      - ./oracle-crm/data:/app/data
+      - ./oracle-crm/logs:/app/logs
+    networks:
+      - integration-network
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  oracle-data:
+    driver: local
+  oracle-backup:
+    driver: local
+
+networks:
+  integration-network:
+    driver: bridge
