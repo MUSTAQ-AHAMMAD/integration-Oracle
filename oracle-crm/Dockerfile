@@ -1,14 +1,30 @@
 # Production-ready Dockerfile for Oracle CRM
-FROM node:18-alpine AS base
+FROM node:18-slim AS base
 
-# Install system dependencies for better-sqlite3 and oracledb
-RUN apk add --no-cache \
+# Install system dependencies for better-sqlite3, oracledb, and Oracle Instant Client
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    libaio \
-    libnsl \
-    && ln -s /usr/lib/libnsl.so.2 /usr/lib/libnsl.so.1
+    libaio1 \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Oracle Instant Client
+# This is required for node-oracledb thick mode to support Advanced Networking Options (NJS-533 fix)
+RUN mkdir -p /opt/oracle && \
+    cd /opt/oracle && \
+    wget https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    echo /opt/oracle/instantclient_21_13 > /etc/ld.so.conf.d/oracle-instantclient.conf && \
+    ldconfig
+
+# Set environment variables for Oracle Instant Client
+ENV ORACLE_HOME=/opt/oracle/instantclient_21_13
+ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
+ENV PATH=$ORACLE_HOME:$PATH
 
 WORKDIR /app
 
