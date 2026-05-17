@@ -1,419 +1,222 @@
-# 🎉 Vyrooq is Ready!
+# 🚀 Vyrooq Integration Platform - START HERE
 
-## Congratulations! Your Enterprise Integration Platform is Complete
+## Welcome! 👋
 
-You now have a **production-ready, world-class integration middleware** named **Vyrooq** that you can:
-
-1. ✅ **Test locally on Windows** (right now!)
-2. ✅ **Deploy to Docker** (on your local server)
-3. ✅ **Deploy to cloud** (AWS, Azure, GCP, or your data center)
+You've reached the **Vyrooq** middleware platform. If you're frustrated with installation or confused about setup, **you're in the right place**. This guide will get you up and running quickly.
 
 ---
 
-## 🚀 What You Have
+## ⚡ Quick Installation (5 Minutes)
 
-### Complete, Production-Ready System
-
-```
-vyrooq/
-├── 📱 Gateway API (Node.js + Fastify)
-├── ⚙️ Workflow Engine (Python + Temporal.io)
-├── 🔌 Fusion Adapter (Oracle ERP client)
-├── 💾 Database Schema (PostgreSQL with partitioning)
-├── 🐳 Docker Configuration (docker-compose.yml)
-├── ☸️ Kubernetes Manifests (K8s deployments)
-├── 📜 Setup Scripts (Windows + Linux)
-└── 📚 Complete Documentation
-```
-
-### Performance Improvements
-
-| Feature | Old Java System | New Vyrooq System |
-|---------|----------------|-------------------|
-| **Speed** | 250 transactions/hour | **10,000+ per hour** (40x faster) |
-| **Latency** | 45-60 seconds | **<5 seconds** |
-| **Scalability** | Single server | **2-50 auto-scaling pods** |
-| **Availability** | 99.5% | **99.95%** |
-| **Retry Success** | ~85% | **>98%** |
-
----
-
-## 💻 Test on Windows NOW (5 Minutes)
-
-### Step 1: Open PowerShell as Administrator
-
-Right-click PowerShell, select "Run as Administrator"
-
-### Step 2: Navigate to Vyrooq
-
-```powershell
-cd path\to\integration-Oracle\vyrooq
-```
-
-### Step 3: Run Setup
-
-```powershell
-.\scripts\windows-setup.ps1
-```
-
-This will:
-- ✅ Install all dependencies
-- ✅ Start PostgreSQL, Redis, RabbitMQ (Docker)
-- ✅ Create database schema
-- ✅ Generate configuration files
-
-### Step 4: Configure Credentials
-
-```powershell
-notepad .env
-```
-
-Add your credentials:
-- Oracle Fusion URL, username, password
-- VendHQ API token
-- Opencart API key (optional)
-
-### Step 5: Start Services
-
-```powershell
-.\scripts\start-all-services.ps1
-```
-
-### Step 6: Test!
-
-Open browser: **http://localhost:3000/docs**
-
-You'll see the interactive API documentation!
-
-### Step 7: Process Your First Sale
-
-```powershell
-curl -X POST http://localhost:3000/api/sales/process `
-  -H "Content-Type: application/json" `
-  -d '{
-    "invoiceNumber": "TEST001",
-    "saleDate": "2024-05-13T10:00:00Z",
-    "outletId": "OUTLET1",
-    "region": "AE",
-    "customerType": "NORMAL",
-    "totalPrice": 1000.00,
-    "lineItems": [{
-      "itemNumber": "ITEM001",
-      "itemName": "Test Product",
-      "quantity": 5,
-      "totalPrice": 1000.00,
-      "taxName": "VAT5"
-    }],
-    "payments": [{
-      "paymentType": "Cash",
-      "amount": 1000.00
-    }]
-  }'
-```
-
----
-
-## 🐳 Deploy with Docker (Production-Like)
-
-### On Windows Server or Linux Server
+**Don't want to read documentation? Run this:**
 
 ```bash
-cd vyrooq
+# 1. Clone the repository
+git clone https://github.com/MUSTAQ-AHAMMAD/integration-Oracle.git
+cd integration-Oracle/vyrooq
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your credentials
-
-# Start everything
-docker-compose up -d
-
-# Wait 30 seconds for startup
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f
+# 2. Run the automated setup script
+./quick-start.sh
 ```
 
-### Access Services
+The script will:
+- ✅ Check if Docker is installed
+- ✅ Configure your environment
+- ✅ Start all services
+- ✅ Verify the installation
 
-- **API Documentation**: http://your-server:3000/docs
-- **Grafana Dashboards**: http://your-server:3002 (admin/vyrooq123)
-- **RabbitMQ Management**: http://your-server:15672 (vyrooq/vyrooq123)
-- **Prometheus Metrics**: http://your-server:9090
+**That's it!** Open http://localhost:3000/docs when done.
 
 ---
 
-## ☁️ Deploy to Cloud (AWS, Azure, or GCP)
+## 📖 Prefer Step-by-Step Instructions?
 
-### AWS EKS
+**Read the complete installation guide:**
 
-```bash
-# Create cluster
-eksctl create cluster --name vyrooq --region us-east-1 --nodes 3
+### **👉 [INSTALLATION.md](./INSTALLATION.md) ← START HERE**
 
-# Configure kubectl
-aws eks update-kubeconfig --name vyrooq --region us-east-1
+This guide includes:
+- ✅ Prerequisites and system requirements
+- ✅ Docker installation (recommended)
+- ✅ Manual installation (for developers)
+- ✅ Troubleshooting common issues
+- ✅ Verification steps
+- ✅ Next steps after installation
 
-# Deploy Vyrooq
-cd vyrooq
-kubectl create namespace vyrooq
-kubectl apply -f k8s/
-```
-
-### Azure AKS
-
-```bash
-# Create cluster
-az aks create --resource-group vyrooq-rg --name vyrooq --node-count 3
-
-# Get credentials
-az aks get-credentials --resource-group vyrooq-rg --name vyrooq
-
-# Deploy Vyrooq
-cd vyrooq
-kubectl create namespace vyrooq
-kubectl apply -f k8s/
-```
-
-### Google GKE
-
-```bash
-# Create cluster
-gcloud container clusters create vyrooq --num-nodes 3
-
-# Deploy Vyrooq
-cd vyrooq
-kubectl create namespace vyrooq
-kubectl apply -f k8s/
-```
+**Takes 10-15 minutes to complete.**
 
 ---
 
-## 📊 Monitor Your System
+## 🎯 What is Vyrooq?
 
-### Grafana Dashboards
+Vyrooq is an **enterprise integration middleware** that connects:
 
-1. Open: http://your-server:3002
-2. Login: admin / vyrooq123
-3. View pre-configured dashboards:
-   - **Sales Processing**: Real-time throughput
-   - **System Health**: CPU, memory, disk
-   - **Database Performance**: Query times
-   - **Fusion Integration**: API latency
+- **Oracle Fusion ERP** (your business system)
+- **VendHQ POS** (your point-of-sale)
+- **OpenCart** (your e-commerce store)
 
-### View Logs
+It automatically synchronizes:
+- 📦 Products
+- 💰 Sales transactions
+- 📊 Inventory levels
+- 🧾 Financial records
 
-```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f gateway-api
-docker-compose logs -f workflow-engine
-```
-
-### Check Workflow Status
-
-Open Temporal UI: http://your-server:8233
-
-See all running workflows, retry history, and execution details.
+**No more manual data entry!**
 
 ---
 
-## 🎯 API Endpoints Reference
+## 📋 Prerequisites
 
-### Process Sales
+Before installing, you need:
 
+| Requirement | Minimum Version | Download |
+|------------|----------------|----------|
+| **Docker** | 20.10+ | [Get Docker](https://docs.docker.com/get-docker/) |
+| **RAM** | 8GB | (16GB recommended) |
+| **Disk Space** | 50GB | Free space required |
+
+**Check if you have Docker:**
 ```bash
-POST /api/sales/process
-{
-  "invoiceNumber": "INV001",
-  "saleDate": "2024-05-13T10:00:00Z",
-  "outletId": "OUTLET1",
-  "region": "AE",
-  "customerType": "NORMAL",
-  "totalPrice": 1500.00,
-  "lineItems": [...],
-  "payments": [...]
-}
+docker --version
+docker compose version
 ```
 
-### Check Status
-
-```bash
-GET /api/sales/status/INV001
-```
-
-### Manual Control
-
-```bash
-# Pause region
-POST /api/control/pause/AE
-
-# Resume region
-POST /api/control/resume/AE
-
-# Replay failed transaction
-POST /api/control/replay/INV001
-
-# Retry failed queue
-POST /api/control/retry-queue/invoice-retry
-```
-
-### Audit Trail
-
-```bash
-GET /api/audit/transaction/correlation-id-123
-```
+If these commands work, you're ready to install!
 
 ---
 
-## 🔒 Security Checklist
+## 🗺️ Documentation Navigation
 
-Before going to production:
+**Confused about which document to read?** Here's the guide:
 
-- [ ] Change all default passwords
-- [ ] Use strong JWT secret (32+ characters)
-- [ ] Enable TLS/SSL
-- [ ] Store credentials in secrets manager
-- [ ] Enable firewall rules
-- [ ] Set up network policies (Kubernetes)
-- [ ] Review and test RBAC
-- [ ] Enable automated backups
-- [ ] Set up monitoring alerts
+### 1. Installation & Setup
+- **[INSTALLATION.md](./INSTALLATION.md)** - Complete installation guide (START HERE)
+- **[quick-start.sh](./quick-start.sh)** - Automated installation script
+- **[LOCAL_SETUP_GUIDE.md](./LOCAL_SETUP_GUIDE.md)** - Detailed local setup
+- **[QUICKSTART.md](./QUICKSTART.md)** - Quick reference (for experts)
 
----
+### 2. Troubleshooting
+- **[BUILD_TROUBLESHOOTING.md](./BUILD_TROUBLESHOOTING.md)** - Docker build issues
+- Check logs: `docker compose logs -f`
+- Run diagnostics: `./diagnose.sh`
 
-## 🎓 Documentation
+### 3. Understanding the System
+- **[README.md](./README.md)** - Architecture overview
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - Detailed system design
+- **[docs/API.md](./docs/API.md)** - API reference
 
-Everything is documented:
-
-1. **README.md** - Main overview and features
-2. **QUICKSTART.md** - 5-minute setup guide
-3. **IMPLEMENTATION_SUMMARY.md** - What was built
-4. **docs/ARCHITECTURE.md** - Technical architecture
-5. **docs/DEPLOYMENT.md** - Complete deployment guide
-6. **.env.example** - Configuration reference
+### 4. Production Deployment
+- **[PRODUCTION-DEPLOYMENT.md](./PRODUCTION-DEPLOYMENT.md)** - Production setup
+- **[PRODUCTION-READINESS-CHECKLIST.md](./PRODUCTION-READINESS-CHECKLIST.md)** - Pre-launch checklist
+- **[SECURITY.md](./SECURITY.md)** - Security best practices
 
 ---
 
-## 💪 What Makes Vyrooq Special
+## 🆘 Having Problems?
 
-### 1. Actually Works on Windows
-- PowerShell setup script included
-- No WSL required
-- Docker Desktop support
+### Common Issues & Quick Fixes
 
-### 2. Actually Deployable
-- Complete Docker Compose
-- Production Kubernetes manifests
-- Cloud deployment scripts (AWS/Azure/GCP)
+**Problem: "Docker is not installed"**
+- **Solution:** Install Docker Desktop: https://docs.docker.com/get-docker/
 
-### 3. Actually Fast
-- 40x faster than legacy Java
-- Horizontal auto-scaling
-- Optimized database queries
+**Problem: "Port already in use"**
+- **Solution:** Stop the conflicting service or change ports in `docker-compose.yml`
 
-### 4. Actually Reliable
-- Temporal.io durable workflows
-- 50-retry logic for rounding
-- Idempotency prevents duplicates
-- Dead letter queue for failures
+**Problem: "Services won't start"**
+- **Solution:** Check Docker is running: `docker ps`
+- Try: `docker compose down && docker compose up -d`
 
-### 5. Actually Observable
-- OpenTelemetry tracing
-- Grafana dashboards
-- Structured logging
-- Real-time metrics
+**Problem: "Build fails with npm errors"**
+- **Solution:** See [BUILD_TROUBLESHOOTING.md](./BUILD_TROUBLESHOOTING.md)
+- Quick fix: Disable VPN and try again
 
-### 6. Actually Maintainable
-- TypeScript (not Java EE)
-- Python (not complex XML configs)
-- Modern tooling
-- Clear code structure
+**Problem: "Out of memory"**
+- **Solution:** Increase Docker memory to 8GB in Docker Desktop settings
 
-### 7. Actually Documented
-- Not just "read the code"
-- Step-by-step guides
-- API documentation
-- Architecture diagrams
+**Problem: "Can't connect to PostgreSQL"**
+- **Solution:** `docker compose down -v && docker compose up -d postgres`
+- Wait 30 seconds and try again
 
-### 8. Actually Preserves Business Logic
-- All 16 calculations preserved
-- Financial integrity maintained
-- No data loss
-- No duplicate invoices
-- Same accounting rules
+### Still Stuck?
+
+1. **Check logs:** `docker compose logs -f gateway-api`
+2. **Read troubleshooting:** [BUILD_TROUBLESHOOTING.md](./BUILD_TROUBLESHOOTING.md)
+3. **Open an issue:** https://github.com/MUSTAQ-AHAMMAD/integration-Oracle/issues
 
 ---
 
-## 🚨 Troubleshooting
+## ✅ Verify Installation
 
-### Services Won't Start
+After installation, verify everything works:
 
 ```bash
-docker-compose down -v
-docker-compose up -d
+# Check all services are running
+docker compose ps
+
+# Test the API
+curl http://localhost:3000/health
+
+# Should return: {"status":"ok"}
 ```
 
-### Database Connection Errors
+**Access the web interfaces:**
+- **API Docs:** http://localhost:3000/docs
+- **RabbitMQ:** http://localhost:15672 (vyrooq / vyrooq123)
+- **Grafana:** http://localhost:3002 (admin / vyrooq123)
 
+---
+
+## 📚 Next Steps
+
+Once installed:
+
+1. **Configure your credentials** - Edit `.env` file with your Oracle Fusion login
+2. **Explore the API** - Visit http://localhost:3000/docs
+3. **Process a test transaction** - Try the examples in INSTALLATION.md
+4. **Set up monitoring** - Configure Grafana dashboards
+5. **Read the architecture** - Understand how it works: [README.md](./README.md)
+
+---
+
+## 🎓 Learning Path
+
+**Complete beginner?** Follow this order:
+
+1. ✅ **Install:** [INSTALLATION.md](./INSTALLATION.md) or run `./quick-start.sh`
+2. ✅ **Explore API:** http://localhost:3000/docs
+3. ✅ **Understand system:** [README.md](./README.md)
+4. ✅ **Production setup:** [PRODUCTION-DEPLOYMENT.md](./PRODUCTION-DEPLOYMENT.md)
+
+---
+
+## 📞 Get Help
+
+- **Documentation:** See files in this directory
+- **GitHub Issues:** https://github.com/MUSTAQ-AHAMMAD/integration-Oracle/issues
+- **Logs:** `docker compose logs -f`
+
+When reporting issues, include:
+- Your OS (Windows/Mac/Linux)
+- Docker version
+- Error message
+- Output of `docker compose logs`
+
+---
+
+## 🎉 Ready to Install?
+
+**Choose your path:**
+
+### Path 1: Automated (Easiest)
 ```bash
-# Check PostgreSQL
-docker-compose exec postgres psql -U postgres -d vyrooq -c "SELECT 1"
-
-# Reinitialize database
-docker-compose down -v
-docker-compose up -d postgres
-sleep 10
-docker-compose exec postgres psql -U postgres -d vyrooq < database/migrations/001_initial_schema.sql
+./quick-start.sh
 ```
 
-### View All Logs
-
-```bash
-docker-compose logs -f
-```
+### Path 2: Manual (Full Control)
+Read: **[INSTALLATION.md](./INSTALLATION.md)**
 
 ---
 
-## 📞 Support
+**Last Updated:** May 17, 2024
 
-Need help?
-
-- **Documentation**: `/vyrooq/docs/`
-- **GitHub Issues**: https://github.com/MUSTAQ-AHAMMAD/integration-Oracle/issues
-- **Quick Start**: `/vyrooq/QUICKSTART.md`
-- **Deployment Guide**: `/vyrooq/docs/DEPLOYMENT.md`
-
----
-
-## 🎉 You're Ready!
-
-You now have a **world-class enterprise integration platform** that:
-
-✅ Runs on Windows for local testing
-✅ Deploys with Docker for office servers
-✅ Scales in cloud (AWS/Azure/GCP)
-✅ Processes 10,000+ transactions/hour
-✅ Preserves all business logic
-✅ Prevents duplicate transactions
-✅ Provides complete audit trail
-✅ Includes monitoring and alerting
-✅ Has comprehensive documentation
-
-## 🚀 Next Steps
-
-1. **Test locally** with your credentials
-2. **Deploy to staging** environment
-3. **Load test** with production data
-4. **Deploy to production** with blue-green deployment
-5. **Monitor** with Grafana dashboards
-6. **Scale** based on real metrics
-
----
-
-**Welcome to Vyrooq - Enterprise Integration Done Right!**
-
-*Built with ❤️ for enterprise excellence*
+**Questions?** Open an issue on GitHub: https://github.com/MUSTAQ-AHAMMAD/integration-Oracle/issues
