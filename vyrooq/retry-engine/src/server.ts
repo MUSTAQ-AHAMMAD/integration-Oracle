@@ -37,7 +37,8 @@ function startHealthServer() {
         const queueStatuses = await Promise.all(
           Object.entries(queues).map(async ([name, queue]) => {
             try {
-              await queue.client.ping();
+              const client = await queue.client;
+              await client.ping();
               return { name, status: 'ready' };
             } catch (error) {
               return { name, status: 'not ready' };
