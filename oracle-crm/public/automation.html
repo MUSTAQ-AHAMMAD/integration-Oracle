@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Oracle CRM – Automated Schedules</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .schedules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .schedule-card {
+      background: white; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; transition: all 0.2s ease;
+    }
+    .schedule-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .schedule-card.disabled { opacity: 0.6; background: #f8f9fa; }
+
+    .schedule-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
+    .schedule-name { font-size: 18px; font-weight: 700; color: var(--primary); margin: 0; }
+    .schedule-badge {
+      padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .schedule-badge.enabled { background: #d1e7dd; color: #0a3622; }
+    .schedule-badge.disabled { background: #f8d7da; color: #721c24; }
+
+    .schedule-meta { margin-bottom: 15px; }
+    .schedule-meta-item { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; color: #555; }
+    .schedule-meta-item svg { width: 16px; height: 16px; color: #999; }
+
+    .schedule-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); }
+    .schedule-stat { text-align: center; }
+    .schedule-stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .schedule-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+
+    .schedule-actions { display: flex; gap: 8px; margin-top: 15px; }
+    .schedule-actions button { flex: 1; padding: 8px; font-size: 13px; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: var(--radius); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 30px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 20px; font-weight: 700; margin: 0; }
+    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; }
+    .form-group textarea { min-height: 80px; }
+    .form-group small { color: #666; font-size: 12px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+    .cron-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .cron-preset { padding: 6px 12px; background: #f8f9fa; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .cron-preset:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state svg { width: 64px; height: 64px; color: #ccc; margin-bottom: 20px; }
+    .empty-state h3 { margin: 0 0 10px; color: #666; }
+    .empty-state p { color: #999; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span>Oracle</span> CRM
+    <small>Automation Hub</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+
+    <div class="nav-section-title">Automation</div>
+    <a href="/automation.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Schedules</a>
+    <a href="/odoo-sales.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Manual Sync</a>
+
+    <div class="nav-section-title">Configuration</div>
+    <a href="/config.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Settings</a>
+    <a href="/reports.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Reports</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Automated Schedules</h1>
+      <p class="page-subtitle">Configure recurring sync jobs with cron-like scheduling</p>
+    </div>
+    <button class="btn btn-primary" onclick="openScheduleModal()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+      New Schedule
+    </button>
+  </div>
+
+  <!-- Scheduler Status -->
+  <div class="card" style="margin-bottom: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h3 style="margin: 0 0 5px;">Scheduler Status</h3>
+        <p style="margin: 0; color: #666; font-size: 14px;" id="scheduler-status-text">Loading...</p>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 24px; font-weight: 700; color: var(--primary);" id="active-schedules-count">-</div>
+        <div style="font-size: 12px; color: var(--muted);">ACTIVE SCHEDULES</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedules Grid -->
+  <div id="schedules-container"></div>
+
+  <!-- Empty State -->
+  <div id="empty-state" class="empty-state" style="display: none;">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <h3>No Schedules Yet</h3>
+    <p>Create your first automated sync schedule to get started</p>
+    <button class="btn btn-primary" onclick="openScheduleModal()">Create Schedule</button>
+  </div>
+</main>
+
+<!-- Schedule Modal -->
+<div id="schedule-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title">New Schedule</h2>
+      <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+    </div>
+
+    <form id="schedule-form" onsubmit="saveSchedule(event)">
+      <input type="hidden" id="schedule-id" name="scheduleId">
+
+      <div class="form-group">
+        <label for="schedule-name">Schedule Name*</label>
+        <input type="text" id="schedule-name" name="name" required placeholder="e.g., Daily UAE Sales Sync">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="schedule-type">Sync Type*</label>
+          <select id="schedule-type" name="scheduleType" required>
+            <option value="FETCH_AND_PUSH">Fetch & Push (Complete)</option>
+            <option value="FETCH_ONLY">Fetch Only</option>
+            <option value="PUSH_ONLY">Push Only</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="schedule-country">Country*</label>
+          <select id="schedule-country" name="country" required>
+            <option value="AE">🇦🇪 UAE (AE)</option>
+            <option value="SA">🇸🇦 Saudi Arabia (SA)</option>
+            <option value="KW">🇰🇼 Kuwait (KW)</option>
+            <option value="OM">🇴🇲 Oman (OM)</option>
+            <option value="BH">🇧🇭 Bahrain (BH)</option>
+            <option value="QA">🇶🇦 Qatar (QA)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="cron-expression">Schedule (Cron Expression)*</label>
+        <div class="cron-presets">
+          <span class="cron-preset" onclick="setCron('0 * * * *')">Hourly</span>
+          <span class="cron-preset" onclick="setCron('0 0 * * *')">Daily at Midnight</span>
+          <span class="cron-preset" onclick="setCron('0 6 * * *')">Daily at 6 AM</span>
+          <span class="cron-preset" onclick="setCron('0 0 * * 1')">Weekly (Monday)</span>
+          <span class="cron-preset" onclick="setCron('*/15 * * * *')">Every 15 min</span>
+        </div>
+        <input type="text" id="cron-expression" name="cronExpression" required placeholder="0 0 * * *">
+        <small>Format: minute hour day month weekday | <a href="https://crontab.guru" target="_blank">Cron Helper</a></small>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="incremental-sync" name="incremental" checked>
+          Enable Incremental Sync (recommended)
+        </label>
+        <small>Automatically calculates date range from last successful sync</small>
+      </div>
+
+      <div class="form-group" id="lookback-group">
+        <label for="lookback-days">Lookback Days (for first run)</label>
+        <input type="number" id="lookback-days" name="lookbackDays" value="1" min="1" max="90">
+        <small>Days to look back on first run or when no previous sync exists</small>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="notify-on-failure" name="notifyOnFailure" checked>
+          Send notifications on failure
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="enabled" name="enabled" checked>
+          Enable schedule immediately
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 25px;">
+        <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()" style="flex: 1;">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Save Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+let schedules = [];
+
+async function loadSchedulerStatus() {
+  try {
+    const res = await fetch('/api/scheduler/status', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('scheduler-status-text').textContent = `Running • ${data.status.active} active schedule(s)`;
+      document.getElementById('active-schedules-count').textContent = data.status.active;
+    }
+  } catch (error) {
+    console.error('Failed to load scheduler status:', error);
+    document.getElementById('scheduler-status-text').textContent = 'Error loading status';
+  }
+}
+
+async function loadSchedules() {
+  try {
+    const res = await fetch('/api/scheduler/schedules', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } });
+    const data = await res.json();
+    if (data.success) {
+      schedules = data.schedules;
+      renderSchedules();
+    }
+  } catch (error) {
+    console.error('Failed to load schedules:', error);
+    alert('Failed to load schedules');
+  }
+}
+
+function renderSchedules() {
+  const container = document.getElementById('schedules-container');
+  const emptyState = document.getElementById('empty-state');
+
+  if (schedules.length === 0) {
+    container.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  container.innerHTML = '<div class="schedules-grid">' + schedules.map(schedule => `
+    <div class="schedule-card ${schedule.enabled ? '' : 'disabled'}">
+      <div class="schedule-header">
+        <h3 class="schedule-name">${schedule.name}</h3>
+        <span class="schedule-badge ${schedule.enabled ? 'enabled' : 'disabled'}">${schedule.enabled ? 'Enabled' : 'Disabled'}</span>
+      </div>
+
+      <div class="schedule-meta">
+        <div class="schedule-meta-item">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>${schedule.cron_expression}</span>
+        </div>
+        <div class="schedule-meta-item">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>${schedule.country} • ${schedule.schedule_type}</span>
+        </div>
+        <div class="schedule-meta-item">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          <span>${schedule.incremental ? 'Incremental' : 'Manual Range'}</span>
+        </div>
+      </div>
+
+      <div class="schedule-stats">
+        <div class="schedule-stat">
+          <div class="schedule-stat-value">${schedule.run_count || 0}</div>
+          <div class="schedule-stat-label">Total Runs</div>
+        </div>
+        <div class="schedule-stat">
+          <div class="schedule-stat-value">${schedule.failure_count || 0}</div>
+          <div class="schedule-stat-label">Failures</div>
+        </div>
+      </div>
+
+      <div class="schedule-actions">
+        ${schedule.enabled ?
+          `<button class="btn btn-secondary btn-sm" onclick="toggleSchedule('${schedule.schedule_id}', false)">Disable</button>` :
+          `<button class="btn btn-primary btn-sm" onclick="toggleSchedule('${schedule.schedule_id}', true)">Enable</button>`
+        }
+        <button class="btn btn-secondary btn-sm" onclick="executeSchedule('${schedule.schedule_id}')">Run Now</button>
+        <button class="btn btn-secondary btn-sm" onclick="editSchedule('${schedule.schedule_id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${schedule.schedule_id}')">Delete</button>
+      </div>
+    </div>
+  `).join('') + '</div>';
+}
+
+function openScheduleModal() {
+  document.getElementById('schedule-modal').classList.add('active');
+  document.getElementById('modal-title').textContent = 'New Schedule';
+  document.getElementById('schedule-form').reset();
+  document.getElementById('schedule-id').value = '';
+}
+
+function closeScheduleModal() {
+  document.getElementById('schedule-modal').classList.remove('active');
+}
+
+function setCron(expr) {
+  document.getElementById('cron-expression').value = expr;
+}
+
+async function saveSchedule(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  const scheduleId = formData.get('scheduleId');
+
+  const payload = {
+    name: formData.get('name'),
+    scheduleType: formData.get('scheduleType'),
+    country: formData.get('country'),
+    cronExpression: formData.get('cronExpression'),
+    incremental: formData.get('incremental') === 'on',
+    lookbackDays: parseInt(formData.get('lookbackDays')) || 1,
+    notifyOnFailure: formData.get('notifyOnFailure') === 'on',
+    enabled: formData.get('enabled') === 'on',
+    retryEnabled: true,
+    maxRetries: 3
+  };
+
+  try {
+    const url = scheduleId ? `/api/scheduler/schedules/${scheduleId}` : '/api/scheduler/schedules';
+    const method = scheduleId ? 'PATCH' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(scheduleId ? 'Schedule updated successfully' : 'Schedule created successfully');
+      closeScheduleModal();
+      await loadSchedules();
+      await loadSchedulerStatus();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Failed to save schedule:', error);
+    alert('Failed to save schedule');
+  }
+}
+
+async function toggleSchedule(scheduleId, enable) {
+  try {
+    const action = enable ? 'enable' : 'disable';
+    const res = await fetch(`/api/scheduler/schedules/${scheduleId}/${action}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      await loadSchedules();
+      await loadSchedulerStatus();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Failed to toggle schedule:', error);
+    alert('Failed to toggle schedule');
+  }
+}
+
+async function executeSchedule(scheduleId) {
+  if (!confirm('Run this schedule now?')) return;
+
+  try {
+    const res = await fetch(`/api/scheduler/schedules/${scheduleId}/execute`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert('Schedule execution triggered! Check the dashboard for progress.');
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Failed to execute schedule:', error);
+    alert('Failed to execute schedule');
+  }
+}
+
+async function editSchedule(scheduleId) {
+  const schedule = schedules.find(s => s.schedule_id === scheduleId);
+  if (!schedule) return;
+
+  document.getElementById('schedule-modal').classList.add('active');
+  document.getElementById('modal-title').textContent = 'Edit Schedule';
+  document.getElementById('schedule-id').value = schedule.schedule_id;
+  document.getElementById('schedule-name').value = schedule.name;
+  document.getElementById('schedule-type').value = schedule.schedule_type;
+  document.getElementById('schedule-country').value = schedule.country;
+  document.getElementById('cron-expression').value = schedule.cron_expression;
+  document.getElementById('incremental-sync').checked = schedule.incremental === 1;
+  document.getElementById('lookback-days').value = schedule.lookback_days;
+  document.getElementById('notify-on-failure').checked = schedule.notify_on_failure === 1;
+  document.getElementById('enabled').checked = schedule.enabled === 1;
+}
+
+async function deleteSchedule(scheduleId) {
+  if (!confirm('Delete this schedule? This cannot be undone.')) return;
+
+  try {
+    const res = await fetch(`/api/scheduler/schedules/${scheduleId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      await loadSchedules();
+      await loadSchedulerStatus();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Failed to delete schedule:', error);
+    alert('Failed to delete schedule');
+  }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadSchedulerStatus();
+  loadSchedules();
+  setInterval(loadSchedulerStatus, 30000); // Refresh every 30s
+});
+</script>
+</body>
+</html>

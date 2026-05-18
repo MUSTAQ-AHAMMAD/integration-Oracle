@@ -21,7 +21,9 @@ const usersRoutes      = require('./src/routes/users');
 const benchmarkRoutes  = require('./src/routes/benchmark');
 const reportsRoutes    = require('./src/routes/reports');
 const backupSyncRoutes = require('./src/routes/backupSync');
+const schedulerRoutes  = require('./src/routes/scheduler');
 const { requireAuth } = require('./src/middleware/auth');
+const scheduler        = require('./src/scheduler');
 
 // ── Validate required environment variables ──────────────────────────────────
 function validateEnv() {
@@ -150,6 +152,7 @@ app.use('/api/odoo',        requireAuth, odooRoutes);
 app.use('/api/backup-sync', requireAuth, backupSyncRoutes);
 app.use('/api/benchmark',   requireAuth, benchmarkRoutes);
 app.use('/api/reports',     requireAuth, reportsRoutes);
+app.use('/api/scheduler',   requireAuth, schedulerRoutes);
 app.use('/api/users',       usersRoutes);  // admin check is inside
 
 // SPA fallback – serve index.html for unknown routes (except /api/*)
@@ -283,7 +286,15 @@ let server = null;
 
 function gracefulShutdown(signal) {
   logger.info(`Received ${signal} signal. Starting graceful shutdown...`);
-  
+
+  // Stop scheduler
+  try {
+    scheduler.stop();
+    logger.info('Scheduler stopped');
+  } catch (err) {
+    logger.error('Error stopping scheduler', { error: err.message });
+  }
+
   if (server) {
     server.close(() => {
       logger.info('HTTP server closed');
@@ -310,16 +321,24 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 server = app.listen(PORT, async () => {
   try {
     logger.info(`Oracle CRM server starting on port ${PORT}`, { environment: process.env.NODE_ENV });
-    
+
     // Seed admin users (with await to ensure completion)
     await seedAdminUser();
-    
+
     // Import middleware credentials
     seedCredentialsFromMiddleware();
-    
+
     // Seed Fusion metadata
     await seedFusionSalesMetadata(db);
-    
+
+    // Start scheduler service
+    try {
+      scheduler.start();
+      logger.info('Scheduler service started');
+    } catch (err) {
+      logger.error('Failed to start scheduler service', { error: err.message, stack: err.stack });
+    }
+
     logger.info('Server initialization complete. Ready to accept connections.', { port: PORT });
   } catch (err) {
     logger.error('Failed to initialize server', { error: err.message, stack: err.stack });

@@ -131,40 +131,60 @@ Cause: ORA-12660
 
 #### Docker Deployment
 
-For Docker containers, add Oracle Instant Client installation to your Dockerfile:
+**Note:** The included `Dockerfile` in this repository already has Oracle Instant Client pre-configured. You can use it directly without modifications.
+
+The Dockerfile includes Oracle Instant Client installation to support thick mode:
 
 ```dockerfile
-# Example for Linux container
-FROM node:18-slim
+# Production-ready Dockerfile for Oracle CRM
+FROM node:18-slim AS base
 
-# Install Oracle Instant Client dependencies
+# Install system dependencies for better-sqlite3, oracledb, and Oracle Instant Client
 RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
     libaio1 \
     wget \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install Oracle Instant Client
+# This is required for node-oracledb thick mode to support Advanced Networking Options (NJS-533 fix)
 RUN mkdir -p /opt/oracle && \
     cd /opt/oracle && \
-    wget https://download.oracle.com/otn_software/linux/instantclient/213000/instantclient-basic-linux.x64-21.3.0.0.0.zip && \
-    unzip instantclient-basic-linux.x64-21.3.0.0.0.zip && \
-    rm instantclient-basic-linux.x64-21.3.0.0.0.zip && \
-    echo /opt/oracle/instantclient_21_3 > /etc/ld.so.conf.d/oracle-instantclient.conf && \
+    wget https://download.oracle.com/otn_software/linux/instantclient/2113000/instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-21.13.0.0.0dbru.zip && \
+    echo /opt/oracle/instantclient_21_13 > /etc/ld.so.conf.d/oracle-instantclient.conf && \
     ldconfig
 
-# Set environment variables
-ENV ORACLE_HOME=/opt/oracle/instantclient_21_3
+# Set environment variables for Oracle Instant Client
+ENV ORACLE_HOME=/opt/oracle/instantclient_21_13
 ENV LD_LIBRARY_PATH=$ORACLE_HOME:$LD_LIBRARY_PATH
 ENV PATH=$ORACLE_HOME:$PATH
 
 # Continue with your application setup
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev && npm cache clean --force
 COPY . .
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
+```
+
+To build and run the Docker container:
+
+```bash
+# Build the image
+docker build -t oracle-crm .
+
+# Run the container
+docker run -d -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  --name oracle-crm \
+  oracle-crm
 ```
 
 ## Configuration
