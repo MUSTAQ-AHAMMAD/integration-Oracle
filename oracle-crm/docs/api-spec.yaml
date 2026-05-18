@@ -1,0 +1,786 @@
+openapi: 3.0.3
+info:
+  title: Oracle CRM Integration API
+  description: |
+    RESTful API for Oracle Fusion integration with Odoo/VendHQ sales data.
+
+    **Features:**
+    - Automated recurring sync jobs with cron-like scheduling
+    - Incremental sync with last_sync_timestamp tracking
+    - Duplicate detection and prevention
+    - Real-time progress notifications
+    - Multi-currency and multi-country support
+    - Role-based access control
+
+    **Authentication:**
+    All endpoints except /api/auth/* require JWT bearer token authentication.
+    Include the token in the Authorization header: `Authorization: Bearer <token>`
+  version: 2.0.0
+  contact:
+    name: Oracle CRM Support
+    email: support@oracle-crm.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+  - url: https://oracle-crm.example.com/api
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Scheduler
+    description: Automated sync schedule management
+  - name: Odoo Sync
+    description: Odoo integration and data synchronization
+  - name: Configuration
+    description: System configuration and settings
+  - name: Reports
+    description: Analytics and reporting
+  - name: Users
+    description: User management (admin only)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Error message"
+        code:
+          type: string
+          example: "INTERNAL_ERROR"
+
+    Schedule:
+      type: object
+      properties:
+        schedule_id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        name:
+          type: string
+          example: "Daily UAE Sales Sync"
+        enabled:
+          type: integer
+          enum: [0, 1]
+          example: 1
+        schedule_type:
+          type: string
+          enum: [FETCH_AND_PUSH, FETCH_ONLY, PUSH_ONLY]
+          example: "FETCH_AND_PUSH"
+        cron_expression:
+          type: string
+          example: "0 0 * * *"
+        country:
+          type: string
+          enum: [AE, SA, KW, OM, BH, QA]
+          example: "AE"
+        incremental:
+          type: integer
+          enum: [0, 1]
+          example: 1
+        lookback_days:
+          type: integer
+          example: 1
+        last_run_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_sync_timestamp:
+          type: string
+          format: date-time
+          nullable: true
+        run_count:
+          type: integer
+          example: 42
+        failure_count:
+          type: integer
+          example: 2
+
+    ScheduleCreate:
+      type: object
+      required:
+        - name
+        - cronExpression
+        - country
+      properties:
+        name:
+          type: string
+          example: "Daily UAE Sales Sync"
+        scheduleType:
+          type: string
+          enum: [FETCH_AND_PUSH, FETCH_ONLY, PUSH_ONLY]
+          default: "FETCH_AND_PUSH"
+        cronExpression:
+          type: string
+          example: "0 0 * * *"
+          description: "Standard cron format: minute hour day month weekday"
+        country:
+          type: string
+          enum: [AE, SA, KW, OM, BH, QA]
+          example: "AE"
+        storeId:
+          type: integer
+          nullable: true
+          description: "Optional store ID. If null, syncs all stores"
+        storeName:
+          type: string
+          nullable: true
+        incremental:
+          type: boolean
+          default: true
+          description: "Enable incremental sync from last_sync_timestamp"
+        lookbackDays:
+          type: integer
+          default: 1
+          minimum: 1
+          maximum: 90
+        enabled:
+          type: boolean
+          default: true
+        retryEnabled:
+          type: boolean
+          default: true
+        maxRetries:
+          type: integer
+          default: 3
+          minimum: 1
+          maximum: 10
+        notifyOnFailure:
+          type: boolean
+          default: true
+        notificationConfig:
+          type: object
+          properties:
+            emailEnabled:
+              type: boolean
+            emailTo:
+              type: array
+              items:
+                type: string
+                format: email
+            webhookEnabled:
+              type: boolean
+            webhookUrl:
+              type: string
+              format: uri
+
+paths:
+  # ── Authentication ───────────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: "admin"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      role:
+                        type: string
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Scheduler ────────────────────────────────────────────────────────────────
+  /scheduler/status:
+    get:
+      tags: [Scheduler]
+      summary: Get scheduler service status
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Scheduler status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: object
+                    properties:
+                      active:
+                        type: integer
+                        description: Number of active schedules
+                      schedules:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            scheduleId:
+                              type: string
+                            name:
+                              type: string
+                            cronExpression:
+                              type: string
+                            country:
+                              type: string
+
+  /scheduler/schedules:
+    get:
+      tags: [Scheduler]
+      summary: List all schedules
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+          description: Filter by enabled status
+        - name: country
+          in: query
+          schema:
+            type: string
+            enum: [AE, SA, KW, OM, BH, QA]
+          description: Filter by country
+      responses:
+        '200':
+          description: Schedules retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  schedules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Schedule'
+
+    post:
+      tags: [Scheduler]
+      summary: Create new schedule
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleCreate'
+      responses:
+        '200':
+          description: Schedule created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  scheduleId:
+                    type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /scheduler/schedules/{id}:
+    get:
+      tags: [Scheduler]
+      summary: Get schedule by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Schedule retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  schedule:
+                    $ref: '#/components/schemas/Schedule'
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags: [Scheduler]
+      summary: Update schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                cronExpression:
+                  type: string
+                enabled:
+                  type: boolean
+                incremental:
+                  type: boolean
+                lookbackDays:
+                  type: integer
+      responses:
+        '200':
+          description: Schedule updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+    delete:
+      tags: [Scheduler]
+      summary: Delete schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Schedule deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /scheduler/schedules/{id}/execute:
+    post:
+      tags: [Scheduler]
+      summary: Manually trigger schedule execution
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  scheduleId:
+                    type: string
+
+  /scheduler/schedules/{id}/enable:
+    post:
+      tags: [Scheduler]
+      summary: Enable schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Schedule enabled successfully
+
+  /scheduler/schedules/{id}/disable:
+    post:
+      tags: [Scheduler]
+      summary: Disable schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Schedule disabled successfully
+
+  /scheduler/executions:
+    get:
+      tags: [Scheduler]
+      summary: List schedule executions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scheduleId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by schedule ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [RUNNING, SUCCESS, FAILED]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Executions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  executions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        schedule_id:
+                          type: string
+                        execution_id:
+                          type: string
+                        job_id:
+                          type: string
+                        status:
+                          type: string
+                        records_synced:
+                          type: integer
+                        records_failed:
+                          type: integer
+                        started_at:
+                          type: string
+                          format: date-time
+                        finished_at:
+                          type: string
+                          format: date-time
+                        duration_ms:
+                          type: integer
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      hasMore:
+                        type: boolean
+
+  /scheduler/test-notification:
+    post:
+      tags: [Scheduler]
+      summary: Send test notification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@example.com"
+      responses:
+        '200':
+          description: Test notification sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # ── Odoo Sync ────────────────────────────────────────────────────────────────
+  /odoo/fetch:
+    post:
+      tags: [Odoo Sync]
+      summary: Trigger background job to fetch sales from Odoo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dateFrom, dateTo, country]
+              properties:
+                dateFrom:
+                  type: string
+                  format: date
+                  example: "2024-01-01"
+                dateTo:
+                  type: string
+                  format: date
+                  example: "2024-01-31"
+                country:
+                  type: string
+                  enum: [AE, SA, KW, OM, BH, QA]
+                  example: "AE"
+                storeId:
+                  type: integer
+                  nullable: true
+                storeName:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Fetch job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+
+  /odoo/push:
+    post:
+      tags: [Odoo Sync]
+      summary: Trigger background job to push sales to Oracle Fusion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode, dateFrom, dateTo, country]
+              properties:
+                mode:
+                  type: string
+                  enum: [BY_DATE, BY_STORE_DATE, ALL_STORES_DATE]
+                dateFrom:
+                  type: string
+                  format: date
+                dateTo:
+                  type: string
+                  format: date
+                country:
+                  type: string
+                  enum: [AE, SA, KW, OM, BH, QA]
+                storeId:
+                  type: integer
+                  nullable: true
+                metadata:
+                  type: object
+                  description: "Oracle metadata configuration"
+                outlet:
+                  type: object
+                  description: "Oracle outlet configuration"
+      responses:
+        '200':
+          description: Push job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+
+  /odoo/jobs/{jobId}:
+    get:
+      tags: [Odoo Sync]
+      summary: Get job status and logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    type: object
+                    properties:
+                      job_id:
+                        type: string
+                      status:
+                        type: string
+                        enum: [QUEUED, RUNNING, DONE, FAILED]
+                      processed:
+                        type: integer
+                      failed:
+                        type: integer
+                      started_at:
+                        type: string
+                        format: date-time
+                      finished_at:
+                        type: string
+                        format: date-time
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        log_id:
+                          type: integer
+                        level:
+                          type: string
+                        message:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+
+  # ── Health Check ─────────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [System]
+      summary: Health check endpoint
+      description: Returns overall system health status
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: "Uptime in seconds"
+                  database:
+                    type: string
+                    example: "connected"
+        '503':
+          description: System is degraded
