@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>integration-Oracle – Enterprise Integration Platform Documentation</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #c74634;   /* Oracle red */
+      --primary-d: #a3341f;
+      --accent:    #00758f;   /* teal */
+      --accent-d:  #005a6e;
+      --bg:        #f5f6fa;
+      --surface:   #ffffff;
+      --border:    #dde1ea;
+      --text:      #1a1d23;
+      --muted:     #6b7280;
+      --code-bg:   #1e2535;
+      --code-text: #e2e8f0;
+      --sidebar-w: 270px;
+      --header-h:  60px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* ── Top Header ───────────────────────────────────────────────────── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--header-h);
+      background: linear-gradient(135deg, var(--primary) 0%, #8b1a0a 100%);
+      display: flex; align-items: center; padding: 0 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    header .logo { color: #fff; font-size: 1.2rem; font-weight: 700; letter-spacing: .3px; }
+    header .logo span { font-weight: 400; opacity: .8; }
+    header .tagline { margin-left: 1.5rem; color: rgba(255,255,255,.7); font-size: .85rem; }
+    header nav { margin-left: auto; display: flex; gap: .75rem; }
+    header nav a {
+      color: rgba(255,255,255,.85); font-size: .82rem; text-decoration: none;
+      padding: .3rem .7rem; border-radius: 4px; transition: background .2s;
+    }
+    header nav a:hover { background: rgba(255,255,255,.15); }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      padding-top: var(--header-h);
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────────────── */
+    aside {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      position: fixed;
+      top: var(--header-h);
+      bottom: 0;
+      overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    aside::-webkit-scrollbar { width: 4px; }
+    aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .nav-section { margin-bottom: .25rem; }
+    .nav-section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      padding: .55rem 1.25rem .25rem;
+    }
+    .nav-section a {
+      display: block; padding: .38rem 1.25rem .38rem 1.5rem;
+      color: var(--text); font-size: .85rem; text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    .nav-section a:hover   { background: var(--bg); color: var(--primary); border-left-color: var(--primary); }
+    .nav-section a.active  { background: #fef2f0; color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+
+    /* ── Main content ─────────────────────────────────────────────────── */
+    main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 2.5rem 2.75rem;
+      max-width: 1020px;
+    }
+
+    /* ── Sections ─────────────────────────────────────────────────────── */
+    section { margin-bottom: 3.5rem; }
+    section:target { scroll-margin-top: calc(var(--header-h) + 16px); }
+
+    h1 { font-size: 2rem; margin-bottom: .5rem; color: var(--primary); }
+    h2 {
+      font-size: 1.45rem; margin: 2rem 0 .75rem;
+      padding-bottom: .4rem; border-bottom: 2px solid var(--border);
+      color: var(--text);
+    }
+    h3 { font-size: 1.1rem; margin: 1.5rem 0 .5rem; color: var(--accent-d); }
+    h4 { font-size: .95rem; margin: 1.2rem 0 .4rem; color: var(--text); }
+    p  { margin-bottom: .75rem; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: .75rem; }
+    li { margin-bottom: .3rem; }
+    a  { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero Banner ──────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #1e2535 0%, #2d3a54 100%);
+      border-radius: 10px; padding: 2.5rem 2rem; margin-bottom: 2.5rem;
+      color: #e2e8f0;
+    }
+    .hero h1 { color: #fff; font-size: 2.2rem; margin-bottom: .4rem; }
+    .hero .subtitle { font-size: 1.05rem; color: rgba(255,255,255,.7); margin-bottom: 1.2rem; }
+    .badges { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .badge {
+      padding: .3rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .badge-red    { background: var(--primary); color: #fff; }
+    .badge-teal   { background: var(--accent);  color: #fff; }
+    .badge-green  { background: #16a34a;         color: #fff; }
+    .badge-purple { background: #7c3aed;         color: #fff; }
+    .badge-blue   { background: #2563eb;         color: #fff; }
+
+    /* ── Cards ────────────────────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .card-icon { font-size: 1.8rem; margin-bottom: .5rem; }
+    .card-title { font-weight: 700; font-size: .95rem; margin-bottom: .3rem; }
+    .card-desc  { font-size: .82rem; color: var(--muted); }
+    .card-port  { display: inline-block; margin-top: .5rem; font-size: .75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: .1rem .45rem; font-family: monospace; }
+
+    /* ── Tables ───────────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin-bottom: 1.25rem; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    thead tr { background: #f0f1f5; }
+    th {
+      text-align: left; padding: .65rem .85rem;
+      font-weight: 700; font-size: .78rem; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    td { padding: .6rem .85rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #fafbfd; }
+    code { font-family: "SFMono-Regular", Consolas, monospace; font-size: .82em; }
+    td code { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: .1rem .35rem; }
+
+    /* ── Code blocks ──────────────────────────────────────────────────── */
+    pre {
+      background: var(--code-bg); color: var(--code-text);
+      border-radius: 8px; padding: 1.1rem 1.3rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .82rem; line-height: 1.7;
+      overflow-x: auto; margin-bottom: 1.25rem;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+    /* ── Callout boxes ────────────────────────────────────────────────── */
+    .callout {
+      border-radius: 6px; padding: .85rem 1rem;
+      margin-bottom: 1.2rem; font-size: .88rem;
+      display: flex; gap: .6rem; align-items: flex-start;
+    }
+    .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: .05rem; }
+    .callout.info    { background: #eff6ff; border-left: 4px solid #3b82f6; }
+    .callout.warning { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .callout.danger  { background: #fef2f2; border-left: 4px solid #ef4444; }
+    .callout.success { background: #f0fdf4; border-left: 4px solid #22c55e; }
+
+    /* ── Steps list ───────────────────────────────────────────────────── */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex; gap: .9rem; align-items: flex-start;
+      margin-bottom: .8rem; font-size: .9rem;
+    }
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0; width: 1.75rem; height: 1.75rem;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; font-size: .78rem; font-weight: 700; margin-top: .05rem;
+    }
+
+    /* ── Arch diagram ─────────────────────────────────────────────────── */
+    .arch {
+      background: var(--code-bg); color: var(--code-text);
+      border-radius: 8px; padding: 1.3rem; font-family: monospace;
+      font-size: .78rem; line-height: 1.6; overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Endpoint pills ───────────────────────────────────────────────── */
+    .method {
+      display: inline-block; padding: .15rem .5rem;
+      border-radius: 4px; font-size: .72rem; font-weight: 700;
+      letter-spacing: .4px; margin-right: .4rem; vertical-align: middle;
+    }
+    .method-get    { background: #dcfce7; color: #15803d; }
+    .method-post   { background: #dbeafe; color: #1d4ed8; }
+    .method-put    { background: #fef9c3; color: #854d0e; }
+    .method-delete { background: #fee2e2; color: #b91c1c; }
+
+    /* ── Role pills ───────────────────────────────────────────────────── */
+    .role {
+      display: inline-block; padding: .12rem .45rem;
+      border-radius: 12px; font-size: .72rem; font-weight: 600; margin: .1rem;
+    }
+    .role-5 { background: #fde8e8; color: var(--primary); }
+    .role-4 { background: #fef3c7; color: #92400e; }
+    .role-3 { background: #d1fae5; color: #065f46; }
+    .role-2 { background: #dbeafe; color: #1e40af; }
+    .role-1 { background: #f3e8ff; color: #6d28d9; }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    footer {
+      margin-left: var(--sidebar-w);
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 1.5rem 2.75rem; font-size: .82rem; color: var(--muted);
+      display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+    }
+    footer span { margin-left: auto; }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      aside { transform: translateX(-100%); transition: transform .25s; z-index: 50; }
+      aside.open { transform: translateX(0); }
+      main, footer { margin-left: 0; padding: 1.5rem 1.25rem; }
+      header .tagline { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">integration-Oracle <span>/ Docs</span></div>
+  <div class="tagline">Enterprise Integration Platform</div>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#vyrooq">Vyrooq</a>
+    <a href="#oracle-crm">Oracle CRM</a>
+    <a href="#legacy">Legacy ADF</a>
+    <a href="https://github.com/MUSTAQ-AHAMMAD/integration-Oracle" target="_blank">GitHub ↗</a>
+  </nav>
+</header>
+
+<!-- ══ LAYOUT ══════════════════════════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <a href="#overview">Overview</a>
+      <a href="#quickstart">Quick Start</a>
+      <a href="#prerequisites">Prerequisites</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Vyrooq (Modern)</div>
+      <a href="#vyrooq">Architecture</a>
+      <a href="#vyrooq-services">Microservices</a>
+      <a href="#vyrooq-stack">Technology Stack</a>
+      <a href="#vyrooq-quickstart">Installation</a>
+      <a href="#vyrooq-api">API Gateway</a>
+      <a href="#vyrooq-config">Configuration</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Oracle CRM</div>
+      <a href="#oracle-crm">Overview</a>
+      <a href="#crm-auth">Authentication & Roles</a>
+      <a href="#crm-pages">Web Pages</a>
+      <a href="#crm-api">API Endpoints</a>
+      <a href="#crm-calculations">16 Calculations</a>
+      <a href="#crm-docker">Docker Deployment</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Legacy ADF Platform</div>
+      <a href="#legacy">Overview</a>
+      <a href="#legacy-arch">Architecture</a>
+      <a href="#legacy-stack">Technology Stack</a>
+      <a href="#legacy-middleware">Middleware Layer</a>
+      <a href="#legacy-scheduler">Scheduler Layer</a>
+      <a href="#legacy-processors">Integration Processors</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Oracle Fusion Endpoints</div>
+      <a href="#fusion-invoice">Standard Invoice</a>
+      <a href="#fusion-std-receipt">Standard Receipt</a>
+      <a href="#fusion-misc-receipt">Misc Receipt</a>
+      <a href="#fusion-apply-receipt">Apply Receipt</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Reference</div>
+      <a href="#database">Database Schema</a>
+      <a href="#env-vars">Environment Variables</a>
+      <a href="#security">Security</a>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- ╔══ HERO ═══════════════════════════════════════════════════╗ -->
+    <div class="hero">
+      <h1>integration-Oracle</h1>
+      <p class="subtitle">Production-grade Enterprise Integration Platform — Oracle Fusion ERP ↔ VendHQ POS ↔ Opencart E-commerce</p>
+      <div class="badges">
+        <span class="badge badge-red">Oracle Fusion</span>
+        <span class="badge badge-teal">Node.js + TypeScript</span>
+        <span class="badge badge-purple">Python FastAPI</span>
+        <span class="badge badge-blue">Docker + Kubernetes</span>
+        <span class="badge badge-green">Production Ready</span>
+      </div>
+    </div>
+
+    <!-- ╔══ SECTION: OVERVIEW ══════════════════════════════════════╗ -->
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>This repository contains <strong>two integration platforms</strong> that synchronise data between <em>Oracle Fusion ERP</em>, <em>VendHQ POS</em>, and <em>Opencart E-commerce</em>:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">🚀</div>
+          <div class="card-title">Vyrooq</div>
+          <div class="card-desc">Modern cloud-native microservices platform. 10 000+ tx/hr. Docker + Kubernetes ready.</div>
+          <span class="card-port">vyrooq/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🖥️</div>
+          <div class="card-title">Oracle CRM</div>
+          <div class="card-desc">Node.js web application with RBAC, reporting, and Oracle Fusion integration UI.</div>
+          <span class="card-port">oracle-crm/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">☕</div>
+          <div class="card-title">Legacy ADF Platform</div>
+          <div class="card-desc">Java EE / Oracle ADF monolith — archived for reference. Use Vyrooq for new installs.</div>
+          <span class="card-port">Root dir</span>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div><strong>New installations</strong> should use the <strong>Vyrooq</strong> platform. The legacy ADF application is archived for reference only.</div>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: QUICK START ═══════════════════════════════════╗ -->
+    <section id="quickstart">
+      <h2>Quick Start</h2>
+      <ol class="steps">
+        <li>Clone the repository: <code>git clone https://github.com/MUSTAQ-AHAMMAD/integration-Oracle.git</code></li>
+        <li>Change into the Vyrooq directory: <code>cd integration-Oracle/vyrooq</code></li>
+        <li>Copy and edit environment file: <code>cp .env.example .env</code> — set <code>FUSION_BASE_URL</code>, <code>FUSION_USERNAME</code>, <code>FUSION_PASSWORD</code></li>
+        <li>Start infrastructure services: <code>docker compose up -d postgres redis rabbitmq kafka zookeeper</code></li>
+        <li>Wait ~30 s for services to initialise, then start application: <code>docker compose up -d gateway-api fusion-adapter reconciliation-engine</code></li>
+        <li>Verify: <code>curl http://localhost:3000/health</code></li>
+      </ol>
+
+      <div class="callout success">
+        <span class="callout-icon">⚡</span>
+        <div>One-command automated setup: run <code>./quick-start.sh</code> from the <code>vyrooq/</code> directory.</div>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: PREREQUISITES ═════════════════════════════════╗ -->
+    <section id="prerequisites">
+      <h2>Prerequisites</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Requirement</th><th>Minimum Version</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Docker Desktop / Engine</td><td>20.10+</td><td>Docker Compose V2 required</td></tr>
+            <tr><td>RAM</td><td>8 GB</td><td>16 GB recommended for full stack</td></tr>
+            <tr><td>Free disk space</td><td>50 GB</td><td></td></tr>
+            <tr><td>Oracle Fusion credentials</td><td>—</td><td>Base URL, username, password</td></tr>
+            <tr><td>Node.js (local dev)</td><td>22+</td><td>Only if running outside Docker</td></tr>
+            <tr><td>Python (local dev)</td><td>3.13+</td><td>Only if running outside Docker</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: VYROOQ ════════════════════════════════════════╗ -->
+    <section id="vyrooq">
+      <h2>Vyrooq — Modern Integration Platform</h2>
+      <p>Vyrooq is a production-ready, cloud-native middleware platform built on a microservices architecture. It processes <strong>10 000+ transactions per hour</strong> (40× faster than the legacy Java system) with horizontal auto-scaling from 2–50 workers.</p>
+
+      <h3>Key Features</h3>
+      <ul>
+        <li>Event-driven messaging via <strong>Kafka + RabbitMQ</strong></li>
+        <li>Distributed task queuing with <strong>BullMQ + Redis</strong></li>
+        <li>Durable workflows via <strong>Temporal.io</strong></li>
+        <li>Exponential backoff with <strong>50 retry attempts</strong></li>
+        <li>Transaction fingerprinting for <strong>idempotent processing</strong></li>
+        <li>Full observability: <strong>OpenTelemetry · Grafana · Prometheus · Loki</strong></li>
+        <li>Admin APIs for <strong>pause / resume / replay</strong></li>
+        <li>Event sourcing for complete audit trail</li>
+      </ul>
+
+      <h3 id="vyrooq-arch-diagram">Architecture Diagram</h3>
+      <div class="arch">
+┌─────────────────────────────────────────────────────────┐
+│                    Gateway API (port 3000)               │
+│              Fastify + TypeScript                        │
+│       REST API │ JWT Auth │ Rate Limiting │ RBAC         │
+└────────────┬──────────────────────────────┬─────────────┘
+             │                              │
+   ┌─────────┴──────────┐        ┌─────────┴──────────┐
+   │  Manual Control    │        │   Workflow Engine  │
+   │  Engine (Admin)    │        │   (Temporal.io)    │
+   └────────┬───────────┘        └─────────┬──────────┘
+            │                              │
+   ┌────────┴──────────────────────────────┴──────────┐
+   │            Integration Core Library               │
+   │  Business Logic │ Calculations │ Validations      │
+   └────────┬────────────────────────────┬─────────────┘
+            │                            │
+   ┌────────┴────────┐        ┌─────────┴────────────┐
+   │  Retry Engine   │        │  Deduplication       │
+   │  (BullMQ)       │        │  Engine (Redis)      │
+   └────────┬────────┘        └─────────┬────────────┘
+            │                           │
+   ┌────────┴───────────────────────────┴────────┐
+   │              Event Bus (Kafka)              │
+   └────────┬────────────────────────┬───────────┘
+            │                        │
+   ┌────────┴────────┐      ┌───────┴──────────┐
+   │  Fusion Adapter │      │  VendHQ Adapter  │
+   │  (SOAP + REST)  │      │  (REST API)      │
+   └────────┬────────┘      └───────┬──────────┘
+            │                       │
+   ┌────────┴───────────────────────┴───────────┐
+   │         PostgreSQL 16+ (Partitioned)       │
+   │  Audit Log │ Idempotency │ Event Sourcing  │
+   └─────────────────────────────────────────────┘
+      </div>
+    </section>
+
+    <!-- ── Vyrooq Microservices ─────────────────────────────────── -->
+    <section id="vyrooq-services">
+      <h2>Vyrooq Microservices</h2>
+      <div class="card-grid">
+        <div class="card"><div class="card-icon">🌐</div><div class="card-title">gateway-api</div><div class="card-desc">Fastify REST gateway — JWT auth, rate limiting, RBAC.</div><span class="card-port">:3000</span></div>
+        <div class="card"><div class="card-icon">🔐</div><div class="card-title">auth-service</div><div class="card-desc">JWT authentication + RBAC service.</div><span class="card-port">:3100</span></div>
+        <div class="card"><div class="card-icon">🧩</div><div class="card-title">integration-core</div><div class="card-desc">Shared business logic library — all 16 calculation functions.</div><span class="card-port">Library</span></div>
+        <div class="card"><div class="card-icon">⚙️</div><div class="card-title">workflow-engine</div><div class="card-desc">Temporal.io durable workflows for long-running integrations.</div><span class="card-port">:3200</span></div>
+        <div class="card"><div class="card-icon">🔄</div><div class="card-title">retry-engine</div><div class="card-desc">BullMQ exponential-backoff retry queue.</div><span class="card-port">:3400</span></div>
+        <div class="card"><div class="card-icon">🔁</div><div class="card-title">reconciliation-engine</div><div class="card-desc">Data validation &amp; integrity checks.</div><span class="card-port">:3500</span></div>
+        <div class="card"><div class="card-icon">📋</div><div class="card-title">audit-engine</div><div class="card-desc">Event sourcing &amp; complete audit trail.</div><span class="card-port">:3600</span></div>
+        <div class="card"><div class="card-icon">📨</div><div class="card-title">event-bus</div><div class="card-desc">Kafka producer / consumer for event streaming.</div><span class="card-port">:3700</span></div>
+        <div class="card"><div class="card-icon">🏭</div><div class="card-title">fusion-adapter</div><div class="card-desc">Oracle Fusion SOAP + REST client.</div><span class="card-port">:8300</span></div>
+        <div class="card"><div class="card-icon">🛒</div><div class="card-title">vendhq-adapter</div><div class="card-desc">VendHQ POS REST client.</div><span class="card-port">:8400</span></div>
+        <div class="card"><div class="card-icon">🛍️</div><div class="card-title">opencart-adapter</div><div class="card-desc">Opencart e-commerce REST client.</div><span class="card-port">:8500</span></div>
+        <div class="card"><div class="card-icon">🖥️</div><div class="card-title">admin-dashboard</div><div class="card-desc">Admin control panel backend.</div><span class="card-port">:4000</span></div>
+        <div class="card"><div class="card-icon">🗑️</div><div class="card-title">deduplication-engine</div><div class="card-desc">Redis-based idempotency checks.</div><span class="card-port">:3300</span></div>
+        <div class="card"><div class="card-icon">🕹️</div><div class="card-title">manual-control-engine</div><div class="card-desc">Admin APIs — pause, resume, replay operations.</div><span class="card-port">:3800</span></div>
+      </div>
+    </section>
+
+    <!-- ── Vyrooq Tech Stack ─────────────────────────────────────── -->
+    <section id="vyrooq-stack">
+      <h2>Vyrooq Technology Stack</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+          <tbody>
+            <tr><td>Backend APIs</td><td>Node.js 22+, Fastify, TypeScript 5.7+, Prisma ORM</td></tr>
+            <tr><td>Worker Threads</td><td>BullMQ (distributed queues), Worker Threads</td></tr>
+            <tr><td>Workflow / Processing</td><td>Python 3.13+, FastAPI, Temporal.io, Celery, asyncio, Polars</td></tr>
+            <tr><td>Database</td><td>PostgreSQL 16+ (partitioned tables)</td></tr>
+            <tr><td>Caching / Locks</td><td>Redis 7+</td></tr>
+            <tr><td>Messaging</td><td>Kafka (event streaming), RabbitMQ (message queuing)</td></tr>
+            <tr><td>Observability</td><td>OpenTelemetry, Grafana, Prometheus, Loki, ELK Stack</td></tr>
+            <tr><td>Containerisation</td><td>Docker, Kubernetes (k8s manifests included)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Vyrooq Quick Start ────────────────────────────────────── -->
+    <section id="vyrooq-quickstart">
+      <h2>Vyrooq Installation</h2>
+
+      <h3>Automated (recommended)</h3>
+      <pre><code>cd vyrooq
+./quick-start.sh</code></pre>
+
+      <h3>Manual Step-by-Step</h3>
+      <pre><code># 1 – Configure environment
+cp .env.example .env
+# Edit FUSION_BASE_URL, FUSION_USERNAME, FUSION_PASSWORD, VENDHQ_API_KEY
+
+# 2 – Start infrastructure
+docker compose up -d postgres redis rabbitmq kafka zookeeper
+sleep 30
+
+# 3 – Start application services
+docker compose up -d gateway-api fusion-adapter reconciliation-engine \
+  audit-engine event-bus retry-engine
+
+# 4 – Verify
+curl http://localhost:3000/health</code></pre>
+
+      <h3>Diagnostics</h3>
+      <pre><code>./diagnose.sh    # checks Docker, ports, config, and identifies issues</code></pre>
+    </section>
+
+    <!-- ── Vyrooq API Gateway ────────────────────────────────────── -->
+    <section id="vyrooq-api">
+      <h2>Vyrooq API Gateway</h2>
+      <p>The Gateway API (<code>http://localhost:3000</code>) is the single entry point for all client requests. It handles JWT authentication, rate limiting, and RBAC before routing to downstream services.</p>
+
+      <h3>Health & Status</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>/health</code></td><td><span class="method method-get">GET</span></td><td>Service liveness check</td></tr>
+            <tr><td><code>/metrics</code></td><td><span class="method method-get">GET</span></td><td>Prometheus metrics</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Integration Control</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>/api/sync/trigger</code></td><td><span class="method method-post">POST</span></td><td>Manually trigger a sync job</td></tr>
+            <tr><td><code>/api/sync/status</code></td><td><span class="method method-get">GET</span></td><td>Current sync job statuses</td></tr>
+            <tr><td><code>/api/sync/pause</code></td><td><span class="method method-post">POST</span></td><td>Pause running sync workers</td></tr>
+            <tr><td><code>/api/sync/resume</code></td><td><span class="method method-post">POST</span></td><td>Resume paused workers</td></tr>
+            <tr><td><code>/api/sync/replay/:id</code></td><td><span class="method method-post">POST</span></td><td>Replay a failed transaction</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Vyrooq Config ──────────────────────────────────────────── -->
+    <section id="vyrooq-config">
+      <h2>Vyrooq Configuration</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>FUSION_BASE_URL</code></td><td>✔</td><td>Oracle Fusion Cloud base URL</td></tr>
+            <tr><td><code>FUSION_USERNAME</code></td><td>✔</td><td>Oracle Fusion username</td></tr>
+            <tr><td><code>FUSION_PASSWORD</code></td><td>✔</td><td>Oracle Fusion password</td></tr>
+            <tr><td><code>DATABASE_URL</code></td><td>✔</td><td>PostgreSQL connection string</td></tr>
+            <tr><td><code>REDIS_URL</code></td><td>✔</td><td>Redis connection URL</td></tr>
+            <tr><td><code>KAFKA_BROKERS</code></td><td>✔</td><td>Comma-separated Kafka broker list</td></tr>
+            <tr><td><code>JWT_SECRET</code></td><td>✔</td><td>JWT signing secret (min 32 chars)</td></tr>
+            <tr><td><code>VENDHQ_API_KEY</code></td><td>—</td><td>VendHQ API token</td></tr>
+            <tr><td><code>OPENCART_BASE_URL</code></td><td>—</td><td>Opencart store base URL</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout danger">
+        <span class="callout-icon">🔒</span>
+        <div>Never commit <code>.env</code> files to version control. All secrets are loaded at runtime.</div>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: ORACLE CRM ════════════════════════════════════╗ -->
+    <section id="oracle-crm">
+      <h2>Oracle CRM</h2>
+      <p>A comprehensive <strong>Node.js web application</strong> (<code>oracle-crm/</code>) with role-based access control that manages Oracle Fusion Cloud integration, supporting both Odoo and VendHQ data sources with real-time monitoring, reporting, and user management.</p>
+
+      <h3>Features</h3>
+      <ul>
+        <li>Hierarchical RBAC with 5 permission levels</li>
+        <li>Dashboard statistics, migration reports, job history, analytics</li>
+        <li>Odoo POS &amp; VendHQ sales synchronisation</li>
+        <li>Automated retry for failed records</li>
+        <li>Multi-currency: AED, SAR, KWD, OMR, BHD, QAR</li>
+        <li>Multi-country, multi-store Oracle metadata mapping</li>
+        <li>Cron-based scheduling with incremental sync tracking</li>
+        <li>Duplicate prevention via fingerprinting</li>
+        <li>Multi-channel notifications</li>
+      </ul>
+    </section>
+
+    <!-- ── CRM Auth & Roles ──────────────────────────────────────── -->
+    <section id="crm-auth">
+      <h2>Oracle CRM — Authentication &amp; Roles</h2>
+
+      <h3>Default Credentials</h3>
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>Change default passwords <strong>immediately</strong> after first login. Run <code>node reset-credentials.js</code> to generate secure random passwords.</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Role</th><th>Username</th><th>Default Password</th></tr></thead>
+          <tbody>
+            <tr><td><span class="role role-5">super_admin</span></td><td><code>superadmin</code></td><td><code>SuperAdmin@1234</code></td></tr>
+            <tr><td><span class="role role-4">admin</span></td><td><code>admin</code></td><td><code>Admin@1234</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Role Hierarchy</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Role</th><th>Level</th><th>Capabilities</th></tr></thead>
+          <tbody>
+            <tr><td><span class="role role-5">super_admin</span></td><td>5</td><td>Full system access, manage all users including super admins, system configuration</td></tr>
+            <tr><td><span class="role role-4">admin</span></td><td>4</td><td>User management (except super admins), configuration, reports</td></tr>
+            <tr><td><span class="role role-3">management</span></td><td>3</td><td>View all reports, analytics, job history, export data</td></tr>
+            <tr><td><span class="role role-2">user / operator</span></td><td>2</td><td>Push/fetch data, view own jobs, basic dashboard</td></tr>
+            <tr><td><span class="role role-1">viewer</span></td><td>1</td><td>Read-only access to dashboard and sales data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── CRM Web Pages ──────────────────────────────────────────── -->
+    <section id="crm-pages">
+      <h2>Oracle CRM — Web Pages</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Page</th><th>URL</th><th>Purpose</th><th>Min. Role</th></tr></thead>
+          <tbody>
+            <tr><td>Dashboard</td><td><code>/</code></td><td>Overview, connection status, API reference</td><td><span class="role role-1">viewer</span></td></tr>
+            <tr><td>Odoo Sales</td><td><code>/odoo-sales.html</code></td><td>Fetch and push Odoo sales data</td><td><span class="role role-2">user</span></td></tr>
+            <tr><td>New Sale Push</td><td><code>/new-sale.html</code></td><td>Manual sale entry and push</td><td><span class="role role-2">user</span></td></tr>
+            <tr><td>Orders</td><td><code>/orders.html</code></td><td>View and manage orders</td><td><span class="role role-2">user</span></td></tr>
+            <tr><td>Sync History</td><td><code>/sync-history.html</code></td><td>Job history and troubleshooting</td><td><span class="role role-2">user</span></td></tr>
+            <tr><td>Reports</td><td><code>/reports.html</code></td><td>Comprehensive migration reports</td><td><span class="role role-3">management</span></td></tr>
+            <tr><td>Configuration</td><td><code>/config.html</code></td><td>System and credential setup</td><td><span class="role role-4">admin</span></td></tr>
+            <tr><td>Users Management</td><td><code>/users.html</code></td><td>User administration</td><td><span class="role role-4">admin</span></td></tr>
+            <tr><td>Profile</td><td><code>/profile.html</code></td><td>Personal settings</td><td><span class="role role-1">all</span></td></tr>
+            <tr><td>Calculations Ref</td><td><code>/calculations.html</code></td><td>Interactive calculation demos</td><td><span class="role role-1">all</span></td></tr>
+            <tr><td>Benchmark</td><td><code>/benchmark.html</code></td><td>Performance testing</td><td><span class="role role-4">admin</span></td></tr>
+            <tr><td>Automation</td><td><code>/automation.html</code></td><td>Scheduler and automation control</td><td><span class="role role-4">admin</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── CRM API Endpoints ──────────────────────────────────────── -->
+    <section id="crm-api">
+      <h2>Oracle CRM — API Endpoints</h2>
+
+      <h3>Authentication</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>/api/auth/login</code></td><td><span class="method method-post">POST</span></td><td>Public</td><td>User login — returns JWT token</td></tr>
+            <tr><td><code>/api/auth/me</code></td><td><span class="method method-get">GET</span></td><td>All</td><td>Current user info</td></tr>
+            <tr><td><code>/api/auth/profile</code></td><td><span class="method method-put">PUT</span></td><td>All</td><td>Update profile</td></tr>
+            <tr><td><code>/api/auth/change-password</code></td><td><span class="method method-post">POST</span></td><td>All</td><td>Change password</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>User Management</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>/api/users</code></td><td><span class="method method-get">GET</span></td><td>admin+</td><td>List all users</td></tr>
+            <tr><td><code>/api/users</code></td><td><span class="method method-post">POST</span></td><td>admin+</td><td>Create new user</td></tr>
+            <tr><td><code>/api/users/:id</code></td><td><span class="method method-put">PUT</span></td><td>admin+</td><td>Update user</td></tr>
+            <tr><td><code>/api/users/:id</code></td><td><span class="method method-delete">DELETE</span></td><td>admin+</td><td>Delete user</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Reports</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>/api/reports/dashboard</code></td><td><span class="method method-get">GET</span></td><td>All</td><td>Dashboard statistics</td></tr>
+            <tr><td><code>/api/reports/migration/overview</code></td><td><span class="method method-get">GET</span></td><td>management+</td><td>Migration overview with filters</td></tr>
+            <tr><td><code>/api/reports/migration/jobs</code></td><td><span class="method method-get">GET</span></td><td>management+</td><td>Detailed job history</td></tr>
+            <tr><td><code>/api/reports/migration/failures</code></td><td><span class="method method-get">GET</span></td><td>management+</td><td>Failed records report</td></tr>
+            <tr><td><code>/api/reports/analytics/timeline</code></td><td><span class="method method-get">GET</span></td><td>All</td><td>Time-series analytics</td></tr>
+            <tr><td><code>/api/reports/audit/users</code></td><td><span class="method method-get">GET</span></td><td>management+</td><td>User activity audit</td></tr>
+            <tr><td><code>/api/reports/performance/stores</code></td><td><span class="method method-get">GET</span></td><td>management+</td><td>Store performance metrics</td></tr>
+            <tr><td><code>/api/reports/export/csv</code></td><td><span class="method method-get">GET</span></td><td>management+</td><td>CSV export</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── CRM 16 Calculations ────────────────────────────────────── -->
+    <section id="crm-calculations">
+      <h2>Oracle CRM — 16 Business Calculations</h2>
+      <p>The Oracle CRM implements all 16 calculation functions originally written in Java, now ported to JavaScript (<code>oracle-crm/src/calculations.js</code>).</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Calculation</th><th>Formula / Rule</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Timezone hours</td><td><code>Math.trunc(tzOffset)</code></td></tr>
+            <tr><td>2</td><td>Timezone minutes</td><td><code>((abs × 100) % 100) × 60 / 100</code></td></tr>
+            <tr><td>3</td><td>Adjusted GL Date</td><td><code>utcDate + hours + minutes</code></td></tr>
+            <tr><td>4</td><td>Days since last sale</td><td><code>(now − lastDate) / 86 400 000</code></td></tr>
+            <tr><td>5</td><td>Day window cap</td><td><code>daysToAdd &lt;= 7 ? daysToAdd − 1 : 7</code></td></tr>
+            <tr><td>6</td><td>Invoice grouping key</td><td><code>{day}-{month}-{year}{customerType}[**Credit]</code></td></tr>
+            <tr><td>7</td><td>Unit Selling Price</td><td><code>ABS(totalPrice / quantity)</code></td></tr>
+            <tr><td>8</td><td>Discount Item qty</td><td>Force to 1 if <code>itemName="Discount Item"</code> AND <code>price &gt; 0</code></td></tr>
+            <tr><td>9</td><td>Conversion Rate Type</td><td><code>rateIsCorporate=1 → "Corporate"</code> else <code>"User"</code></td></tr>
+            <tr><td>10</td><td>Inventory qty</td><td><code>quantity × −1</code></td></tr>
+            <tr><td>11</td><td>Transaction Type</td><td><code>price=0 → Issue/RMA by qty sign; price&gt;0 → Issue; price&lt;0 → RMA</code></td></tr>
+            <tr><td>12</td><td>Cash account</td><td><code>region=KW → "Cash KW"</code> else <code>"Cash"</code></td></tr>
+            <tr><td>13</td><td>Bank charges</td><td><code>amount × bankRate × (tax + 1)</code> (capped at 10 for OM Debit Card)</td></tr>
+            <tr><td>14</td><td>Journal charge</td><td>Fixed freight OR <code>saleTotal × bankChargeRate</code></td></tr>
+            <tr><td>15</td><td>Period name</td><td><code>format(date, "MMM-yy")</code> e.g. <code>"Jan-24"</code></td></tr>
+            <tr><td>16</td><td>Message truncation</td><td><code>message.substring(0, 500)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── CRM Docker ────────────────────────────────────────────── -->
+    <section id="crm-docker">
+      <h2>Oracle CRM — Docker Deployment</h2>
+
+      <h3>Start</h3>
+      <pre><code>cd oracle-crm
+docker-compose up -d --build</code></pre>
+
+      <h3>Common Commands</h3>
+      <pre><code># View logs
+docker-compose logs -f
+
+# Restart
+docker-compose restart
+
+# Force rebuild (no cache)
+docker-compose build --no-cache
+docker-compose up -d
+
+# Access shell
+docker exec -it oracle-crm sh
+
+# Reset admin credentials
+docker exec -it oracle-crm node reset-credentials.js
+
+# Clean slate
+docker-compose down
+docker rmi oracle-crm_oracle-crm</code></pre>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>After <code>git pull</code>, always pass <code>--build</code> so Docker picks up new files — the cached image will not include changes automatically.</div>
+      </div>
+
+      <h3>Oracle CRM Environment Variables</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>FUSION_BASE_URL</code></td><td>✔</td><td>Oracle Fusion Cloud base URL</td></tr>
+            <tr><td><code>FUSION_USERNAME</code></td><td>✔</td><td>Oracle Fusion username</td></tr>
+            <tr><td><code>FUSION_PASSWORD</code></td><td>✔</td><td>Oracle Fusion password</td></tr>
+            <tr><td><code>JWT_SECRET</code></td><td>✔ (prod)</td><td>JWT signing secret — required in production; throws on startup if unset</td></tr>
+            <tr><td><code>PORT</code></td><td>—</td><td>Server port (default: <code>3000</code>)</td></tr>
+            <tr><td><code>REGIONS</code></td><td>—</td><td>Comma-separated region codes (default: <code>AE,KW,OM,SA,BH,QA</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: LEGACY ADF ════════════════════════════════════╗ -->
+    <section id="legacy">
+      <h2>Legacy ADF Platform</h2>
+      <div class="callout warning">
+        <span class="callout-icon">📦</span>
+        <div>The legacy Oracle ADF application is <strong>archived for reference only</strong>. All new installations should use the <a href="#vyrooq">Vyrooq</a> platform.</div>
+      </div>
+      <p>The legacy platform is a Java EE / Oracle ADF monolith that synchronises data between Oracle Fusion ERP and VendHQ POS using Quartz-scheduled jobs, JAX-WS SOAP clients, and JPA persistence.</p>
+
+      <h3 id="legacy-arch">Architecture Diagram</h3>
+      <div class="arch">
+┌──────────────────────────────────────────┐
+│           Oracle ADF UI (JSF)            │  ← IntegrationSchedulerBean
+└────────────────────┬─────────────────────┘
+                     │ start / stop / manual trigger
+                     ▼
+┌──────────────────────────────────────────┐
+│         Quartz Scheduler (4 jobs)        │  ← VendHQIntegrationScheduler
+└────────────────────┬─────────────────────┘
+                     │ fires job
+                     ▼
+┌──────────────────────────────────────────┐
+│       BackgroundTaskExecutor             │  ← 4-thread fixed pool
+│       (SharedResources middleware)       │
+└────────────────────┬─────────────────────┘
+                     │ submits Runnable
+                     ▼
+┌──────────────────────────────────────────┐
+│       Integration Processors             │
+│  ├─ FusionItemsToVendHQItemsIntegration  │
+│  ├─ VendHQSalesToFusionInvRecIntParallel │
+│  ├─ FusionInvToVendHQInvIntegration      │
+│  └─ FusionOnHandQtyFetch                 │
+└────────┬──────────────────┬──────────────┘
+         │ REST calls        │ SOAP calls
+         ▼                   ▼
+┌──────────────┐   ┌──────────────────────┐
+│ REST Clients │   │ SOAP Clients         │
+│ ├─ VendHQ    │   │ ├─ InvoiceService    │
+│ ├─ Opencart  │   │ ├─ ReceiptService    │
+│ └─ FusionREST│   │ ├─ JournalService    │
+└──────┬───────┘   │ └─ ItemService       │
+       │           └────────┬─────────────┘
+       ▼                    ▼
+┌──────────────┐   ┌──────────────────────┐
+│  VendHQ POS  │   │  Oracle Fusion ERP   │
+│  API         │   │  (REST + SOAP)       │
+└──────────────┘   └──────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────┐
+│  Oracle Database (JPA / EJB)             │
+│  ├─ Integration status tracking          │
+│  ├─ Sync metadata                        │
+│  └─ Backup tables                        │
+└──────────────────────────────────────────┘
+      </div>
+    </section>
+
+    <!-- ── Legacy Tech Stack ─────────────────────────────────────── -->
+    <section id="legacy-stack">
+      <h2>Legacy Technology Stack</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Technology</th></tr></thead>
+          <tbody>
+            <tr><td>UI Framework</td><td>Oracle ADF 12.x (JSF / ADF Faces)</td></tr>
+            <tr><td>Scheduler</td><td>Quartz 2.x</td></tr>
+            <tr><td>Persistence</td><td>JPA 2.1 + EJB 3.x (Stateless Session Bean)</td></tr>
+            <tr><td>SOAP / Web Services</td><td>JAX-WS (auto-generated from Fusion WSDL)</td></tr>
+            <tr><td>HTTP Client</td><td>OkHttpClient 3.x</td></tr>
+            <tr><td>JSON</td><td>Gson</td></tr>
+            <tr><td>Application Server</td><td>Oracle WebLogic Server 12.x</td></tr>
+            <tr><td>Database</td><td>Oracle Database</td></tr>
+            <tr><td>Language</td><td>Java SE 8+</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Module Structure</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Module</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>SharedResources/</code></td><td>Core middleware utilities (REST, SOAP, async)</td></tr>
+            <tr><td><code>IntegrationJobs/</code></td><td>Quartz jobs, processors, email alerts, UI bean</td></tr>
+            <tr><td><code>JPAProject/</code></td><td>JPA entities + EJB session bean</td></tr>
+            <tr><td><code>FusionRESTClient/</code></td><td>Oracle Fusion REST API clients</td></tr>
+            <tr><td><code>FusionSOAPClient/</code></td><td>Oracle Fusion SOAP/JAX-WS generated stubs</td></tr>
+            <tr><td><code>VendHQRESTClient/</code></td><td>VendHQ POS REST API clients</td></tr>
+            <tr><td><code>OpencartRESTClient/</code></td><td>Opencart e-commerce REST API clients</td></tr>
+            <tr><td><code>ViewController/</code></td><td>Oracle ADF UI pages (JSF / JSPX)</td></tr>
+            <tr><td><code>Model/</code></td><td>Oracle ADF BC4J model components</td></tr>
+            <tr><td><code>EJBClient/</code></td><td>EJB JNDI lookup utilities</td></tr>
+            <tr><td><code>Conf/</code></td><td>Application configuration files</td></tr>
+            <tr><td><code>resourcebundles/</code></td><td>i18n / localisation message bundles</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Legacy Middleware ──────────────────────────────────────── -->
+    <section id="legacy-middleware">
+      <h2>Legacy — SharedResources Middleware</h2>
+      <p>Package: <code>innovate.tamergroup.shared.utils</code></p>
+
+      <h3>BackgroundTaskExecutor</h3>
+      <p>A <strong>Singleton</strong> thread-pool manager (4-thread fixed pool) that runs integration tasks asynchronously to prevent long-running jobs from blocking the UI thread.</p>
+      <pre><code>BackgroundTaskExecutor executor = BackgroundTaskExecutor.getInstance();
+executor.execute(
+    () -&gt; { /* integration logic here */ },
+    () -&gt; System.out.println("Task completed!")
+);</code></pre>
+
+      <h3>ExecutionListener</h3>
+      <p>A callback interface with a single method <code>onExecutionComplete()</code> fired by <code>BackgroundTaskExecutor</code> when a background task finishes successfully.</p>
+      <pre><code>ExecutionListener listener = () -&gt; schedulerBean.setStatus(Constants.IDLE);
+BackgroundTaskExecutor.getInstance().execute(integrationTask, listener);</code></pre>
+
+      <h3>Constants</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Constant</th><th>Value</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>RUNNING</code></td><td><code>"RUNNING"</code></td><td>Job is actively executing</td></tr>
+            <tr><td><code>IDLE</code></td><td><code>"IDLE"</code></td><td>No job is executing</td></tr>
+            <tr><td><code>AUTOMATIC</code></td><td><code>"AUTOMATIC"</code></td><td>Scheduler triggered by Quartz cron</td></tr>
+            <tr><td><code>MANUAL</code></td><td><code>"MANUAL"</code></td><td>Scheduler triggered by user via UI</td></tr>
+            <tr><td><code>NONE</code></td><td><code>"NONE"</code></td><td>Scheduler not yet started</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Credential</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mode</th><th>Constructor</th><th><code>toString()</code> output</th></tr></thead>
+          <tbody>
+            <tr><td>Basic Auth</td><td><code>new Credential(username, password)</code></td><td>Base64-encoded <code>"username:password"</code></td></tr>
+            <tr><td>Token / Bearer</td><td><code>new Credential(token)</code></td><td>Raw token string</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>RESTUtils</h3>
+      <p>Provides <code>configureToIgnoreCertificate(OkHttpClient.Builder)</code> to disable TLS validation in test / sandbox environments.</p>
+      <div class="callout danger">
+        <span class="callout-icon">⚠️</span>
+        <div><strong>Never use <code>configureToIgnoreCertificate()</code> in production.</strong> It disables all TLS certificate and hostname validation.</div>
+      </div>
+
+      <h3>SOAPUtils</h3>
+      <p>Configures Oracle Fusion JAX-WS port stubs with Basic Authentication credentials via <code>setCredentials((BindingProvider) port, credential)</code>.</p>
+
+      <h3>FusionAppDomain</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Constant</th><th>Path Segment</th><th>Used For</th></tr></thead>
+          <tbody>
+            <tr><td><code>SCM</code></td><td><code>"scm"</code></td><td>Supply Chain / Inventory REST APIs</td></tr>
+            <tr><td><code>FIN</code></td><td><code>"fin"</code></td><td>Financials / AR REST APIs</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Legacy Scheduler ───────────────────────────────────────── -->
+    <section id="legacy-scheduler">
+      <h2>Legacy — Scheduler Layer</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/src/innovate/tamergroup/vendhq/jobs/VendHQIntegrationScheduler.java</code></p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Job</th><th>Trigger</th><th>Schedule</th></tr></thead>
+          <tbody>
+            <tr><td><code>FusionItemsToVendHQItemsJob</code></td><td>CronTrigger</td><td>Every 6 hours (<code>0 0 0/6 1/1 * ? *</code>)</td></tr>
+            <tr><td><code>VendHQSalesToFusionInvRecJob</code></td><td>CronTrigger</td><td>Daily at 03:00 (<code>0 0 3 1/1 * ? *</code>)</td></tr>
+            <tr><td><code>VendHQSalesBackupJob</code></td><td>SimpleTrigger</td><td>Every 10 minutes</td></tr>
+            <tr><td><code>FusionOnHandQtyJob</code></td><td>SimpleTrigger</td><td>Every 4 hours (currently commented out)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Legacy Processors ──────────────────────────────────────── -->
+    <section id="legacy-processors">
+      <h2>Legacy — Integration Processors</h2>
+      <p>Each processor follows the same pattern: <strong>Fetch → Transform → Persist → Track → Alert</strong>.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Direction</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>VendHQSalesToFusionInvRecIntParallel</code></td><td>VendHQ → Fusion</td><td>Parallel processing of POS sales into Fusion Invoices, Receipts, and Journals</td></tr>
+            <tr><td><code>FusionItemsToVendHQItemsIntegration</code></td><td>Fusion → VendHQ</td><td>Syncs product catalogue from Fusion SCM to VendHQ</td></tr>
+            <tr><td><code>FusionInvToVendHQInvIntegration</code></td><td>Fusion → VendHQ</td><td>Syncs inventory quantities from Fusion to VendHQ outlets</td></tr>
+            <tr><td><code>FusionOnHandQtyFetch</code></td><td>Fusion → DB</td><td>Fetches on-hand quantities from Fusion and stores locally</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: ORACLE FUSION ENDPOINTS ══════════════════════╗ -->
+    <section id="fusion-invoice">
+      <h2>Oracle Fusion — Standard Invoice</h2>
+      <p><strong>Purpose:</strong> Creates a receivables invoice in Oracle Fusion AR for a VendHQ POS sale.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/RecInvoiceService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createSimpleInvoice</code></td></tr>
+            <tr><td>Client class</td><td><code>FusionSOAPClient/…/services/FusionInvoiceClient.java → saveInvoice()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>InvoiceHeader Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>billToCustomerName</code></td><td>String</td><td>Customer name for the bill-to party</td></tr>
+            <tr><td><code>billToLocation</code></td><td>String</td><td>Customer site / location number</td></tr>
+            <tr><td><code>billToAccountNumber</code></td><td>String</td><td>Customer account number in Fusion</td></tr>
+            <tr><td><code>businessUnit</code></td><td>String</td><td>Oracle Fusion business unit name</td></tr>
+            <tr><td><code>transactionSource</code></td><td>String</td><td>Transaction source (e.g. <code>Manual</code>)</td></tr>
+            <tr><td><code>transactionType</code></td><td>String</td><td>Transaction type (e.g. <code>PASA CONSULTING SALE</code>)</td></tr>
+            <tr><td><code>invoiceCurrencyCode</code></td><td>String</td><td>ISO currency code (e.g. <code>AED</code>)</td></tr>
+            <tr><td><code>conversionRateType</code></td><td>String</td><td><code>Corporate</code> or <code>User</code></td></tr>
+            <tr><td><code>paymentTermsName</code></td><td>String</td><td>Payment terms fetched live from CustomerProfileService</td></tr>
+            <tr><td><code>saleDate</code></td><td>Date</td><td>Invoice date and GL date</td></tr>
+            <tr><td><code>invoiceLines</code></td><td>List&lt;InvoiceLineModel&gt;</td><td>One entry per product / discount line</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>InvoiceLineModel Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>lineNumber</code></td><td>Integer</td><td>Sequential line number</td></tr>
+            <tr><td><code>itemNumber</code></td><td>String</td><td>Fusion inventory item number</td></tr>
+            <tr><td><code>memoLineName</code></td><td>String</td><td>Memo line name (used for discount lines)</td></tr>
+            <tr><td><code>description</code></td><td>String</td><td>Line description</td></tr>
+            <tr><td><code>quantity</code></td><td>BigDecimal</td><td>Quantity sold</td></tr>
+            <tr><td><code>uomCode</code></td><td>String</td><td>Unit of measure code</td></tr>
+            <tr><td><code>unitSellingPrice</code></td><td>BigDecimal</td><td>Selling price per unit</td></tr>
+            <tr><td><code>currencyCode</code></td><td>String</td><td>Line currency code</td></tr>
+            <tr><td><code>salesOrder</code></td><td>String</td><td>VendHQ invoice number (sales order reference)</td></tr>
+            <tr><td><code>taxClassificationCode</code></td><td>String</td><td>Tax classification code</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Fusion Standard Receipt ───────────────────────────────── -->
+    <section id="fusion-std-receipt">
+      <h2>Oracle Fusion — Standard Receipt</h2>
+      <p><strong>Purpose:</strong> Creates a cash or bank receipt in Oracle Fusion AR and links it to a payment method.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/StandardReceiptService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createStandardReceipt</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>StandardReceiptRequest Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>currencyCode</code></td><td>String</td><td>✔</td><td>ISO 4217 currency code (e.g. <code>AED</code>)</td></tr>
+            <tr><td><code>saleDate</code></td><td>Date</td><td>✔</td><td>Receipt date; also used as glDate and depositDate</td></tr>
+            <tr><td><code>receiptMethodId</code></td><td>Long</td><td>✔</td><td>Fusion payment-method ID</td></tr>
+            <tr><td><code>receiptNumber</code></td><td>String</td><td>✔</td><td>Unique receipt identifier — <code>paymentType + "-" + transactionNumber</code></td></tr>
+            <tr><td><code>remittanceBankAccountId</code></td><td>Long</td><td>✔</td><td>Fusion cash or bank account ID</td></tr>
+            <tr><td><code>accountValue</code></td><td>String</td><td>✔</td><td>Bill-to customer account number</td></tr>
+            <tr><td><code>orgId</code></td><td>Long</td><td>✔</td><td>Fusion Operating Unit ID</td></tr>
+            <tr><td><code>receiptAmount</code></td><td>BigDecimal</td><td>✔</td><td>Total amount received</td></tr>
+            <tr><td><code>region</code></td><td>String</td><td>—</td><td>Region code for duplicate-check (not sent to Fusion)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Fusion Misc Receipt ────────────────────────────────────── -->
+    <section id="fusion-misc-receipt">
+      <h2>Oracle Fusion — Miscellaneous Receipt</h2>
+      <p><strong>Purpose:</strong> Creates a miscellaneous (non-customer) receipt for cash-rounding adjustments and payments posted directly to a receivable activity account.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/MiscellaneousReceiptService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createMiscellaneousReceipt</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>MiscReceiptRequest Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>currencyCode</code></td><td>String</td><td>ISO currency code</td></tr>
+            <tr><td><code>saleDate</code></td><td>Date</td><td>Receipt date and GL date</td></tr>
+            <tr><td><code>receiptMethodId</code></td><td>Long</td><td>Payment method ID in Fusion</td></tr>
+            <tr><td><code>receiptMethodName</code></td><td>String</td><td>Payment method name (e.g. <code>Cash</code>, <code>Credit Card</code>)</td></tr>
+            <tr><td><code>receiptNumber</code></td><td>String</td><td>Unique receipt number — <code>{PaymentType}-{TransactionNumber}-MISC</code></td></tr>
+            <tr><td><code>bankAccountName</code></td><td>String</td><td>Bank account name; uses cash account for rounding</td></tr>
+            <tr><td><code>receivableActivityName</code></td><td>String</td><td>Receivable activity to post to (e.g. <code>Cash Rounding</code>)</td></tr>
+            <tr><td><code>orgId</code></td><td>Long</td><td>Oracle Fusion business unit / org ID</td></tr>
+            <tr><td><code>receiptAmount</code></td><td>BigDecimal</td><td>Receipt amount (negative for cash-rounding adjustments)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Fusion Apply Receipt ───────────────────────────────────── -->
+    <section id="fusion-apply-receipt">
+      <h2>Oracle Fusion — Apply Receipt to Invoice</h2>
+      <p><strong>Purpose:</strong> Applies an existing standard receipt to a specific customer invoice, clearing the open receivable balance. Uses the same <code>StandardReceiptService</code> WSDL.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>SOAP Operation</td><td><code>createApplyReceipt</code></td></tr>
+            <tr><td>WSDL</td><td><code>.../fscmService/StandardReceiptService?WSDL</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>ApplyReceiptRequest Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>receiptNumber</code></td><td>String</td><td>✔</td><td>Must match a previously created receipt</td></tr>
+            <tr><td><code>transactionNumber</code></td><td>String</td><td>✔</td><td>Fusion invoice transaction number to apply against</td></tr>
+            <tr><td><code>amountApplied</code></td><td>BigDecimal</td><td>✔</td><td>Amount to apply; may be adjusted by −0.01 per retry for rounding</td></tr>
+            <tr><td><code>receiptCurrency</code></td><td>String</td><td>✔</td><td>Currency code (must match the receipt currency)</td></tr>
+            <tr><td><code>receiptDate</code></td><td>Date</td><td>✔</td><td>Used as both accountingDate and applicationDate</td></tr>
+            <tr><td><code>transactionSource</code></td><td>String</td><td>✔</td><td>Source system identifier (e.g. <code>VendHQ</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Full 8-Step Oracle Fusion API Sequence</h3>
+      <ol class="steps">
+        <li><code>GET /customers</code> — resolve CustomerId / OrgId</li>
+        <li><code>GET /units</code> — resolve Oracle UOM codes (cached)</li>
+        <li><code>POST /receivablesInvoices</code> — create AR invoice</li>
+        <li><code>POST /receivablesReceipts</code> — create standard receipt per payment method</li>
+        <li><code>POST applyReceiptOnAccount</code> — link receipt to invoice</li>
+        <li><code>POST /receivablesReceipts</code> (misc) — create bank charge receipt</li>
+        <li><code>POST /inventoryTransactions</code> — create stock movement records</li>
+        <li><code>POST /journals</code> — create GL journal (non-NORMAL customers only)</li>
+      </ol>
+    </section>
+
+    <!-- ╔══ SECTION: DATABASE ══════════════════════════════════════╗ -->
+    <section id="database">
+      <h2>Database Schema</h2>
+      <p>The legacy platform uses an <strong>Oracle Database</strong> accessed via JPA/EJB. The Vyrooq platform uses <strong>PostgreSQL 16+</strong> with partitioned tables for high-throughput workloads.</p>
+
+      <h3>Core Tables (Vyrooq PostgreSQL)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>integration_events</code></td><td>Event sourcing store — complete transaction history</td></tr>
+            <tr><td><code>idempotency_keys</code></td><td>Transaction fingerprints for duplicate prevention</td></tr>
+            <tr><td><code>audit_log</code></td><td>Full audit trail of all operations</td></tr>
+            <tr><td><code>retry_queue</code></td><td>BullMQ-backed retry state tracking</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Schema migrations are located in <code>vyrooq/database/</code>. Run with <code>docker compose run --rm migrate</code>.</p>
+    </section>
+
+    <!-- ╔══ SECTION: SECURITY ══════════════════════════════════════╗ -->
+    <section id="security">
+      <h2>Security</h2>
+      <ul>
+        <li>Oracle / VendHQ credentials stored only in <code>.env</code> files — never in source code</li>
+        <li>HTTP Basic Auth is sent only to Oracle Fusion APIs over <strong>HTTPS</strong></li>
+        <li><code>.gitignore</code> excludes <code>.env</code> and <code>node_modules/</code></li>
+        <li>No credentials are logged or exposed in API responses</li>
+        <li>JWT tokens signed with <code>JWT_SECRET</code> — production throws on startup if unset</li>
+        <li>Role-based access control enforced on every API endpoint</li>
+        <li>Privilege-escalation protection — users cannot assign roles above their own level</li>
+      </ul>
+
+      <div class="callout danger">
+        <span class="callout-icon">🔒</span>
+        <div>Change all default passwords immediately after first deployment. Never use <code>configureToIgnoreCertificate()</code> in production environments.</div>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: ENV VARS ══════════════════════════════════════╗ -->
+    <section id="env-vars">
+      <h2>Environment Variables Reference</h2>
+
+      <h3>Oracle CRM (<code>oracle-crm/.env</code>)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>FUSION_BASE_URL</code></td><td>✔</td><td>—</td><td>Oracle Fusion Cloud base URL</td></tr>
+            <tr><td><code>FUSION_USERNAME</code></td><td>✔</td><td>—</td><td>Oracle Fusion username</td></tr>
+            <tr><td><code>FUSION_PASSWORD</code></td><td>✔</td><td>—</td><td>Oracle Fusion password</td></tr>
+            <tr><td><code>JWT_SECRET</code></td><td>✔ (prod)</td><td>insecure dev default</td><td>JWT signing secret (min 32 chars)</td></tr>
+            <tr><td><code>PORT</code></td><td>—</td><td><code>3000</code></td><td>Server listening port</td></tr>
+            <tr><td><code>REGIONS</code></td><td>—</td><td><code>AE,KW,OM,SA,BH,QA</code></td><td>Comma-separated region codes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Vyrooq (<code>vyrooq/.env</code>)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>FUSION_BASE_URL</code></td><td>✔</td><td>Oracle Fusion Cloud base URL</td></tr>
+            <tr><td><code>FUSION_USERNAME</code></td><td>✔</td><td>Oracle Fusion username</td></tr>
+            <tr><td><code>FUSION_PASSWORD</code></td><td>✔</td><td>Oracle Fusion password</td></tr>
+            <tr><td><code>DATABASE_URL</code></td><td>✔</td><td>PostgreSQL connection string</td></tr>
+            <tr><td><code>REDIS_URL</code></td><td>✔</td><td>Redis connection URL</td></tr>
+            <tr><td><code>KAFKA_BROKERS</code></td><td>✔</td><td>Comma-separated Kafka brokers</td></tr>
+            <tr><td><code>JWT_SECRET</code></td><td>✔</td><td>JWT signing secret</td></tr>
+            <tr><td><code>VENDHQ_API_KEY</code></td><td>—</td><td>VendHQ API token</td></tr>
+            <tr><td><code>OPENCART_BASE_URL</code></td><td>—</td><td>Opencart store base URL</td></tr>
+            <tr><td><code>OPENCART_API_KEY</code></td><td>—</td><td>Opencart API key</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════════ -->
+<footer>
+  <div>integration-Oracle &mdash; Enterprise Integration Platform</div>
+  <div>Oracle Fusion · VendHQ · Opencart</div>
+  <span>
+    <a href="https://github.com/MUSTAQ-AHAMMAD/integration-Oracle" target="_blank">GitHub Repository ↗</a>
+  </span>
+</footer>
+
+<!-- ── Active nav highlight on scroll ──────────────────────────────── -->
+<script>
+  (function () {
+    const links = document.querySelectorAll('aside a[href^="#"]');
+    const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+
+    function onScroll() {
+      const scrollY = window.scrollY + 80;
+      let active = sections[0];
+      for (const s of sections) {
+        if (s.offsetTop <= scrollY) active = s;
+      }
+      links.forEach(l => l.classList.remove('active'));
+      const hit = document.querySelector(`aside a[href="#${active.id}"]`);
+      if (hit) hit.classList.add('active');
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+</body>
+</html>
