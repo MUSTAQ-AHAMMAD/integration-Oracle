@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>integration-Oracle – Java Middleware Documentation</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #c74634;   /* Oracle red */
+      --primary-d: #a3341f;
+      --accent:    #00758f;   /* teal */
+      --accent-d:  #005a6e;
+      --bg:        #f5f6fa;
+      --surface:   #ffffff;
+      --border:    #dde1ea;
+      --text:      #1a1d23;
+      --muted:     #6b7280;
+      --code-bg:   #1e2535;
+      --code-text: #e2e8f0;
+      --sidebar-w: 270px;
+      --header-h:  60px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* ── Top Header ───────────────────────────────────────────────────── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--header-h);
+      background: linear-gradient(135deg, var(--primary) 0%, #8b1a0a 100%);
+      display: flex; align-items: center; padding: 0 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    header .logo { color: #fff; font-size: 1.2rem; font-weight: 700; letter-spacing: .3px; }
+    header .logo span { font-weight: 400; opacity: .8; }
+    header .tagline { margin-left: 1.5rem; color: rgba(255,255,255,.7); font-size: .85rem; }
+    header nav { margin-left: auto; display: flex; gap: .75rem; }
+    header nav a {
+      color: rgba(255,255,255,.85); font-size: .82rem; text-decoration: none;
+      padding: .3rem .7rem; border-radius: 4px; transition: background .2s;
+    }
+    header nav a:hover { background: rgba(255,255,255,.15); }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      padding-top: var(--header-h);
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────────────── */
+    aside {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      position: fixed;
+      top: var(--header-h);
+      bottom: 0;
+      overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    aside::-webkit-scrollbar { width: 4px; }
+    aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .nav-section { margin-bottom: .25rem; }
+    .nav-section-title {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      padding: .55rem 1.25rem .25rem;
+    }
+    .nav-section a {
+      display: block; padding: .38rem 1.25rem .38rem 1.5rem;
+      color: var(--text); font-size: .85rem; text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    .nav-section a:hover   { background: var(--bg); color: var(--primary); border-left-color: var(--primary); }
+    .nav-section a.active  { background: #fef2f0; color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+
+    /* ── Main content ─────────────────────────────────────────────────── */
+    main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 2.5rem 2.75rem;
+      max-width: 1020px;
+    }
+
+    /* ── Sections ─────────────────────────────────────────────────────── */
+    section { margin-bottom: 3.5rem; }
+    section:target { scroll-margin-top: calc(var(--header-h) + 16px); }
+
+    h1 { font-size: 2rem; margin-bottom: .5rem; color: var(--primary); }
+    h2 {
+      font-size: 1.45rem; margin: 2rem 0 .75rem;
+      padding-bottom: .4rem; border-bottom: 2px solid var(--border);
+      color: var(--text);
+    }
+    h3 { font-size: 1.1rem; margin: 1.5rem 0 .5rem; color: var(--accent-d); }
+    h4 { font-size: .95rem; margin: 1.2rem 0 .4rem; color: var(--text); }
+    p  { margin-bottom: .75rem; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: .75rem; }
+    li { margin-bottom: .3rem; }
+    a  { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero Banner ──────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #1e2535 0%, #2d3a54 100%);
+      border-radius: 10px; padding: 2.5rem 2rem; margin-bottom: 2.5rem;
+      color: #e2e8f0;
+    }
+    .hero h1 { color: #fff; font-size: 2.2rem; margin-bottom: .4rem; }
+    .hero .subtitle { font-size: 1.05rem; color: rgba(255,255,255,.7); margin-bottom: 1.2rem; }
+    .badges { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .badge {
+      padding: .3rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .badge-red    { background: var(--primary); color: #fff; }
+    .badge-teal   { background: var(--accent);  color: #fff; }
+    .badge-green  { background: #16a34a;         color: #fff; }
+    .badge-purple { background: #7c3aed;         color: #fff; }
+    .badge-blue   { background: #2563eb;         color: #fff; }
+    .badge-orange { background: #ea580c;         color: #fff; }
+
+    /* ── Cards ────────────────────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .card-icon { font-size: 1.8rem; margin-bottom: .5rem; }
+    .card-title { font-weight: 700; font-size: .95rem; margin-bottom: .3rem; }
+    .card-desc  { font-size: .82rem; color: var(--muted); }
+    .card-port  { display: inline-block; margin-top: .5rem; font-size: .75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: .1rem .45rem; font-family: monospace; }
+
+    /* ── Tables ───────────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin-bottom: 1.25rem; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    thead tr { background: #f0f1f5; }
+    th {
+      text-align: left; padding: .65rem .85rem;
+      font-weight: 700; font-size: .78rem; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    td { padding: .6rem .85rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #fafbfd; }
+    code { font-family: "SFMono-Regular", Consolas, monospace; font-size: .82em; }
+    td code { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: .1rem .35rem; }
+
+    /* ── Code blocks ──────────────────────────────────────────────────── */
+    pre {
+      background: var(--code-bg); color: var(--code-text);
+      border-radius: 8px; padding: 1.1rem 1.3rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .82rem; line-height: 1.7;
+      overflow-x: auto; margin-bottom: 1.25rem;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+    /* ── Callout boxes ────────────────────────────────────────────────── */
+    .callout {
+      border-radius: 6px; padding: .85rem 1rem;
+      margin-bottom: 1.2rem; font-size: .88rem;
+      display: flex; gap: .6rem; align-items: flex-start;
+    }
+    .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: .05rem; }
+    .callout.info    { background: #eff6ff; border-left: 4px solid #3b82f6; }
+    .callout.warning { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .callout.danger  { background: #fef2f2; border-left: 4px solid #ef4444; }
+    .callout.success { background: #f0fdf4; border-left: 4px solid #22c55e; }
+
+    /* ── Steps list ───────────────────────────────────────────────────── */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex; gap: .9rem; align-items: flex-start;
+      margin-bottom: .8rem; font-size: .9rem;
+    }
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0; width: 1.75rem; height: 1.75rem;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; font-size: .78rem; font-weight: 700; margin-top: .05rem;
+    }
+
+    /* ── Arch diagram ─────────────────────────────────────────────────── */
+    .arch {
+      background: var(--code-bg); color: var(--code-text);
+      border-radius: 8px; padding: 1.3rem; font-family: monospace;
+      font-size: .78rem; line-height: 1.6; overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    footer {
+      margin-left: var(--sidebar-w);
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 1.5rem 2.75rem; font-size: .82rem; color: var(--muted);
+      display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;
+    }
+    footer span { margin-left: auto; }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      aside { transform: translateX(-100%); transition: transform .25s; z-index: 50; }
+      aside.open { transform: translateX(0); }
+      main, footer { margin-left: 0; padding: 1.5rem 1.25rem; }
+      header .tagline { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">integration-Oracle <span>/ Java Middleware</span></div>
+  <div class="tagline">Java EE · Oracle ADF · Oracle Fusion</div>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#middleware">Middleware</a>
+    <a href="#scheduler">Scheduler</a>
+    <a href="#soap-clients">SOAP Clients</a>
+    <a href="https://github.com/MUSTAQ-AHAMMAD/integration-Oracle" target="_blank">GitHub ↗</a>
+  </nav>
+</header>
+
+<!-- ══ LAYOUT ══════════════════════════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <a href="#overview">Overview</a>
+      <a href="#prerequisites">Prerequisites</a>
+      <a href="#module-structure">Module Structure</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Architecture</div>
+      <a href="#architecture">System Diagram</a>
+      <a href="#tech-stack">Technology Stack</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">SharedResources Middleware</div>
+      <a href="#middleware">Overview</a>
+      <a href="#background-executor">BackgroundTaskExecutor</a>
+      <a href="#constants">Constants</a>
+      <a href="#credential">Credential</a>
+      <a href="#rest-utils">RESTUtils</a>
+      <a href="#soap-utils">SOAPUtils</a>
+      <a href="#fusion-app-domain">FusionAppDomain</a>
+      <a href="#fusion-app-params">FusionAppParams</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Scheduler Layer</div>
+      <a href="#scheduler">Scheduler Overview</a>
+      <a href="#scheduler-jobs">Quartz Jobs</a>
+      <a href="#scheduler-bean">IntegrationSchedulerBean</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Integration Processors</div>
+      <a href="#processors">Processor Overview</a>
+      <a href="#proc-sales">VendHQSalesToFusion</a>
+      <a href="#proc-items">FusionItemsToVendHQ</a>
+      <a href="#proc-inventory">FusionInventorySync</a>
+      <a href="#proc-onhand">FusionOnHandQtyFetch</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Mapping &amp; Transformation</div>
+      <a href="#mapping">Mapping Classes</a>
+      <a href="#transformation">Transformation Classes</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Persistence Layer</div>
+      <a href="#persistence-services">Persistence Services</a>
+      <a href="#jpa-entities">JPA Entities</a>
+      <a href="#ejb">EJB Session Bean</a>
+      <a href="#ejb-client">EJB Client</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Fusion SOAP Clients</div>
+      <a href="#soap-clients">Client Overview</a>
+      <a href="#soap-invoice">Invoice Client</a>
+      <a href="#soap-receipt">Receipt Client</a>
+      <a href="#soap-misc-receipt">Misc Receipt Client</a>
+      <a href="#soap-apply-receipt">Apply Receipt Client</a>
+      <a href="#soap-journal">Journal Client</a>
+      <a href="#soap-item">Item Client</a>
+      <a href="#soap-customer-profile">Customer Profile Client</a>
+      <a href="#soap-bank">External Bank Client</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Fusion REST Clients</div>
+      <a href="#rest-clients">REST Client Overview</a>
+      <a href="#rest-items">Items Service</a>
+      <a href="#rest-inventory">Inventory Services</a>
+      <a href="#rest-uom">UOM Service</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">VendHQ &amp; Opencart Clients</div>
+      <a href="#vendhq-client">VendHQ REST Client</a>
+      <a href="#opencart-client">Opencart REST Client</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">ADF UI &amp; Email</div>
+      <a href="#adf-ui">ADF ViewController</a>
+      <a href="#email-alerting">Email Alerting</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Oracle Fusion API Sequence</div>
+      <a href="#fusion-sequence">8-Step API Sequence</a>
+      <a href="#fusion-invoice-model">Invoice Fields</a>
+      <a href="#fusion-receipt-model">Receipt Fields</a>
+      <a href="#fusion-misc-model">Misc Receipt Fields</a>
+      <a href="#fusion-apply-model">Apply Receipt Fields</a>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- ╔══ HERO ═══════════════════════════════════════════════════╗ -->
+    <div class="hero">
+      <h1>Java Middleware — integration-Oracle</h1>
+      <p class="subtitle">Oracle ADF · Java EE · Quartz Scheduler · JAX-WS SOAP · JPA/EJB · OkHttp REST</p>
+      <div class="badges">
+        <span class="badge badge-red">Oracle Fusion ERP</span>
+        <span class="badge badge-orange">Java SE 8+</span>
+        <span class="badge badge-teal">JAX-WS SOAP</span>
+        <span class="badge badge-purple">Oracle ADF 12.x</span>
+        <span class="badge badge-blue">Quartz Scheduler</span>
+        <span class="badge badge-green">JPA 2.1 / EJB 3.x</span>
+      </div>
+    </div>
+
+    <!-- ╔══ SECTION: OVERVIEW ══════════════════════════════════════╗ -->
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>This documentation covers the <strong>Java EE middleware</strong> that synchronises data between <em>Oracle Fusion ERP</em>, <em>VendHQ POS</em>, and <em>Opencart E-commerce</em>. The platform runs on <strong>Oracle WebLogic Server 12.x</strong> and uses Oracle ADF for its web UI.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">⚙️</div>
+          <div class="card-title">SharedResources</div>
+          <div class="card-desc">Core middleware: thread pool, credential handling, REST/SOAP utilities.</div>
+          <span class="card-port">SharedResources/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">⏱️</div>
+          <div class="card-title">IntegrationJobs</div>
+          <div class="card-desc">Quartz scheduler, integration processors, mapping, persistence, email alerts.</div>
+          <span class="card-port">IntegrationJobs/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🗄️</div>
+          <div class="card-title">JPAProject</div>
+          <div class="card-desc">JPA 2.1 entities and EJB 3.x stateless session bean for Oracle DB access.</div>
+          <span class="card-port">JPAProject/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔌</div>
+          <div class="card-title">FusionSOAPClient</div>
+          <div class="card-desc">JAX-WS generated stubs + hand-crafted service clients for Oracle Fusion SOAP APIs.</div>
+          <span class="card-port">FusionSOAPClient/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🌐</div>
+          <div class="card-title">FusionRESTClient</div>
+          <div class="card-desc">OkHttp-based REST clients for Oracle Fusion SCM / Financials REST APIs.</div>
+          <span class="card-port">FusionRESTClient/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🛒</div>
+          <div class="card-title">VendHQRESTClient</div>
+          <div class="card-desc">REST client and POJO model for VendHQ POS API v0.9.</div>
+          <span class="card-port">VendHQRESTClient/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🛍️</div>
+          <div class="card-title">OpencartRESTClient</div>
+          <div class="card-desc">REST client and POJO model for Opencart e-commerce REST API.</div>
+          <span class="card-port">OpencartRESTClient/</span>
+        </div>
+        <div class="card">
+          <div class="card-icon">🖥️</div>
+          <div class="card-title">ViewController</div>
+          <div class="card-desc">Oracle ADF UI pages (JSF / JSPX) for monitoring and manual triggering.</div>
+          <span class="card-port">ViewController/</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: PREREQUISITES ═════════════════════════════════╗ -->
+    <section id="prerequisites">
+      <h2>Prerequisites</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Requirement</th><th>Version</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Java SE / JDK</td><td>8+</td><td>Required for compilation and runtime</td></tr>
+            <tr><td>Oracle WebLogic Server</td><td>12.x</td><td>Target application server</td></tr>
+            <tr><td>Oracle JDeveloper</td><td>12.x</td><td>IDE; includes ADF libraries</td></tr>
+            <tr><td>Oracle Database</td><td>11g+</td><td>JPA persistence target</td></tr>
+            <tr><td>Oracle Fusion Cloud credentials</td><td>—</td><td>Base URL, username, password</td></tr>
+            <tr><td>VendHQ API token</td><td>—</td><td>For VendHQ REST client</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: MODULE STRUCTURE ══════════════════════════════╗ -->
+    <section id="module-structure">
+      <h2>Module Structure</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Module</th><th>Root Package</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>SharedResources/</code></td><td><code>innovate.tamergroup.shared.utils</code></td><td>Core middleware utilities — thread pool, credentials, REST/SOAP helpers</td></tr>
+            <tr><td><code>IntegrationJobs/</code></td><td><code>innovate.tamergroup.vendhq.*</code></td><td>Quartz scheduler, integration processors, mapping, persistence, email alerts, ADF beans</td></tr>
+            <tr><td><code>JPAProject/</code></td><td><code>innovate.tamergroup.persistence.*</code></td><td>JPA 2.1 entities + EJB 3.x stateless session bean</td></tr>
+            <tr><td><code>FusionSOAPClient/</code></td><td><code>innovate.tamergroup.fusion.soap.*</code></td><td>Oracle Fusion SOAP service clients, models, transforms, JAX-WS stubs</td></tr>
+            <tr><td><code>FusionRESTClient/</code></td><td><code>innovate.tamergroup.fusion.rest.*</code></td><td>Oracle Fusion REST API clients (SCM inventory, items, UOM)</td></tr>
+            <tr><td><code>VendHQRESTClient/</code></td><td><code>innovate.tamergroup.vendhq.*</code></td><td>VendHQ POS REST API client + POJO models</td></tr>
+            <tr><td><code>OpencartRESTClient/</code></td><td><code>innovate.tamergroup.opencart.rest.*</code></td><td>Opencart e-commerce REST client + POJO models</td></tr>
+            <tr><td><code>EJBClient/</code></td><td><code>innovate.tamergroup.ejb.*</code></td><td>JNDI lookup utilities for EJB remote access</td></tr>
+            <tr><td><code>ViewController/</code></td><td>—</td><td>Oracle ADF UI pages (JSF / JSPX)</td></tr>
+            <tr><td><code>Model/</code></td><td><code>model</code></td><td>Oracle ADF BC4J model components (ViewObject rows, list implementations)</td></tr>
+            <tr><td><code>Conf/</code></td><td>—</td><td>Application server configuration files</td></tr>
+            <tr><td><code>resourcebundles/</code></td><td>—</td><td>i18n / localisation message bundles</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: ARCHITECTURE ══════════════════════════════════╗ -->
+    <section id="architecture">
+      <h2>Architecture Diagram</h2>
+      <div class="arch">
+┌──────────────────────────────────────────────────────┐
+│          Oracle ADF UI (JSF / JSPX)                  │
+│          ViewController — login, monitoring          │
+│          IntegrationSchedulerBean (ADF managed bean) │
+└────────────────────┬─────────────────────────────────┘
+                     │ start / stop / manual trigger
+                     ▼
+┌──────────────────────────────────────────────────────┐
+│         VendHQIntegrationScheduler                   │
+│         Quartz 2.x — 4 cron/simple triggers          │
+└────────────────────┬─────────────────────────────────┘
+                     │ fires Quartz Job
+                     ▼
+┌──────────────────────────────────────────────────────┐
+│         BackgroundTaskExecutor (Singleton)           │
+│         4-thread FixedThreadPool                     │
+│         SharedResources middleware                   │
+└────────────────────┬─────────────────────────────────┘
+                     │ submits Runnable + ExecutionListener
+                     ▼
+┌──────────────────────────────────────────────────────┐
+│         Integration Processors                       │
+│  ├─ VendHQSalesToFusionInvRecIntParallel             │
+│  ├─ FusionItemsToVendHQItemsIntegration              │
+│  ├─ FusionInvToVendHQInvIntegration                  │
+│  └─ FusionOnHandQtyFetch                             │
+│                                                      │
+│         (Fetch → Transform → Persist → Track → Alert)│
+└────────────┬─────────────────────┬───────────────────┘
+             │ REST calls           │ SOAP calls
+             ▼                      ▼
+┌────────────────────┐  ┌───────────────────────────────┐
+│ REST Clients       │  │ SOAP Clients (JAX-WS)         │
+│ ├─ FusionREST      │  │ ├─ FusionInvoiceClient        │
+│ │  (items/inv/uom) │  │ ├─ FusionReceiptClient        │
+│ ├─ VendHQREST      │  │ ├─ FusionMiscReceiptClient    │
+│ └─ OpencartREST    │  │ ├─ FusionJournalClient        │
+└─────────┬──────────┘  │ ├─ FusionItemClient           │
+          │             │ ├─ FusionCustomerProfileClient│
+          │             │ └─ FusionExternalBankClient   │
+          │             └──────────┬────────────────────┘
+          │                        │
+          ▼                        ▼
+┌────────────────────┐  ┌──────────────────────────────┐
+│ VendHQ POS API     │  │ Oracle Fusion ERP            │
+│ Opencart API       │  │ (fscmService REST + SOAP)    │
+└────────────────────┘  └──────────────────────────────┘
+          │
+          ▼
+┌──────────────────────────────────────────────────────┐
+│  Oracle Database (JPA 2.1 / EJB 3.x)                │
+│  ├─ Integration status &amp; tracking                    │
+│  ├─ Backup VendHQ sales / payments / line items      │
+│  ├─ Fusion credentials &amp; metadata                    │
+│  └─ Outlet / register configuration                  │
+└──────────────────────────────────────────────────────┘
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: TECH STACK ════════════════════════════════════╗ -->
+    <section id="tech-stack">
+      <h2>Technology Stack</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+          <tbody>
+            <tr><td>Language</td><td>Java SE 8+</td></tr>
+            <tr><td>UI Framework</td><td>Oracle ADF 12.x (JSF / ADF Faces)</td></tr>
+            <tr><td>Application Server</td><td>Oracle WebLogic Server 12.x</td></tr>
+            <tr><td>Scheduler</td><td>Quartz 2.x (cron &amp; simple triggers)</td></tr>
+            <tr><td>Persistence</td><td>JPA 2.1 + EJB 3.x (Stateless Session Bean)</td></tr>
+            <tr><td>SOAP / Web Services</td><td>JAX-WS (auto-generated from Oracle Fusion WSDL)</td></tr>
+            <tr><td>HTTP Client</td><td>OkHttpClient 3.x</td></tr>
+            <tr><td>JSON Serialisation</td><td>Gson</td></tr>
+            <tr><td>Database</td><td>Oracle Database 11g+</td></tr>
+            <tr><td>Email</td><td>JavaMail API (exception alerting)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: SHAREDRESOURCES MIDDLEWARE ════════════════════╗ -->
+    <section id="middleware">
+      <h2>SharedResources Middleware</h2>
+      <p>Package: <code>innovate.tamergroup.shared.utils</code> — core utilities shared by all integration modules.</p>
+    </section>
+
+    <!-- ── BackgroundTaskExecutor ─────────────────────────────────── -->
+    <section id="background-executor">
+      <h2>BackgroundTaskExecutor</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/BackgroundTaskExecutor.java</code></p>
+      <p>A <strong>Singleton</strong> thread-pool manager backed by a 4-thread fixed-size <code>ExecutorService</code>. Integration tasks are submitted here to prevent long-running jobs from blocking the ADF UI thread.</p>
+      <pre><code>BackgroundTaskExecutor executor = BackgroundTaskExecutor.getInstance();
+executor.execute(
+    () -&gt; { /* integration logic */ },
+    () -&gt; schedulerBean.setStatus(Constants.IDLE)  // ExecutionListener callback
+);</code></pre>
+      <p>The second argument is an <code>ExecutionListener</code> whose <code>onExecutionComplete()</code> is called after the task finishes successfully.</p>
+    </section>
+
+    <!-- ── Constants ──────────────────────────────────────────────── -->
+    <section id="constants">
+      <h2>Constants</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/Constants.java</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Constant</th><th>Value</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>RUNNING</code></td><td><code>"RUNNING"</code></td><td>Job is actively executing</td></tr>
+            <tr><td><code>IDLE</code></td><td><code>"IDLE"</code></td><td>No job is executing</td></tr>
+            <tr><td><code>AUTOMATIC</code></td><td><code>"AUTOMATIC"</code></td><td>Scheduler triggered by Quartz cron</td></tr>
+            <tr><td><code>MANUAL</code></td><td><code>"MANUAL"</code></td><td>Scheduler triggered by user via UI</td></tr>
+            <tr><td><code>NONE</code></td><td><code>"NONE"</code></td><td>Scheduler not yet started</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Credential ─────────────────────────────────────────────── -->
+    <section id="credential">
+      <h2>Credential</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/Credential.java</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mode</th><th>Constructor</th><th><code>toString()</code> output</th></tr></thead>
+          <tbody>
+            <tr><td>Basic Auth</td><td><code>new Credential(username, password)</code></td><td>Base64-encoded <code>"username:password"</code></td></tr>
+            <tr><td>Token / Bearer</td><td><code>new Credential(token)</code></td><td>Raw token string</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── RESTUtils ──────────────────────────────────────────────── -->
+    <section id="rest-utils">
+      <h2>RESTUtils</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/RESTUtils.java</code></p>
+      <p>Provides <code>configureToIgnoreCertificate(OkHttpClient.Builder)</code> — disables TLS certificate and hostname validation for sandbox / test environments.</p>
+      <div class="callout danger">
+        <span class="callout-icon">⚠️</span>
+        <div><strong>Never use <code>configureToIgnoreCertificate()</code> in production.</strong> It disables all TLS certificate and hostname validation, leaving connections open to man-in-the-middle attacks.</div>
+      </div>
+    </section>
+
+    <!-- ── SOAPUtils ──────────────────────────────────────────────── -->
+    <section id="soap-utils">
+      <h2>SOAPUtils</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/SOAPUtils.java</code></p>
+      <p>Configures Oracle Fusion JAX-WS port stubs with HTTP Basic Authentication credentials via:</p>
+      <pre><code>SOAPUtils.setCredentials((BindingProvider) port, credential);</code></pre>
+      <p>Internally sets <code>USERNAME_PROPERTY</code> and <code>PASSWORD_PROPERTY</code> on the <code>RequestContext</code>.</p>
+    </section>
+
+    <!-- ── FusionAppDomain ────────────────────────────────────────── -->
+    <section id="fusion-app-domain">
+      <h2>FusionAppDomain</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/FusionAppDomain.java</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Constant</th><th>Path Segment</th><th>Used For</th></tr></thead>
+          <tbody>
+            <tr><td><code>SCM</code></td><td><code>"scm"</code></td><td>Supply Chain / Inventory REST APIs</td></tr>
+            <tr><td><code>FIN</code></td><td><code>"fin"</code></td><td>Financials / Accounts Receivable REST APIs</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── FusionAppParams ────────────────────────────────────────── -->
+    <section id="fusion-app-params">
+      <h2>FusionAppParams</h2>
+      <p><strong>File:</strong> <code>SharedResources/src/innovate/tamergroup/shared/utils/FusionAppParams.java</code></p>
+      <p>Holds runtime-configurable Oracle Fusion connection parameters (base URL, username, password, region) used by all REST and SOAP clients when building request URLs and credentials.</p>
+    </section>
+
+    <!-- ╔══ SECTION: SCHEDULER ═════════════════════════════════════╗ -->
+    <section id="scheduler">
+      <h2>Scheduler Overview</h2>
+      <p>The scheduler layer lives in <code>IntegrationJobs/src/innovate/tamergroup/vendhq/jobs/</code> and is based on <strong>Quartz 2.x</strong>.</p>
+    </section>
+
+    <section id="scheduler-jobs">
+      <h2>Quartz Jobs</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/…/jobs/VendHQIntegrationScheduler.java</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Job Class</th><th>Trigger Type</th><th>Schedule</th><th>Processor Invoked</th></tr></thead>
+          <tbody>
+            <tr><td><code>FusionItemsToVendHQItemsJob</code></td><td>CronTrigger</td><td>Every 6 hours (<code>0 0 0/6 1/1 * ? *</code>)</td><td><code>FusionItemsToVendHQItemsIntegration</code></td></tr>
+            <tr><td><code>VendHQSalesToFusionInvRecJob</code></td><td>CronTrigger</td><td>Daily at 03:00 (<code>0 0 3 1/1 * ? *</code>)</td><td><code>VendHQSalesToFusionInvRecIntParallel</code></td></tr>
+            <tr><td><code>VendHQSalesBackupJob</code></td><td>SimpleTrigger</td><td>Every 10 minutes</td><td><code>VendHQSalesToFusionInvRecIntBackup</code></td></tr>
+            <tr><td><code>FusionOnHandQtyJob</code></td><td>SimpleTrigger</td><td>Every 4 hours (currently commented out)</td><td><code>FusionOnHandQtyFetch</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="scheduler-bean">
+      <h2>IntegrationSchedulerBean</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/…/jobs/IntegrationSchedulerBean.java</code></p>
+      <p>An Oracle ADF-managed bean that exposes the scheduler to the UI. Key operations:</p>
+      <ul>
+        <li><strong>startScheduler()</strong> — initialises and starts the Quartz <code>Scheduler</code>, registers all jobs.</li>
+        <li><strong>stopScheduler()</strong> — gracefully shuts down the Quartz <code>Scheduler</code>.</li>
+        <li><strong>manualTrigger()</strong> — bypasses the cron schedule and runs the main integration processor immediately via <code>BackgroundTaskExecutor</code>.</li>
+        <li><strong>getStatus()</strong> — returns the current execution state (<code>IDLE</code>, <code>RUNNING</code>, <code>AUTOMATIC</code>, <code>MANUAL</code>, or <code>NONE</code>).</li>
+      </ul>
+    </section>
+
+    <!-- ╔══ SECTION: INTEGRATION PROCESSORS ═══════════════════════╗ -->
+    <section id="processors">
+      <h2>Integration Processors</h2>
+      <p>Package: <code>innovate.tamergroup.vendhq.integrations</code></p>
+      <p>Each processor follows the same pattern: <strong>Fetch → Transform → Persist → Track → Alert</strong>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Direction</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>VendHQSalesToFusionInvRecIntParallel</code></td><td>VendHQ → Fusion</td><td>Parallel processing of POS sales into Fusion Invoices, Standard Receipts, Misc Receipts, and GL Journals</td></tr>
+            <tr><td><code>VendHQSalesToFusionInvRecIntBackup</code></td><td>VendHQ → Oracle DB</td><td>Periodic backup of raw VendHQ sales to the Oracle database (runs every 10 min)</td></tr>
+            <tr><td><code>FusionItemsToVendHQItemsIntegration</code></td><td>Fusion → VendHQ</td><td>Syncs product catalogue from Oracle Fusion SCM to VendHQ</td></tr>
+            <tr><td><code>FusionInvToVendHQInvIntegration</code></td><td>Fusion → VendHQ</td><td>Syncs inventory on-hand quantities from Oracle Fusion to VendHQ outlet shelves</td></tr>
+            <tr><td><code>FusionOnHandQtyFetch</code></td><td>Fusion → Oracle DB</td><td>Fetches on-hand quantities from Oracle Fusion SCM and stores locally for reporting</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="proc-sales">
+      <h2>VendHQSalesToFusion Processor</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/…/integrations/VendHQSalesToFusionInvRecIntParallel.java</code></p>
+      <p>The primary sales integration processor. For each unprocessed VendHQ sale:</p>
+      <ol class="steps">
+        <li>Fetches pending sales from the local backup table via <code>SalesFusionPersistence</code>.</li>
+        <li>Groups sales by invoice key (date + customer type + credit flag).</li>
+        <li>Maps each sale group to an <code>InvoiceHeader</code> + <code>InvoiceLineModel</code> list via <code>FusionInvoiceMapping</code>.</li>
+        <li>Creates an AR invoice in Oracle Fusion via <code>FusionInvoiceClient.saveInvoice()</code>.</li>
+        <li>For each payment method in the sale, creates a Standard Receipt via <code>FusionReceiptClient.saveStandardReceipt()</code>.</li>
+        <li>Applies each receipt to the invoice via <code>FusionReceiptClient.saveApplyReceipt()</code>.</li>
+        <li>Creates bank-charge Misc Receipt via <code>FusionReceiptClient.saveMiscReceipt()</code>.</li>
+        <li>Creates an inventory transaction via <code>FusionInvTxnService</code>.</li>
+        <li>Creates a GL journal entry (non-NORMAL customers only) via <code>FusionJournalClient</code>.</li>
+        <li>Updates <code>SalesIntegrationStatus</code> to <code>PROCESSED</code> and sends an email summary via <code>ExceptionAlerter</code>.</li>
+      </ol>
+    </section>
+
+    <section id="proc-items">
+      <h2>FusionItemsToVendHQ Processor</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/…/integrations/FusionItemsToVendHQItemsIntegration.java</code></p>
+      <p>Fetches the Oracle Fusion item catalogue via <code>FusionItemsService</code>, transforms each item to a VendHQ <code>ProductCreate</code> via <code>FusionItemsToVendHQItemsTransformation</code>, and upserts into VendHQ using <code>InsertObjectVendHQ</code>. Brand and category metadata are persisted locally via <code>BrandVendHQPersistence</code> and <code>ItemVendHQPersistence</code>.</p>
+    </section>
+
+    <section id="proc-inventory">
+      <h2>FusionInventorySync Processor</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/…/integrations/FusionInvToVendHQInvIntegration.java</code></p>
+      <p>Fetches on-hand quantities per outlet per item from Oracle Fusion via <code>FusionAvailableQtyService</code>, transforms them via <code>FusionInvToVendHQInvTransformation</code>, and updates VendHQ inventory levels using <code>InsertObjectVendHQ</code>. Outlet mappings are loaded via <code>OutletVendHQPersistence</code>.</p>
+    </section>
+
+    <section id="proc-onhand">
+      <h2>FusionOnHandQtyFetch Processor</h2>
+      <p><strong>File:</strong> <code>IntegrationJobs/…/integrations/FusionOnHandQtyFetch.java</code></p>
+      <p>Fetches on-hand quantities from <code>FusionOnHandQtyService</code> and persists them to the Oracle database via <code>ItemOnHandSalesPersistence</code>. Used for local reporting without requiring a live Fusion call at query time.</p>
+    </section>
+
+    <!-- ╔══ SECTION: MAPPING ═══════════════════════════════════════╗ -->
+    <section id="mapping">
+      <h2>Mapping Classes</h2>
+      <p>Package: <code>innovate.tamergroup.vendhq.mapping</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Input</th><th>Output</th></tr></thead>
+          <tbody>
+            <tr><td><code>FusionInvoiceMapping</code></td><td>VendHQ Sale group</td><td><code>InvoiceHeader</code> + <code>List&lt;InvoiceLineModel&gt;</code></td></tr>
+            <tr><td><code>FusionStdReceiptMapping</code></td><td>VendHQ Payment</td><td><code>StandardReceiptRequest</code></td></tr>
+            <tr><td><code>FusionMiscReceiptMapping</code></td><td>Bank charge amount</td><td><code>MiscReceiptRequest</code></td></tr>
+            <tr><td><code>FusionApplyReceiptMapping</code></td><td>Receipt + Invoice numbers</td><td><code>ApplyReceiptRequest</code></td></tr>
+            <tr><td><code>FusionInvTxnMapping</code></td><td>VendHQ sale line items</td><td>Fusion Inventory Transaction payload</td></tr>
+            <tr><td><code>FusionJournalEntryMapping</code></td><td>VendHQ sale (non-NORMAL)</td><td><code>JournalHeader</code> + <code>List&lt;JournalLine&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: TRANSFORMATION ═════════════════════════════════╗ -->
+    <section id="transformation">
+      <h2>Transformation Classes</h2>
+      <p>Package: <code>innovate.tamergroup.vendhq.transformation</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Direction</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>FusionItemsToVendHQItemsTransformation</code></td><td>Fusion → VendHQ</td><td>Maps Fusion SCM item response to VendHQ <code>ProductCreate</code></td></tr>
+            <tr><td><code>FusionInvToVendHQInvTransformation</code></td><td>Fusion → VendHQ</td><td>Maps Fusion on-hand qty to VendHQ <code>InventoryUpdate</code></td></tr>
+            <tr><td><code>VendHQSalesToFusionInvRecTransBackup</code></td><td>VendHQ → Oracle DB</td><td>Prepares raw VendHQ sale for backup persistence</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>SOAP model-specific transforms live in <code>FusionSOAPClient/…/soap/transformation/</code> and are described in the <a href="#soap-clients">Fusion SOAP Clients</a> section.</p>
+    </section>
+
+    <!-- ╔══ SECTION: PERSISTENCE SERVICES ═════════════════════════╗ -->
+    <section id="persistence-services">
+      <h2>Persistence Services</h2>
+      <p>Package: <code>innovate.tamergroup.vendhq.persistence</code> — each class wraps the <code>SessionEJB</code> to perform typed queries and updates on specific entity tables.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Entity / Table</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>SalesFusionPersistence</code></td><td><code>SalesIntegrationStatus</code></td><td>Track per-sale integration state (PENDING / PROCESSED / FAILED)</td></tr>
+            <tr><td><code>BackupSalesVendHqPersistence</code></td><td><code>BackupVendhqSales</code> / <code>BackupVendhqLineItems</code> / <code>BackupVendhqPayments</code></td><td>Persist raw VendHQ sales backup every 10 minutes</td></tr>
+            <tr><td><code>ItemVendHQPersistence</code></td><td><code>VendhqItemMeta</code></td><td>Cache VendHQ item metadata for deduplication</td></tr>
+            <tr><td><code>BrandVendHQPersistence</code></td><td><code>VendhqBrandMeta</code></td><td>Cache VendHQ brand data</td></tr>
+            <tr><td><code>OutletVendHQPersistence</code></td><td><code>VendhqOutletsDB</code></td><td>Load outlet configuration and mapping</td></tr>
+            <tr><td><code>RegisterVendHQPersistence</code></td><td><code>VendhqRegisters</code></td><td>Load register metadata</td></tr>
+            <tr><td><code>TaxVendHQPersistence</code></td><td><code>VendhqTaxMeta</code></td><td>Load VendHQ tax definitions</td></tr>
+            <tr><td><code>InventoryFusionPersistence</code></td><td><code>FusionInvTxn</code></td><td>Track processed Fusion inventory transactions</td></tr>
+            <tr><td><code>ItemOnHandSalesPersistence</code></td><td><code>VendhqSaleItemsOnhand</code></td><td>Persist Fusion on-hand quantities for reporting</td></tr>
+            <tr><td><code>VendHQSettingsBean</code></td><td>Multiple config entities</td><td>Loads Fusion and VendHQ credentials from DB at startup</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: JPA ENTITIES ══════════════════════════════════╗ -->
+    <section id="jpa-entities">
+      <h2>JPA Entities</h2>
+      <p>Package: <code>innovate.tamergroup.persistence.entities</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Entity</th><th>Table (Oracle DB)</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>SalesIntegrationStatus</code></td><td><code>SALES_INTEGRATION_STATUS</code></td><td>Per-sale processing state with composite PK (<code>SalesIntegrationStatusPK</code>)</td></tr>
+            <tr><td><code>BackupVendhqSales</code></td><td><code>BACKUP_VENDHQ_SALES</code></td><td>Raw VendHQ sale header backup</td></tr>
+            <tr><td><code>BackupVendhqLineItems</code></td><td><code>BACKUP_VENDHQ_LINE_ITEMS</code></td><td>Raw VendHQ sale line items backup</td></tr>
+            <tr><td><code>BackupVendhqPayments</code></td><td><code>BACKUP_VENDHQ_PAYMENTS</code></td><td>Raw VendHQ payment methods backup</td></tr>
+            <tr><td><code>BackupVendhqPromotions</code></td><td><code>BACKUP_VENDHQ_PROMOTIONS</code></td><td>Raw VendHQ promotions backup</td></tr>
+            <tr><td><code>FusionCredentials</code></td><td><code>FUSION_CREDENTIALS</code></td><td>Oracle Fusion connection credentials</td></tr>
+            <tr><td><code>VendhqCredentials</code></td><td><code>VENDHQ_CREDENTIALS</code></td><td>VendHQ API connection credentials</td></tr>
+            <tr><td><code>FusionBusinessUnitIdMap</code></td><td><code>FUSION_BUSINESS_UNIT_ID_MAP</code></td><td>Maps region codes to Oracle Fusion OU/BU identifiers</td></tr>
+            <tr><td><code>FusionReceiptMethod</code></td><td><code>FUSION_RECEIPT_METHOD</code></td><td>Maps payment method names to Fusion receipt method IDs</td></tr>
+            <tr><td><code>FusionSalesMetadata</code></td><td><code>FUSION_SALES_METADATA</code></td><td>Supplementary per-sale metadata (customer type, transaction type, etc.)</td></tr>
+            <tr><td><code>FusionInvoiceHeader</code> / <code>FusionInvoiceLine</code></td><td><code>FUSION_INVOICE_HEADER</code> / <code>FUSION_INVOICE_LINE</code></td><td>Audit copies of created Fusion invoice headers and lines</td></tr>
+            <tr><td><code>FusionStandardReceipt</code></td><td><code>FUSION_STANDARD_RECEIPT</code></td><td>Audit copies of created standard receipts</td></tr>
+            <tr><td><code>FusionMiscReceipt</code></td><td><code>FUSION_MISC_RECEIPT</code></td><td>Audit copies of created miscellaneous receipts</td></tr>
+            <tr><td><code>FusionApplyReceipt</code></td><td><code>FUSION_APPLY_RECEIPT</code></td><td>Audit copies of apply-receipt operations</td></tr>
+            <tr><td><code>FusionInvTxn</code></td><td><code>FUSION_INV_TXN</code></td><td>Audit copies of Fusion inventory transactions</td></tr>
+            <tr><td><code>FusionJournalHeader</code> / <code>FusionJournalLine</code></td><td><code>FUSION_JOURNAL_HEADER</code> / <code>FUSION_JOURNAL_LINE</code></td><td>Audit copies of GL journal entries</td></tr>
+            <tr><td><code>FusionTransactionLines</code></td><td><code>FUSION_TRANSACTION_LINES</code></td><td>Line-level detail for Fusion transactions</td></tr>
+            <tr><td><code>VendhqOutletsDB</code></td><td><code>VENDHQ_OUTLETS</code></td><td>VendHQ outlet configuration and Oracle Fusion OU mapping</td></tr>
+            <tr><td><code>VendhqRegisters</code></td><td><code>VENDHQ_REGISTERS</code></td><td>VendHQ register metadata</td></tr>
+            <tr><td><code>VendhqItemMeta</code></td><td><code>VENDHQ_ITEM_META</code></td><td>Cached VendHQ item metadata</td></tr>
+            <tr><td><code>VendhqBrandMeta</code></td><td><code>VENDHQ_BRAND_META</code></td><td>Cached VendHQ brand data</td></tr>
+            <tr><td><code>VendhqTaxMeta</code></td><td><code>VENDHQ_TAX_META</code></td><td>VendHQ tax definitions</td></tr>
+            <tr><td><code>VendhqDiscountItems</code></td><td><code>VENDHQ_DISCOUNT_ITEMS</code></td><td>Configured discount line items</td></tr>
+            <tr><td><code>VendhqServiceProviders</code></td><td><code>VENDHQ_SERVICE_PROVIDERS</code></td><td>Service provider configurations</td></tr>
+            <tr><td><code>VendhqSaleItemsOnhand</code></td><td><code>VENDHQ_SALE_ITEMS_ONHAND</code></td><td>Snapshot of Fusion on-hand quantities</td></tr>
+            <tr><td><code>OutletsIntegrationConfig</code></td><td><code>OUTLETS_INTEGRATION_CONFIG</code></td><td>Per-outlet integration flags and settings</td></tr>
+            <tr><td><code>ServiceProviderJournalMapping</code></td><td><code>SERVICE_PROVIDER_JOURNAL_MAPPING</code></td><td>Maps service providers to GL accounts for journal entries</td></tr>
+            <tr><td><code>TxnQuantityDecimals</code></td><td><code>TXN_QUANTITY_DECIMALS</code></td><td>Decimal precision rules per item / transaction type</td></tr>
+            <tr><td><code>OpeningBalanceDB</code></td><td><code>OPENING_BALANCE</code></td><td>Opening balance records for AR reconciliation</td></tr>
+            <tr><td><code>NotificationEmailRecipients</code></td><td><code>NOTIFICATION_EMAIL_RECIPIENTS</code></td><td>Email addresses for exception alerting</td></tr>
+            <tr><td><code>OpencartGlobalSites</code></td><td><code>OPENCART_GLOBAL_SITES</code></td><td>Opencart site configuration</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: EJB ═══════════════════════════════════════════╗ -->
+    <section id="ejb">
+      <h2>EJB Session Bean</h2>
+      <p>Package: <code>innovate.tamergroup.persistence.session</code></p>
+      <ul>
+        <li><strong>SessionEJB</strong> — <code>@Local</code> and <code>@Remote</code> interfaces defining the JPA operations.</li>
+        <li><strong>SessionEJBBean</strong> — <code>@Stateless</code> implementation; wraps <code>EntityManager</code> for persist, merge, remove, and named queries.</li>
+        <li><strong>SessionEJBLocal</strong> — local interface for in-process calls within the same JVM.</li>
+      </ul>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>The persistence unit targets an Oracle DataSource configured in WebLogic and referenced in <code>JPAProject/src/META-INF/persistence.xml</code>.</div>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: EJB CLIENT ════════════════════════════════════╗ -->
+    <section id="ejb-client">
+      <h2>EJB Client</h2>
+      <p>Package: <code>innovate.tamergroup.ejb.*</code></p>
+      <ul>
+        <li><strong>EJBClientUtil</strong> — utility for JNDI lookup of the remote <code>SessionEJB</code> from external JVMs.</li>
+        <li><strong>SessionEJBClient</strong> — thin wrapper that uses <code>EJBClientUtil</code> to obtain the remote EJB reference and delegates calls.</li>
+      </ul>
+      <pre><code>SessionEJB ejb = EJBClientUtil.lookup(SessionEJB.class, "SessionEJBBean#remote");
+ejb.persist(entity);</code></pre>
+    </section>
+
+    <!-- ╔══ SECTION: FUSION SOAP CLIENTS ═══════════════════════════╗ -->
+    <section id="soap-clients">
+      <h2>Fusion SOAP Clients — Overview</h2>
+      <p>Package: <code>innovate.tamergroup.fusion.soap.services</code></p>
+      <p>All clients use <strong>JAX-WS</strong> stubs auto-generated from Oracle Fusion WSDL files. Authentication is applied via <code>SOAPUtils.setCredentials()</code> and credentials are loaded from <code>FusionAppParams</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Client Class</th><th>WSDL Service</th><th>Key Method</th></tr></thead>
+          <tbody>
+            <tr><td><code>FusionInvoiceClient</code></td><td><code>RecInvoiceService</code></td><td><code>saveInvoice(InvoiceHeader)</code></td></tr>
+            <tr><td><code>FusionReceiptClient</code></td><td><code>StandardReceiptService</code></td><td><code>saveStandardReceipt()</code>, <code>saveMiscReceipt()</code>, <code>saveApplyReceipt()</code></td></tr>
+            <tr><td><code>FusionJournalClient</code></td><td><code>JournalImportService</code></td><td><code>saveJournal(JournalHeader)</code></td></tr>
+            <tr><td><code>FusionItemClient</code></td><td><code>ItemServiceV2</code></td><td><code>getItem()</code>, <code>createItem()</code></td></tr>
+            <tr><td><code>FusionCustomerProfileClient</code></td><td><code>CustomerProfileService</code></td><td><code>getPaymentTerms(accountNumber)</code></td></tr>
+            <tr><td><code>FusionExternalBankClient</code></td><td><code>BankAccountServiceV2</code></td><td><code>getBankAccount(accountName)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-invoice">
+      <h2>FusionInvoiceClient — Standard Invoice</h2>
+      <p><strong>Purpose:</strong> Creates a receivables invoice in Oracle Fusion AR for a VendHQ POS sale.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/RecInvoiceService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createSimpleInvoice</code></td></tr>
+            <tr><td>Transform class</td><td><code>FusionInvoiceTransform</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="fusion-invoice-model">InvoiceHeader Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>billToCustomerName</code></td><td>String</td><td>Customer name for the bill-to party</td></tr>
+            <tr><td><code>billToLocation</code></td><td>String</td><td>Customer site / location number</td></tr>
+            <tr><td><code>billToAccountNumber</code></td><td>String</td><td>Customer account number in Fusion</td></tr>
+            <tr><td><code>businessUnit</code></td><td>String</td><td>Oracle Fusion business unit name</td></tr>
+            <tr><td><code>transactionSource</code></td><td>String</td><td>Transaction source (e.g. <code>Manual</code>)</td></tr>
+            <tr><td><code>transactionType</code></td><td>String</td><td>Transaction type (e.g. <code>PASA CONSULTING SALE</code>)</td></tr>
+            <tr><td><code>invoiceCurrencyCode</code></td><td>String</td><td>ISO currency code (e.g. <code>AED</code>)</td></tr>
+            <tr><td><code>conversionRateType</code></td><td>String</td><td><code>Corporate</code> or <code>User</code></td></tr>
+            <tr><td><code>paymentTermsName</code></td><td>String</td><td>Payment terms fetched live from CustomerProfileService</td></tr>
+            <tr><td><code>saleDate</code></td><td>Date</td><td>Invoice date and GL date</td></tr>
+            <tr><td><code>invoiceLines</code></td><td>List&lt;InvoiceLineModel&gt;</td><td>One entry per product / discount line</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>InvoiceLineModel Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>lineNumber</code></td><td>Integer</td><td>Sequential line number</td></tr>
+            <tr><td><code>itemNumber</code></td><td>String</td><td>Oracle Fusion inventory item number</td></tr>
+            <tr><td><code>memoLineName</code></td><td>String</td><td>Memo line name (used for discount lines)</td></tr>
+            <tr><td><code>description</code></td><td>String</td><td>Line description</td></tr>
+            <tr><td><code>quantity</code></td><td>BigDecimal</td><td>Quantity sold</td></tr>
+            <tr><td><code>uomCode</code></td><td>String</td><td>Unit of measure code</td></tr>
+            <tr><td><code>unitSellingPrice</code></td><td>BigDecimal</td><td>Selling price per unit</td></tr>
+            <tr><td><code>currencyCode</code></td><td>String</td><td>Line currency code</td></tr>
+            <tr><td><code>salesOrder</code></td><td>String</td><td>VendHQ invoice number (sales order reference)</td></tr>
+            <tr><td><code>taxClassificationCode</code></td><td>String</td><td>Tax classification code</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-receipt">
+      <h2>FusionReceiptClient — Standard Receipt</h2>
+      <p><strong>Purpose:</strong> Creates a cash or bank receipt in Oracle Fusion AR and links it to a payment method.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/StandardReceiptService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createStandardReceipt</code></td></tr>
+            <tr><td>Transform class</td><td><code>FusionStdReceiptTransform</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="fusion-receipt-model">StandardReceiptRequest Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>currencyCode</code></td><td>String</td><td>✔</td><td>ISO 4217 currency code (e.g. <code>AED</code>)</td></tr>
+            <tr><td><code>saleDate</code></td><td>Date</td><td>✔</td><td>Receipt date; also used as glDate and depositDate</td></tr>
+            <tr><td><code>receiptMethodId</code></td><td>Long</td><td>✔</td><td>Fusion payment-method ID</td></tr>
+            <tr><td><code>receiptNumber</code></td><td>String</td><td>✔</td><td>Unique receipt identifier — <code>paymentType + "-" + transactionNumber</code></td></tr>
+            <tr><td><code>remittanceBankAccountId</code></td><td>Long</td><td>✔</td><td>Fusion cash or bank account ID</td></tr>
+            <tr><td><code>accountValue</code></td><td>String</td><td>✔</td><td>Bill-to customer account number</td></tr>
+            <tr><td><code>orgId</code></td><td>Long</td><td>✔</td><td>Fusion Operating Unit ID</td></tr>
+            <tr><td><code>receiptAmount</code></td><td>BigDecimal</td><td>✔</td><td>Total amount received</td></tr>
+            <tr><td><code>region</code></td><td>String</td><td>—</td><td>Region code for duplicate-check (not sent to Fusion)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-misc-receipt">
+      <h2>FusionReceiptClient — Miscellaneous Receipt</h2>
+      <p><strong>Purpose:</strong> Creates a miscellaneous (non-customer) receipt for cash-rounding adjustments and bank charges posted to a receivable activity account.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/MiscellaneousReceiptService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createMiscellaneousReceipt</code></td></tr>
+            <tr><td>Transform class</td><td><code>FusionMiscReceiptTransform</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="fusion-misc-model">MiscReceiptRequest Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>currencyCode</code></td><td>String</td><td>ISO currency code</td></tr>
+            <tr><td><code>saleDate</code></td><td>Date</td><td>Receipt date and GL date</td></tr>
+            <tr><td><code>receiptMethodId</code></td><td>Long</td><td>Payment method ID in Fusion</td></tr>
+            <tr><td><code>receiptMethodName</code></td><td>String</td><td>Payment method name (e.g. <code>Cash</code>, <code>Credit Card</code>)</td></tr>
+            <tr><td><code>receiptNumber</code></td><td>String</td><td>Unique receipt number — <code>{PaymentType}-{TransactionNumber}-MISC</code></td></tr>
+            <tr><td><code>bankAccountName</code></td><td>String</td><td>Bank account name; uses cash account for rounding</td></tr>
+            <tr><td><code>receivableActivityName</code></td><td>String</td><td>Receivable activity to post to (e.g. <code>Cash Rounding</code>)</td></tr>
+            <tr><td><code>orgId</code></td><td>Long</td><td>Oracle Fusion operating unit / org ID</td></tr>
+            <tr><td><code>receiptAmount</code></td><td>BigDecimal</td><td>Receipt amount (negative for cash-rounding adjustments)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-apply-receipt">
+      <h2>FusionReceiptClient — Apply Receipt to Invoice</h2>
+      <p><strong>Purpose:</strong> Applies an existing standard receipt to a specific customer invoice, clearing the open receivable balance.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>.../fscmService/StandardReceiptService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>createApplyReceipt</code></td></tr>
+            <tr><td>Transform class</td><td><code>FusionApplyReceiptTransform</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="fusion-apply-model">ApplyReceiptRequest Fields</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>receiptNumber</code></td><td>String</td><td>✔</td><td>Must match a previously created receipt</td></tr>
+            <tr><td><code>transactionNumber</code></td><td>String</td><td>✔</td><td>Fusion invoice transaction number to apply against</td></tr>
+            <tr><td><code>amountApplied</code></td><td>BigDecimal</td><td>✔</td><td>Amount to apply; may be adjusted by −0.01 per retry for rounding</td></tr>
+            <tr><td><code>receiptCurrency</code></td><td>String</td><td>✔</td><td>Currency code (must match the receipt currency)</td></tr>
+            <tr><td><code>receiptDate</code></td><td>Date</td><td>✔</td><td>Used as both accountingDate and applicationDate</td></tr>
+            <tr><td><code>transactionSource</code></td><td>String</td><td>✔</td><td>Source system identifier (e.g. <code>VendHQ</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-journal">
+      <h2>FusionJournalClient — GL Journal</h2>
+      <p><strong>Purpose:</strong> Creates a General Ledger journal entry in Oracle Fusion Financials for non-NORMAL customer sales (bank charges, service provider fees).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/JournalImportService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>importAutomatedJournalEntry</code></td></tr>
+            <tr><td>Transform class</td><td><code>FusionJournalTransform</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The <code>JournalHeader</code> carries the ledger, period name, currency, and a list of <code>JournalLine</code> objects each specifying the account CCID and credit/debit amounts.</p>
+    </section>
+
+    <section id="soap-item">
+      <h2>FusionItemClient — Item Service</h2>
+      <p><strong>Purpose:</strong> Looks up and creates items in the Oracle Fusion product catalogue.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/ItemServiceV2?WSDL</code></td></tr>
+            <tr><td>SOAP Operations</td><td><code>findItem</code>, <code>createItem</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-customer-profile">
+      <h2>FusionCustomerProfileClient</h2>
+      <p><strong>Purpose:</strong> Retrieves the payment terms for a bill-to customer from Oracle Fusion AR before creating an invoice.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/CustomerProfileService?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>findCustomerProfile</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="soap-bank">
+      <h2>FusionExternalBankClient</h2>
+      <p><strong>Purpose:</strong> Looks up the Fusion bank account ID by account name to populate <code>remittanceBankAccountId</code> on standard receipts.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>WSDL</td><td><code>https://{hostname}.fa.{region}.oraclecloud.com/fscmService/BankAccountServiceV2?WSDL</code></td></tr>
+            <tr><td>SOAP Operation</td><td><code>findBankAccount</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: FUSION REST CLIENTS ═══════════════════════════╗ -->
+    <section id="rest-clients">
+      <h2>Fusion REST Clients — Overview</h2>
+      <p>Package: <code>innovate.tamergroup.fusion.rest.services</code></p>
+      <p>All clients use <code>OkHttpClient</code> with Basic Auth (via <code>Credential</code>) and base URL from <code>FusionAppParams</code>. Responses are deserialised using Gson.</p>
+    </section>
+
+    <section id="rest-items">
+      <h2>FusionItemsService</h2>
+      <p>Fetches the Oracle Fusion product catalogue via the SCM REST API. Supports pagination using <code>limit</code> and <code>offset</code> query parameters.</p>
+      <pre><code>GET /fscmRestApi/resources/latest/items?limit=500&amp;offset=0</code></pre>
+    </section>
+
+    <section id="rest-inventory">
+      <h2>Inventory REST Services</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Endpoint</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>FusionAvailableQtyService</code></td><td><code>GET /inventoryAvailableToTransact</code></td><td>On-hand qty per item per sub-inventory / outlet</td></tr>
+            <tr><td><code>FusionOnHandQtyService</code></td><td><code>GET /inventoryOnhandBalances</code></td><td>Full on-hand balance query for reporting</td></tr>
+            <tr><td><code>FusionInvOrgService</code></td><td><code>GET /inventoryOrganizations</code></td><td>Resolves Fusion inventory organisation IDs</td></tr>
+            <tr><td><code>FusionSubinventoryService</code></td><td><code>GET /inventorySubinventories</code></td><td>Lists sub-inventories per organisation</td></tr>
+            <tr><td><code>FusionInvTxnService</code></td><td><code>POST /inventoryTransactions</code></td><td>Creates stock movement records in Fusion SCM</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="rest-uom">
+      <h2>FusionUomService</h2>
+      <p>Fetches Oracle Fusion unit-of-measure (UOM) codes and caches them in memory for the duration of the integration run.</p>
+      <pre><code>GET /fscmRestApi/resources/latest/unitsOfMeasure</code></pre>
+    </section>
+
+    <!-- ╔══ SECTION: VENDHQ CLIENT ══════════════════════════════════╗ -->
+    <section id="vendhq-client">
+      <h2>VendHQ REST Client</h2>
+      <p>Package: <code>innovate.tamergroup.vendhq</code> — <code>VendHQRESTClient/</code> module.</p>
+
+      <h3>Utility Classes</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>FetchListVendHQ</code></td><td>Generic paginated GET for list resources (products, outlets, sales, etc.)</td></tr>
+            <tr><td><code>FetchSingleVendHQ</code></td><td>GET for a single resource by ID</td></tr>
+            <tr><td><code>InsertObjectVendHQ</code></td><td>POST / PUT to create or update a resource (products, inventory)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Key POJO Models</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model Package</th><th>Classes</th></tr></thead>
+          <tbody>
+            <tr><td><code>model/products/</code></td><td><code>Product</code>, <code>ProductCreate</code>, <code>InventoryUpdate</code>, <code>Brand</code>, <code>Category</code>, <code>Type</code>, <code>Image</code></td></tr>
+            <tr><td><code>model/sales/</code></td><td>Sale, line items, payments, promotions</td></tr>
+            <tr><td><code>model/customers/</code></td><td>Customer profile model</td></tr>
+            <tr><td><code>model/outlets/</code></td><td>Outlet configuration</td></tr>
+            <tr><td><code>model/registers/</code></td><td>Register metadata</td></tr>
+            <tr><td><code>model/tax/</code></td><td>Tax definitions</td></tr>
+            <tr><td><code>model/shared/</code></td><td>Shared types and pagination wrappers</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: OPENCART CLIENT ════════════════════════════════╗ -->
+    <section id="opencart-client">
+      <h2>Opencart REST Client</h2>
+      <p>Package: <code>innovate.tamergroup.opencart.rest</code> — <code>OpencartRESTClient/</code> module.</p>
+
+      <h3>Utility Classes</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>FetchListOpencart</code></td><td>Generic paginated GET for Opencart list resources</td></tr>
+            <tr><td><code>InsertObjectOpencart</code></td><td>POST to create products and related resources in Opencart</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Key POJO Models</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model Package</th><th>Classes</th></tr></thead>
+          <tbody>
+            <tr><td><code>model/product/fetch/</code></td><td><code>Product</code>, <code>Category</code>, <code>Option</code>, <code>OptionValue</code>, <code>Discount</code>, <code>Special</code>, <code>ProductAttributes</code>, <code>Reviews</code></td></tr>
+            <tr><td><code>model/product/post/</code></td><td><code>ProductPost</code>, <code>ProductOptionPost</code>, <code>ProductOptionValuePost</code>, <code>ProductDescriptionPost</code>, <code>ProductAttributePost</code>, <code>ProductSpecialPost</code>, <code>ProductDiscountPost</code></td></tr>
+            <tr><td><code>model/order/</code></td><td><code>Order</code>, <code>OrderProduct</code>, <code>OrderProductOption</code>, <code>ShippingLine</code>, <code>History</code></td></tr>
+            <tr><td><code>model/shared/</code></td><td><code>OpencartListResponse</code>, pagination wrappers</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: ADF UI ════════════════════════════════════════╗ -->
+    <section id="adf-ui">
+      <h2>ADF ViewController</h2>
+      <p>Module: <code>ViewController/</code> — Oracle ADF JSF/JSPX pages served by WebLogic.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Page / File</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>public_html/login.html</code></td><td>Application login page</td></tr>
+            <tr><td><code>public_html/error.html</code></td><td>Error display page</td></tr>
+            <tr><td>ADF Managed Bean: <code>IntegrationSchedulerBean</code></td><td>Exposed to UI for start/stop/manual-trigger actions</td></tr>
+            <tr><td>ADF Managed Bean: <code>InvoiceDetailsBean</code></td><td>Displays processed invoice details in the UI</td></tr>
+            <tr><td>ADF Managed Bean: <code>ProgressIndicatorBean</code></td><td>Tracks and displays integration progress</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: EMAIL ALERTING ════════════════════════════════╗ -->
+    <section id="email-alerting">
+      <h2>Email Alerting</h2>
+      <p>Package: <code>innovate.tamergroup.email</code></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>ExceptionAlerter</code></td><td>Sends formatted HTML email alerts when an integration exception occurs; reads recipients from <code>NotificationEmailRecipients</code> entity</td></tr>
+            <tr><td><code>SendEmailNotification</code></td><td>Low-level JavaMail helper for composing and sending email messages</td></tr>
+            <tr><td><code>LoggerHelper</code></td><td>Thin wrapper around <code>java.util.logging.Logger</code> for consistent log formatting across all integration classes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ╔══ SECTION: 8-STEP SEQUENCE ═══════════════════════════════╗ -->
+    <section id="fusion-sequence">
+      <h2>Full 8-Step Oracle Fusion API Sequence</h2>
+      <p>Executed by <code>VendHQSalesToFusionInvRecIntParallel</code> for each sale group:</p>
+      <ol class="steps">
+        <li><code>GET /customers</code> (REST) — resolve CustomerId / OrgId via customer account number</li>
+        <li><code>GET /unitsOfMeasure</code> (REST) — resolve Oracle UOM codes (cached per run)</li>
+        <li><code>createSimpleInvoice</code> (SOAP) — create AR invoice via <code>FusionInvoiceClient</code></li>
+        <li><code>createStandardReceipt</code> (SOAP) — create standard receipt per payment method via <code>FusionReceiptClient</code></li>
+        <li><code>createApplyReceipt</code> (SOAP) — link each receipt to the invoice via <code>FusionReceiptClient</code></li>
+        <li><code>createMiscellaneousReceipt</code> (SOAP) — create bank-charge receipt via <code>FusionReceiptClient</code></li>
+        <li><code>POST /inventoryTransactions</code> (REST) — create stock movement records via <code>FusionInvTxnService</code></li>
+        <li><code>importAutomatedJournalEntry</code> (SOAP) — create GL journal for non-NORMAL customers via <code>FusionJournalClient</code></li>
+      </ol>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>Steps 7 and 8 are conditional: step 7 only runs when the sale includes physical inventory items; step 8 only runs for non-NORMAL customer types (e.g. service providers).</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════════ -->
+<footer>
+  <div>integration-Oracle — Java Middleware Documentation</div>
+  <div>Oracle Fusion · VendHQ · Opencart · Java EE / ADF</div>
+  <span>
+    <a href="https://github.com/MUSTAQ-AHAMMAD/integration-Oracle" target="_blank">GitHub Repository ↗</a>
+  </span>
+</footer>
+
+<!-- ── Active nav highlight on scroll ──────────────────────────────── -->
+<script>
+  (function () {
+    const links = document.querySelectorAll('aside a[href^="#"]');
+    const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+
+    function onScroll() {
+      const scrollY = window.scrollY + 80;
+      let active = sections[0];
+      for (const s of sections) {
+        if (s.offsetTop <= scrollY) active = s;
+      }
+      links.forEach(l => l.classList.remove('active'));
+      const hit = document.querySelector(`aside a[href="#${active.id}"]`);
+      if (hit) hit.classList.add('active');
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+</body>
+</html>
